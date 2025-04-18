@@ -1,0 +1,53 @@
+### Deposits Path
+POST http://localhost:8080/catalog/observed-fields
+Content-Type: application/json
+
+[{
+  "pathType": "deposits",
+  "action": "Fulfillment",
+  "productCode": "DDA",
+  "productSubCode": "4S",
+  "xpath": "/Ceremony/Accounts/Account/FeeCode/Amount",
+  "dataType": "data",
+  "count": 1,
+  "hasNull": false,
+  "hasEmpty": false
+}]
+
+### Loans Path
+POST http://localhost:8080/catalog/observed-fields
+Content-Type: application/json
+
+[{
+  "pathType": "loans",
+  "loanProductCode": "HEQF",
+  "xpath": "/BMIC/Application/FICO",
+  "dataType": "data",
+  "count": 1,
+  "hasNull": false,
+  "hasEmpty": false
+}]
+
+### OnDemand Path
+POST http://localhost:8080/catalog/observed-fields
+Content-Type: application/json
+
+[{
+  "pathType": "ondemand",
+  "formCode": "ACK123",
+  "formVersion": "1.0",
+  "xpath": "/eDocument/PrimaryCustomer/Name/First",
+  "dataType": "data",
+  "count": 1,
+  "hasNull": false,
+  "hasEmpty": false
+}]
+
+### Get Catalog Fields
+GET http://localhost:8080/catalog/fields?pathType=deposits&productCode=DDA&productSubCode=4S&page=0&size=10
+
+### Get Catalog Fields (all, paged)
+GET http://localhost:8080/catalog/fields?page=0&size=10
+
+### Get Catalog Fields (with xpath filter)
+GET http://localhost:8080/catalog/fields?xpathContains=FeeCode&page=0&size=10

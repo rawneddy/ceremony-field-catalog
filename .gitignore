@@ -1,0 +1,46 @@
+# Ignore Maven target directory
+/target/
+
+# Ignore IDE files
+/.classpath
+/.project
+/.settings/
+/.vscode/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore logs
+*.log
+
+# Ignore compiled class files
+*.class
+
+# Ignore test output
+/test-output/
+
+# Ignore build artifacts
+*.jar
+*.war
+*.ear
+
+# Ignore local environment files
+.env
+
+# Ignore IntelliJ IDEA files
+/.idea/
+*.iml
+
+# Ignore VS Code launch configs
+/.vscode/launch.json
+
+# Ignore generated files
+/generated-sources/
+/generated-test-sources/
+
+# Ignore surefire reports
+/surefire-reports/
+
+# Ignore Maven status
+/maven-status/
