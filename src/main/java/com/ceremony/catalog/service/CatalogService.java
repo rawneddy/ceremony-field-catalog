@@ -19,37 +19,41 @@ public class CatalogService {
     private final CatalogRepository repository;
     public void merge(List<CatalogObservationDTO> observations) {
         if (observations == null || observations.isEmpty()) return;
+        
+        // Collect all field IDs for batch query
+        Set<String> fieldIds = observations.stream()
+            .map(dto -> new FieldKey(
+                dto.pathType(), dto.formCode(), dto.formVersion(),
+                dto.action(), dto.productCode(), dto.productSubCode(), dto.loanProductCode(),
+                dto.dataType(), dto.xpath()).toString())
+            .collect(LinkedHashSet::new, Set::add, Set::addAll);
+        
+        // Single batch query to get all existing entries
+        Map<String, CatalogEntry> existingEntries = repository.findAllById(fieldIds)
+            .stream()
+            .collect(HashMap::new, (map, entry) -> map.put(entry.getId(), entry), HashMap::putAll);
+        
+        // Process all observations and collect entries to save
+        List<CatalogEntry> entriesToSave = new ArrayList<>();
+        
         for (CatalogObservationDTO dto : observations) {
-            ContextKey contextKey = new ContextKey(
-                dto.pathType(),
-                dto.formCode(),
-                dto.formVersion(),
-                dto.action(),
-                dto.productCode(),
-                dto.productSubCode(),
-                dto.loanProductCode()
-            );
             FieldKey fieldKey = new FieldKey(
-                dto.pathType(),
-                dto.formCode(),
-                dto.formVersion(),
-                dto.action(),
-                dto.productCode(),
-                dto.productSubCode(),
-                dto.loanProductCode(),
-                dto.dataType(),
-                dto.xpath()
+                dto.pathType(), dto.formCode(), dto.formVersion(),
+                dto.action(), dto.productCode(), dto.productSubCode(), dto.loanProductCode(),
+                dto.dataType(), dto.xpath()
             );
             String id = fieldKey.toString();
-            Optional<CatalogEntry> existing = repository.findById(id);
-            if (existing.isPresent()) {
-                CatalogEntry entry = existing.get();
+            
+            CatalogEntry entry = existingEntries.get(id);
+            if (entry != null) {
+                // Update existing entry
                 entry.setMaxOccurs(Math.max(entry.getMaxOccurs(), dto.count()));
                 entry.setMinOccurs(Math.min(entry.getMinOccurs(), dto.count()));
                 entry.setAllowsNull(entry.isAllowsNull() || dto.hasNull());
                 entry.setAllowsEmpty(entry.isAllowsEmpty() || dto.hasEmpty());
-                repository.save(entry);
+                entriesToSave.add(entry);
             } else {
+                // Create new entry
                 CatalogEntry newEntry = CatalogEntry.builder()
                     .id(id)
                     .pathType(dto.pathType())
@@ -66,33 +70,48 @@ public class CatalogService {
                     .allowsNull(dto.hasNull())
                     .allowsEmpty(dto.hasEmpty())
                     .build();
-                repository.save(newEntry);
+                entriesToSave.add(newEntry);
             }
-            if (observations.stream()
-                .map(o -> new ContextKey(
-                    o.pathType(), o.formCode(), o.formVersion(),
-                    o.action(), o.productCode(), o.productSubCode(), o.loanProductCode()))
-                .distinct().count() == 1) {
-                List<CatalogEntry> existingEntries = repository.searchByCriteria(new CatalogSearchCriteria(
-                    dto.pathType(), dto.formCode(), dto.formVersion(),
-                    dto.action(), dto.productCode(), dto.productSubCode(), dto.loanProductCode(), null));
-                Set<String> currentXpaths = new HashSet<>();
-                for (CatalogObservationDTO d : observations) {
-                    currentXpaths.add(d.xpath());
-                }
-                for (CatalogEntry entry : existingEntries) {
-                    if (!currentXpaths.contains(entry.getXpath())) {
-                        entry.setMinOccurs(0);
-                        repository.save(entry);
-                    }
-                }
+        }
+        
+        // Single batch save operation
+        repository.saveAll(entriesToSave);
+        
+        // Handle single-context cleanup
+        handleSingleContextCleanup(observations);
+    }
+    
+    private void handleSingleContextCleanup(List<CatalogObservationDTO> observations) {
+        // Check if all observations are from the same context
+        Set<ContextKey> contexts = observations.stream()
+            .map(o -> new ContextKey(
+                o.pathType(), o.formCode(), o.formVersion(),
+                o.action(), o.productCode(), o.productSubCode(), o.loanProductCode()))
+            .collect(LinkedHashSet::new, Set::add, Set::addAll);
+            
+        if (contexts.size() == 1) {
+            ContextKey context = contexts.iterator().next();
+            CatalogSearchCriteria criteria = new CatalogSearchCriteria(
+                context.pathType(), context.formCode(), context.formVersion(),
+                context.action(), context.productCode(), context.productSubCode(), 
+                context.loanProductCode(), null);
+                
+            List<CatalogEntry> existingEntries = repository.searchByCriteria(criteria);
+            Set<String> currentXpaths = observations.stream()
+                .map(CatalogObservationDTO::xpath)
+                .collect(LinkedHashSet::new, Set::add, Set::addAll);
+                
+            List<CatalogEntry> entriesToUpdate = existingEntries.stream()
+                .filter(entry -> !currentXpaths.contains(entry.getXpath()))
+                .peek(entry -> entry.setMinOccurs(0))
+                .toList();
+                
+            if (!entriesToUpdate.isEmpty()) {
+                repository.saveAll(entriesToUpdate);
             }
         }
     }
-    public Page<CatalogEntry> find(String pathType, String formCode, String formVersion, Pageable pageable) {
-        CatalogSearchCriteria criteria = new CatalogSearchCriteria(
-            pathType, formCode, formVersion, null, null, null, null, null
-        );
+    public Page<CatalogEntry> find(CatalogSearchCriteria criteria, Pageable pageable) {
         return repository.searchByCriteria(criteria, pageable);
     }
 }

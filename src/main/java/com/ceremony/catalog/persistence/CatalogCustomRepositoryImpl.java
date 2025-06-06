@@ -1,35 +1,34 @@
 package com.ceremony.catalog.persistence;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import com.ceremony.catalog.api.dto.CatalogSearchCriteria;
+import com.ceremony.catalog.domain.CatalogEntry;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import org.bson.Document;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.index.PartialIndexFilter;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
-import javax.annotation.PostConstruct;
-import org.springframework.data.domain.Sort;
-import org.bson.Document;
-
-import com.ceremony.catalog.api.dto.CatalogSearchCriteria;
-import com.ceremony.catalog.domain.CatalogEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
+@RequiredArgsConstructor
 public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
 
-    @Autowired
-    private MongoTemplate mongoTemplate;
+    private final MongoTemplate mongoTemplate;
 
     @PostConstruct
-    private void initIndexes() {
+    private void createIndexes() {
         var indexOps = mongoTemplate.indexOps(CatalogEntry.class);
         indexOps.ensureIndex(new Index()
             .on("pathType", Sort.Direction.ASC)
