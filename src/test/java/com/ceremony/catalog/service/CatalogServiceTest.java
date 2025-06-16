@@ -2,21 +2,13 @@ package com.ceremony.catalog.service;
 
 import com.ceremony.catalog.api.dto.CatalogObservationDTO;
 import com.ceremony.catalog.api.dto.CatalogSearchCriteria;
-import com.ceremony.catalog.api.dto.ContextDefinitionDTO;
+import com.ceremony.catalog.base.ServiceTestBase;
 import com.ceremony.catalog.domain.CatalogEntry;
-import com.ceremony.catalog.persistence.CatalogRepository;
-import com.ceremony.catalog.persistence.ContextRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.ceremony.catalog.util.TestAssertions;
+import com.ceremony.catalog.util.TestDataBuilder;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 import java.util.Map;
@@ -24,68 +16,36 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest
-@Testcontainers
-class CatalogServiceTest {
-    @Container
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
-
-    @DynamicPropertySource
-    static void mongoProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
-    }
-
-    @Autowired
-    CatalogService catalogService;
+class CatalogServiceTest extends ServiceTestBase {
     
-    @Autowired
-    ContextService contextService;
+    // Base class provides setup and cleanup
     
-    @Autowired
-    CatalogRepository catalogRepository;
-    
-    @Autowired
-    ContextRepository contextRepository;
-    
-    @BeforeEach
-    void cleanDatabase() {
-        catalogRepository.deleteAll();
-        contextRepository.deleteAll();
-    }
-    
-    private void createDepositsContext() {
-        var contextDef = new ContextDefinitionDTO(
-            "deposits",
-            "Deposits",
-            "Test deposits context",
-            List.of("productCode", "productSubCode", "action"),
-            List.of(),
-            true
-        );
-        contextService.createContext(contextDef);
-    }
-
     @Test
     void minOccursDropsToZeroWhenFieldMissing() {
-        createDepositsContext();
+        // Setup context using helper
+        createAndVerifyContext("deposits", "productCode", "productSubCode", "action");
         
+        catalogService.merge("deposits", List.of(
+            TestDataBuilder.depositsObservation()
+                .withXpath("/Ceremony/FeeCode")
+                .build()
+        ));
+
+        // Verify first field created using custom assertions
+        var entries = catalogRepository.findAll();
+        assertThat(entries).hasSize(1);
+        TestAssertions.assertThat(entries.get(0))
+            .hasXpath("/Ceremony/FeeCode")
+            .hasContextId("deposits")
+            .hasMinOccurs(1)
+            .hasMaxOccurs(1);
+
+        // Submit second observation missing the field - should set minOccurs to 0
         Map<String, String> metadata = Map.of(
             "productCode", "DDA",
             "productSubCode", "4S",
             "action", "Fulfillment"
         );
-        
-        catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/FeeCode", 1, false, false)
-        ));
-
-        // Verify first field created
-        var entries = catalogRepository.findAll();
-        assertThat(entries).hasSize(1);
-        assertThat(entries.get(0).getMinOccurs()).isEqualTo(1);
-        assertThat(entries.get(0).getMaxOccurs()).isEqualTo(1);
-
-        // Submit second observation missing the field - should set minOccurs to 0
         catalogService.merge("deposits", List.of(
             new CatalogObservationDTO(metadata, "/Ceremony/DifferentField", 1, false, false)
         ));
@@ -103,7 +63,7 @@ class CatalogServiceTest {
 
     @Test
     void maxOccursIncreasesWhenHigherCountSeen() {
-        createDepositsContext();
+        createAndVerifyContext("deposits", "productCode", "productSubCode", "action");
         
         Map<String, String> metadata = Map.of(
             "productCode", "DDA",
@@ -131,7 +91,7 @@ class CatalogServiceTest {
 
     @Test
     void allowsNullAndEmptyFlagsAccumulate() {
-        createDepositsContext();
+        createAndVerifyContext("deposits", "productCode", "productSubCode", "action");
         
         Map<String, String> metadata = Map.of(
             "productCode", "DDA",
@@ -181,7 +141,7 @@ class CatalogServiceTest {
 
     @Test
     void failsWhenRequiredMetadataMissing() {
-        createDepositsContext();
+        createAndVerifyContext("deposits", "productCode", "productSubCode", "action");
         
         // Missing required productCode field
         Map<String, String> incompleteMetadata = Map.of(
@@ -199,7 +159,7 @@ class CatalogServiceTest {
 
     @Test
     void failsWhenUnexpectedMetadataProvided() {
-        createDepositsContext();
+        createAndVerifyContext("deposits", "productCode", "productSubCode", "action");
         
         // Contains unexpected field
         Map<String, String> invalidMetadata = Map.of(
@@ -219,7 +179,7 @@ class CatalogServiceTest {
 
     @Test
     void searchFindsFieldsByContext() {
-        createDepositsContext();
+        createAndVerifyContext("deposits", "productCode", "productSubCode", "action");
         
         Map<String, String> metadata = Map.of(
             "productCode", "DDA",
@@ -242,7 +202,7 @@ class CatalogServiceTest {
 
     @Test
     void searchFindsByXpathPattern() {
-        createDepositsContext();
+        createAndVerifyContext("deposits", "productCode", "productSubCode", "action");
         
         Map<String, String> metadata = Map.of(
             "productCode", "DDA",

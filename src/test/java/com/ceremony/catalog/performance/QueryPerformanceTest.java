@@ -1,21 +1,13 @@
 package com.ceremony.catalog.performance;
 
 import com.ceremony.catalog.api.dto.CatalogObservationDTO;
-import com.ceremony.catalog.api.dto.ContextDefinitionDTO;
-import com.ceremony.catalog.domain.CatalogEntry;
-import com.ceremony.catalog.persistence.CatalogRepository;
-import com.ceremony.catalog.persistence.ContextRepository;
+import com.ceremony.catalog.base.PerformanceTestBase;
 import com.ceremony.catalog.service.CatalogService;
 import com.ceremony.catalog.service.ContextService;
+import com.ceremony.catalog.util.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,17 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * These tests demonstrate the performance improvements from the optimized
  * findXpathsByContextAndMetadata method compared to the previous approach.
  */
-@SpringBootTest
-@Testcontainers
-class QueryPerformanceTest {
-
-    @Container
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
-
-    @DynamicPropertySource
-    static void mongoProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
-    }
+class QueryPerformanceTest extends PerformanceTestBase {
 
     @Autowired
     private CatalogService catalogService;
@@ -46,32 +28,15 @@ class QueryPerformanceTest {
     @Autowired
     private ContextService contextService;
 
-    @Autowired
-    private CatalogRepository catalogRepository;
-    
-    @Autowired
-    private ContextRepository contextRepository;
-
     @BeforeEach
     void setUp() {
-        catalogRepository.deleteAll();
-        contextRepository.deleteAll();
-        
-        // Create test context
-        var contextDef = new ContextDefinitionDTO(
-            "deposits",
-            "Deposits",
-            "Test deposits context for performance testing",
-            List.of("productCode", "productSubCode", "action"),
-            List.of(),
-            true
-        );
-        contextService.createContext(contextDef);
+        // Create test context using builder
+        contextService.createContext(TestDataBuilder.depositsContext());
     }
 
     @Test
     void findXpathsByContextAndMetadata_Performance_SmallDataset() {
-        // Setup: Create 100 catalog entries
+        // Setup: Create 100 catalog entries using builder
         List<CatalogObservationDTO> observations = createTestObservations(100);
         catalogService.merge("deposits", observations);
 
@@ -81,21 +46,20 @@ class QueryPerformanceTest {
             "action", "Fulfillment"
         );
 
-        // Measure optimized query performance
-        long start = System.currentTimeMillis();
-        List<String> xpaths = catalogRepository.findXpathsByContextAndMetadata("deposits", testMetadata);
-        long duration = System.currentTimeMillis() - start;
+        // Measure optimized query performance using base class helper
+        List<String> xpaths = measurePerformance(
+            "Small dataset (100 entries)",
+            () -> catalogRepository.findXpathsByContextAndMetadata("deposits", testMetadata),
+            50L
+        );
 
         // Assertions
         assertThat(xpaths).isNotEmpty();
-        assertThat(duration).isLessThan(50); // Should be very fast for small dataset
-        
-        System.out.printf("Small dataset (100 entries): %dms%n", duration);
     }
 
     @Test
     void findXpathsByContextAndMetadata_Performance_MediumDataset() {
-        // Setup: Create 1000 catalog entries
+        // Setup: Create 1000 catalog entries using builder
         List<CatalogObservationDTO> observations = createTestObservations(1000);
         catalogService.merge("deposits", observations);
 
@@ -105,16 +69,15 @@ class QueryPerformanceTest {
             "action", "Fulfillment"
         );
 
-        // Measure optimized query performance
-        long start = System.currentTimeMillis();
-        List<String> xpaths = catalogRepository.findXpathsByContextAndMetadata("deposits", testMetadata);
-        long duration = System.currentTimeMillis() - start;
+        // Measure optimized query performance using base class helper
+        List<String> xpaths = measurePerformance(
+            "Medium dataset (1000 entries)",
+            () -> catalogRepository.findXpathsByContextAndMetadata("deposits", testMetadata),
+            100L
+        );
 
         // Assertions
         assertThat(xpaths).isNotEmpty();
-        assertThat(duration).isLessThan(100); // Should be under 100ms even for 1000 entries
-        
-        System.out.printf("Medium dataset (1000 entries): %dms%n", duration);
     }
 
     @Test
@@ -129,34 +92,32 @@ class QueryPerformanceTest {
             "action", "Fulfillment"
         );
 
-        // Measure optimized query performance
-        long start = System.currentTimeMillis();
-        List<String> xpaths = catalogRepository.findXpathsByContextAndMetadata("deposits", testMetadata);
-        long duration = System.currentTimeMillis() - start;
+        // Measure optimized query performance using base class helper
+        List<String> xpaths = measurePerformance(
+            "Large dataset (5000 entries)",
+            () -> catalogRepository.findXpathsByContextAndMetadata("deposits", testMetadata),
+            200L
+        );
 
         // Assertions
         assertThat(xpaths).isNotEmpty();
-        assertThat(duration).isLessThan(200); // Should be under 200ms even for 5000 entries
-        
-        System.out.printf("Large dataset (5000 entries): %dms%n", duration);
     }
 
     @Test
     void findXpathsByContextAndMetadata_Accuracy() {
-        // Setup: Create specific test data
+        // Setup: Create specific test data using builders
         List<CatalogObservationDTO> observations = List.of(
-            new CatalogObservationDTO(
-                Map.of("productCode", "DDA", "productSubCode", "4S", "action", "Fulfillment"),
-                "/Ceremony/Account/Amount", 1, false, false
-            ),
-            new CatalogObservationDTO(
-                Map.of("productCode", "DDA", "productSubCode", "4S", "action", "Fulfillment"),
-                "/Ceremony/Account/FeeCode", 1, false, false
-            ),
-            new CatalogObservationDTO(
-                Map.of("productCode", "SAV", "productSubCode", "REG", "action", "Fulfillment"),
-                "/Ceremony/Account/InterestRate", 1, false, false
-            )
+            TestDataBuilder.depositsObservation()
+                .withXpath("/Ceremony/Account/Amount")
+                .build(),
+            TestDataBuilder.depositsObservation()
+                .withXpath("/Ceremony/Account/FeeCode")
+                .build(),
+            TestDataBuilder.depositsObservation()
+                .withProductCode("SAV")
+                .withProductSubCode("REG")
+                .withXpath("/Ceremony/Account/InterestRate")
+                .build()
         );
         catalogService.merge("deposits", observations);
 
@@ -208,17 +169,11 @@ class QueryPerformanceTest {
         List<CatalogObservationDTO> observations = new ArrayList<>();
         
         for (int i = 0; i < count; i++) {
-            observations.add(new CatalogObservationDTO(
-                Map.of(
-                    "productCode", "DDA",
-                    "productSubCode", "4S",
-                    "action", "Fulfillment"
-                ),
-                String.format("/Ceremony/Field%d", i),
-                1,
-                false,
-                false
-            ));
+            observations.add(
+                TestDataBuilder.depositsObservation()
+                    .withXpath(String.format("/Ceremony/Field%d", i))
+                    .build()
+            );
         }
         
         return observations;
@@ -231,17 +186,14 @@ class QueryPerformanceTest {
         String[] actions = {"Fulfillment", "Inquiry", "Maintenance"};
         
         for (int i = 0; i < count; i++) {
-            observations.add(new CatalogObservationDTO(
-                Map.of(
-                    "productCode", productCodes[i % productCodes.length],
-                    "productSubCode", productSubCodes[i % productSubCodes.length],
-                    "action", actions[i % actions.length]
-                ),
-                String.format("/Ceremony/Field%d", i),
-                1,
-                false,
-                false
-            ));
+            observations.add(
+                TestDataBuilder.depositsObservation()
+                    .withProductCode(productCodes[i % productCodes.length])
+                    .withProductSubCode(productSubCodes[i % productSubCodes.length])
+                    .withAction(actions[i % actions.length])
+                    .withXpath(String.format("/Ceremony/Field%d", i))
+                    .build()
+            );
         }
         
         return observations;

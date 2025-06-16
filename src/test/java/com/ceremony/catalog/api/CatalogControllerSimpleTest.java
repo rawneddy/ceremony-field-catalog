@@ -1,69 +1,31 @@
 package com.ceremony.catalog.api;
 
+import com.ceremony.catalog.annotation.TestProfile;
 import com.ceremony.catalog.api.dto.CatalogObservationDTO;
 import com.ceremony.catalog.api.dto.ContextDefinitionDTO;
-import com.ceremony.catalog.persistence.CatalogRepository;
-import com.ceremony.catalog.persistence.ContextRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.ceremony.catalog.base.IntegrationTestBase;
+import com.ceremony.catalog.util.TestDataBuilder;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
-class CatalogControllerSimpleTest {
+@TestProfile(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class CatalogControllerSimpleTest extends IntegrationTestBase {
 
-    @Container
-    static MongoDBContainer mongo = new MongoDBContainer("mongo:7");
-
-    @DynamicPropertySource
-    static void mongoProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongo::getReplicaSetUrl);
-    }
-
-    @Autowired
-    TestRestTemplate restTemplate;
-
-    @Autowired
-    CatalogRepository catalogRepository;
-    
-    @Autowired
-    ContextRepository contextRepository;
-
-    @BeforeEach
-    void cleanDatabase() {
-        catalogRepository.deleteAll();
-        contextRepository.deleteAll();
-    }
+    // Base class provides all setup, repositories, and restTemplate
 
     @Test
     void submitAndRetrieveObservations() {
-        // First create a context
-        var contextDef = new ContextDefinitionDTO(
-            "deposits",
-            "Deposits",
-            "Test deposits context",
-            List.of("productCode", "productSubCode", "action"),
-            List.of(),
-            true
-        );
+        // Create context using builder
+        ContextDefinitionDTO contextDef = TestDataBuilder.depositsContext();
         
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -75,19 +37,11 @@ class CatalogControllerSimpleTest {
         );
         assertThat(contextResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Submit observations to the context
+        // Submit observations using builder
         var observations = List.of(
-            new CatalogObservationDTO(
-                Map.of(
-                    "productCode", "DDA",
-                    "productSubCode", "4S",
-                    "action", "Fulfillment"
-                ),
-                "/Ceremony/Amount", 
-                1, 
-                false, 
-                false
-            )
+            TestDataBuilder.depositsObservation()
+                .withXpath("/Ceremony/Amount")
+                .build()
         );
 
         var observationRequest = new HttpEntity<>(observations, headers);
@@ -110,48 +64,25 @@ class CatalogControllerSimpleTest {
 
     @Test
     void submitMultiplePathTypes() {
-        // Create deposits context
-        var depositsContext = new ContextDefinitionDTO(
-            "deposits", 
-            "Deposits", 
-            "Deposits context",
-            List.of("productCode", "productSubCode", "action"), 
-            List.of(), 
-            true
-        );
-        
-        // Create loans context
-        var loansContext = new ContextDefinitionDTO(
-            "loans", 
-            "Loans", 
-            "Loans context",
-            List.of("loanProductCode"), 
-            List.of(), 
-            true
-        );
-
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        // Create contexts
-        restTemplate.postForEntity("/catalog/contexts", new HttpEntity<>(depositsContext, headers), Void.class);
-        restTemplate.postForEntity("/catalog/contexts", new HttpEntity<>(loansContext, headers), Void.class);
+        // Create contexts using builders
+        restTemplate.postForEntity("/catalog/contexts", new HttpEntity<>(TestDataBuilder.depositsContext(), headers), Void.class);
+        restTemplate.postForEntity("/catalog/contexts", new HttpEntity<>(TestDataBuilder.loansContext(), headers), Void.class);
 
-        // Submit deposits observation
-        var depositsObs = List.of(new CatalogObservationDTO(
-            Map.of(
-                "productCode", "DDA",
-                "productSubCode", "4S", 
-                "action", "Fulfillment"
-            ),
-            "/Ceremony/Amount", 1, false, false
-        ));
+        // Submit observations using builders
+        var depositsObs = List.of(
+            TestDataBuilder.depositsObservation()
+                .withXpath("/Ceremony/Amount")
+                .build()
+        );
 
-        // Submit loans observation  
-        var loansObs = List.of(new CatalogObservationDTO(
-            Map.of("loanProductCode", "HEQF"),
-            "/BMIC/FICO", 1, false, false
-        ));
+        var loansObs = List.of(
+            TestDataBuilder.loansObservation()
+                .withXpath("/BMIC/FICO")
+                .build()
+        );
 
         var request1 = new HttpEntity<>(depositsObs, headers);
         var request2 = new HttpEntity<>(loansObs, headers);
@@ -182,10 +113,12 @@ class CatalogControllerSimpleTest {
 
     @Test
     void submitToNonExistentContextFails() {
-        var observations = List.of(new CatalogObservationDTO(
-            Map.of("someField", "someValue"),
-            "/Test/Path", 1, false, false
-        ));
+        var observations = List.of(
+            TestDataBuilder.observation()
+                .withMetadata("someField", "someValue")
+                .withXpath("/Test/Path")
+                .build()
+        );
 
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
