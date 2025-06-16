@@ -33,6 +33,9 @@ public class CatalogProperties {
     @Schema(description = "Cache configuration")
     private final Cache cache = new Cache();
 
+    @Schema(description = "Performance monitoring configuration")
+    private final Performance performance = new Performance();
+
     @Data
     public static class Database {
         @Schema(description = "MongoDB connection URI", example = "mongodb://localhost:27017/ceremony_catalog")
@@ -120,5 +123,24 @@ public class CatalogProperties {
         @Min(value = 0, message = "Max cache size cannot be negative")
         @Max(value = 100000, message = "Max cache size cannot exceed 100000")
         private int maxSize = 1000;
+    }
+
+    @Data
+    public static class Performance {
+        @Schema(description = "Threshold in milliseconds for logging slow queries", example = "100")
+        @Min(value = 1, message = "Slow query threshold must be at least 1ms")
+        @Max(value = 10000, message = "Slow query threshold cannot exceed 10000ms")
+        private int slowQueryThresholdMs = 100;
+
+        @Schema(description = "Enable query performance logging", example = "false")
+        private boolean enableQueryLogging = false;
+
+        @Schema(description = "Maximum batch size for bulk operations", example = "1000")
+        @Min(value = 1, message = "Max batch size must be at least 1")
+        @Max(value = 10000, message = "Max batch size cannot exceed 10000")
+        private int maxBatchSize = 1000;
+
+        @Schema(description = "Enable performance monitoring metrics", example = "true")
+        private boolean enableMetrics = true;
     }
 }

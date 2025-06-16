@@ -48,6 +48,11 @@ app:
       enabled: false  # No caching in tests
       ttl: PT1M
       max-size: 10
+    performance:
+      slow-query-threshold-ms: 1000  # High threshold for tests
+      enable-query-logging: false    # Disable for clean test output
+      max-batch-size: 100
+      enable-metrics: false
 
 # Test SpringDoc Configuration (Disabled for faster startup)
 springdoc:

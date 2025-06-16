@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
@@ -38,10 +39,12 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         indexOps.ensureIndex(new Index()
             .on("xpath", Sort.Direction.ASC));
             
-        // Index for metadata queries (compound with context)
+        // Optimized compound index for findXpathsByContextAndMetadata queries
+        // This supports efficient queries on contextId + metadata combinations
         indexOps.ensureIndex(new Index()
             .on("contextId", Sort.Direction.ASC)
-            .on("metadata", Sort.Direction.ASC));
+            .on("metadata", Sort.Direction.ASC)
+            .named("idx_context_metadata_xpath_optimized"));
             
         // Text index for xpath search if needed (commented out as text indexes require special setup)
         // indexOps.ensureIndex(new Index().on("xpath", "text"));
@@ -90,5 +93,37 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         List<CatalogEntry> entries = mongoTemplate.find(query.with(pageable), CatalogEntry.class);
         
         return new PageImpl<>(entries, pageable, total);
+    }
+
+    @Override
+    public List<String> findXpathsByContextAndMetadata(String contextId, Map<String, String> metadata) {
+        Query query = new Query();
+        
+        // Add context filter
+        if (contextId != null && !contextId.trim().isEmpty()) {
+            query.addCriteria(Criteria.where("contextId").is(contextId));
+        }
+        
+        // Add metadata criteria dynamically
+        if (metadata != null && !metadata.isEmpty()) {
+            for (Map.Entry<String, String> entry : metadata.entrySet()) {
+                String key = entry.getKey();
+                String value = entry.getValue();
+                if (key != null && !key.trim().isEmpty() && value != null && !value.trim().isEmpty()) {
+                    query.addCriteria(Criteria.where("metadata." + key).is(value));
+                }
+            }
+        }
+        
+        // Project only xpath field for minimal data transfer
+        query.fields().include("xpath");
+        
+        // Execute query and extract distinct XPath values
+        return mongoTemplate.find(query, CatalogEntry.class)
+            .stream()
+            .map(CatalogEntry::getXpath)
+            .filter(xpath -> xpath != null && !xpath.trim().isEmpty())
+            .distinct()
+            .collect(Collectors.toList());
     }
 }

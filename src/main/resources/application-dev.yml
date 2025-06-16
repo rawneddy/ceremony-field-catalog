@@ -52,6 +52,11 @@ app:
       enabled: false  # Disable caching for development
       ttl: PT5M
       max-size: 100
+    performance:
+      slow-query-threshold-ms: 50  # Lower threshold for development
+      enable-query-logging: true   # Enable for debugging
+      max-batch-size: 500
+      enable-metrics: true
 
 # Development SpringDoc Configuration
 springdoc:

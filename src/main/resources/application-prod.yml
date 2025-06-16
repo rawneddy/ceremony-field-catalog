@@ -56,6 +56,11 @@ app:
       enabled: ${CACHE_ENABLED:true}
       ttl: ${CACHE_TTL:PT15M}
       max-size: ${CACHE_MAX_SIZE:1000}
+    performance:
+      slow-query-threshold-ms: ${PERFORMANCE_SLOW_QUERY_THRESHOLD:200}
+      enable-query-logging: ${PERFORMANCE_ENABLE_QUERY_LOGGING:false}
+      max-batch-size: ${PERFORMANCE_MAX_BATCH_SIZE:1000}
+      enable-metrics: ${PERFORMANCE_ENABLE_METRICS:true}
 
 # Production SpringDoc Configuration (Security-conscious)
 springdoc:

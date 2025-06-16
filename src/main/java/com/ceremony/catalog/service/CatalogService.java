@@ -142,17 +142,25 @@ public class CatalogService {
             
         if (contexts.size() == 1) {
             ContextKey contextKey = contexts.iterator().next();
-            CatalogSearchCriteria criteria = new CatalogSearchCriteria(contextId, contextKey.metadata(), null);
-                
-            List<CatalogEntry> existingEntries = repository.searchByCriteria(criteria);
+            // Optimized: Get only XPath strings instead of full catalog entries
+            List<String> existingXpaths = repository.findXpathsByContextAndMetadata(contextId, contextKey.metadata());
             Set<String> currentXpaths = observations.stream()
                 .map(CatalogObservationDTO::xpath)
                 .collect(LinkedHashSet::new, Set::add, Set::addAll);
                 
-            List<CatalogEntry> entriesToUpdate = existingEntries.stream()
-                .filter(entry -> !currentXpaths.contains(entry.getXpath()))
-                .peek(entry -> entry.setMinOccurs(0))
+            // Find XPaths that need to be updated to minOccurs=0 (present in DB but not in current observations)
+            List<String> xpathsToUpdate = existingXpaths.stream()
+                .filter(xpath -> !currentXpaths.contains(xpath))
                 .toList();
+                
+            // If we have XPaths to update, fetch only those entries and update them
+            List<CatalogEntry> entriesToUpdate = xpathsToUpdate.isEmpty() ? 
+                List.of() : 
+                repository.searchByCriteria(new CatalogSearchCriteria(contextId, contextKey.metadata(), null))
+                    .stream()
+                    .filter(entry -> xpathsToUpdate.contains(entry.getXpath()))
+                    .peek(entry -> entry.setMinOccurs(0))
+                    .toList();
                 
             if (!entriesToUpdate.isEmpty()) {
                 repository.saveAll(entriesToUpdate);
