@@ -44,3 +44,6 @@ Thumbs.db
 
 # Ignore Maven status
 /maven-status/
+
+# Ignore Data Samples target directory to prevent sensitive info from going to github
+/samples/
