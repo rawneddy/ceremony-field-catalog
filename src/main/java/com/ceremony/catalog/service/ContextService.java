@@ -18,12 +18,18 @@ public class ContextService {
     private final ContextRepository repository;
     
     public Context createContext(ContextDefinitionDTO dto) {
+        // Normalize metadata field names to lowercase for case-insensitive handling
+        List<String> normalizedRequired = dto.requiredMetadata() != null ? 
+            dto.requiredMetadata().stream().map(String::toLowerCase).toList() : null;
+        List<String> normalizedOptional = dto.optionalMetadata() != null ?
+            dto.optionalMetadata().stream().map(String::toLowerCase).toList() : null;
+            
         Context context = Context.builder()
             .contextId(dto.contextId())
             .displayName(dto.displayName())
             .description(dto.description())
-            .requiredMetadata(dto.requiredMetadata())
-            .optionalMetadata(dto.optionalMetadata())
+            .requiredMetadata(normalizedRequired)
+            .optionalMetadata(normalizedOptional)
             .active(dto.active())
             .createdAt(Instant.now())
             .build();
@@ -37,10 +43,14 @@ public class ContextService {
                 // Validate that required metadata hasn't changed
                 validateRequiredMetadataUnchanged(existing, dto);
                 
+                // Normalize optional metadata field names for consistency
+                List<String> normalizedOptional = dto.optionalMetadata() != null ?
+                    dto.optionalMetadata().stream().map(String::toLowerCase).toList() : null;
+                
                 existing.setDisplayName(dto.displayName());
                 existing.setDescription(dto.description());
                 // Note: NOT updating requiredMetadata - it's immutable after creation
-                existing.setOptionalMetadata(dto.optionalMetadata());
+                existing.setOptionalMetadata(normalizedOptional);
                 existing.setActive(dto.active());
                 existing.setUpdatedAt(Instant.now());
                 return repository.save(existing);
@@ -73,17 +83,18 @@ public class ContextService {
     
     private void validateRequiredMetadataUnchanged(Context existing, ContextDefinitionDTO dto) {
         List<String> existingRequired = existing.getRequiredMetadata();
-        List<String> newRequired = dto.requiredMetadata();
+        List<String> newRequired = dto.requiredMetadata() != null ?
+            dto.requiredMetadata().stream().map(String::toLowerCase).toList() : null;
         
-        // Convert to sets for comparison (order doesn't matter)
-        Set<String> existingSet = new HashSet<>(existingRequired);
-        Set<String> newSet = new HashSet<>(newRequired);
+        // Convert to sets for comparison (order doesn't matter, case-insensitive)
+        Set<String> existingSet = new HashSet<>(existingRequired != null ? existingRequired : List.of());
+        Set<String> newSet = new HashSet<>(newRequired != null ? newRequired : List.of());
         
         if (!existingSet.equals(newSet)) {
             throw new IllegalArgumentException(
                 "Required metadata cannot be changed after context creation. " +
                 "Existing: " + existingRequired + ", " +
-                "Attempted: " + newRequired + ". " +
+                "Attempted: " + dto.requiredMetadata() + ". " +
                 "Create a new context for different required metadata."
             );
         }

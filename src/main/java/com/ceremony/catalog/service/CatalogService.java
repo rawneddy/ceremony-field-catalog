@@ -38,7 +38,7 @@ public class CatalogService {
         
         // Collect all field IDs for batch query (using only required metadata for field identity)
         Set<String> fieldIds = cleanedObservations.stream()
-            .map(dto -> new FieldKey(cleanedContextId, filterToRequiredMetadata(context, dto.metadata()), dto.xpath()).toString())
+            .map(dto -> new FieldKey(cleanedContextId, filterToRequiredMetadata(context, dto.metadata()), dto.fieldPath()).toString())
             .collect(LinkedHashSet::new, Set::add, Set::addAll);
         
         // Single batch query to get all existing entries
@@ -51,7 +51,8 @@ public class CatalogService {
         
         for (CatalogObservationDTO dto : cleanedObservations) {
             Map<String, String> requiredMetadata = filterToRequiredMetadata(context, dto.metadata());
-            FieldKey fieldKey = new FieldKey(cleanedContextId, requiredMetadata, dto.xpath());
+            Map<String, String> allowedMetadata = filterToAllowedMetadata(context, dto.metadata());
+            FieldKey fieldKey = new FieldKey(cleanedContextId, requiredMetadata, dto.fieldPath());
             String id = fieldKey.toString();
             
             CatalogEntry entry = existingEntries.get(id);
@@ -61,14 +62,16 @@ public class CatalogService {
                 entry.setMinOccurs(Math.min(entry.getMinOccurs(), dto.count()));
                 entry.setAllowsNull(entry.isAllowsNull() || dto.hasNull());
                 entry.setAllowsEmpty(entry.isAllowsEmpty() || dto.hasEmpty());
+                // Also update metadata to include any new optional metadata
+                entry.setMetadata(allowedMetadata);
                 entriesToSave.add(entry);
             } else {
-                // Create new entry - store only required metadata for consistency
+                // Create new entry - store all allowed metadata (required + optional)
                 CatalogEntry newEntry = CatalogEntry.builder()
                     .id(id)
                     .contextId(cleanedContextId)
-                    .metadata(requiredMetadata)
-                    .xpath(dto.xpath())
+                    .metadata(allowedMetadata)
+                    .fieldPath(dto.fieldPath())
                     .maxOccurs(dto.count())
                     .minOccurs(dto.count())
                     .allowsNull(dto.hasNull())
@@ -92,13 +95,13 @@ public class CatalogService {
     }
     
     private CatalogObservationDTO validateAndCleanObservation(CatalogObservationDTO observation) {
-        String cleanedXpath = validationService.validateAndCleanXPath(observation.xpath());
+        String cleanedFieldPath = validationService.validateAndCleanFieldPath(observation.fieldPath());
         Map<String, String> cleanedMetadata = validationService.validateAndCleanMetadata(observation.metadata());
         
         // Return new DTO with cleaned values
         return new CatalogObservationDTO(
             cleanedMetadata,
-            cleanedXpath,
+            cleanedFieldPath,
             observation.count(),
             observation.hasNull(),
             observation.hasEmpty()
@@ -111,19 +114,33 @@ public class CatalogService {
         Set<String> allowedFields = new HashSet<>(requiredFields);
         allowedFields.addAll(optionalFields);
         
+        // Create case-insensitive lookup sets
+        Set<String> allowedFieldsLower = allowedFields.stream()
+            .map(String::toLowerCase)
+            .collect(HashSet::new, Set::add, Set::addAll);
+        Set<String> requiredFieldsLower = requiredFields.stream()
+            .map(String::toLowerCase)
+            .collect(HashSet::new, Set::add, Set::addAll);
+        
         for (CatalogObservationDTO observation : observations) {
             Map<String, String> metadata = observation.metadata();
             
-            // Check all required fields are present
-            for (String required : requiredFields) {
-                if (!metadata.containsKey(required) || metadata.get(required) == null || metadata.get(required).trim().isEmpty()) {
+            // Create case-insensitive lookup map
+            Map<String, String> metadataLower = metadata.entrySet().stream()
+                .collect(HashMap::new, 
+                    (map, entry) -> map.put(entry.getKey().toLowerCase(), entry.getValue()),
+                    HashMap::putAll);
+            
+            // Check all required fields are present (case-insensitive)
+            for (String required : requiredFieldsLower) {
+                if (!metadataLower.containsKey(required) || metadataLower.get(required) == null || metadataLower.get(required).trim().isEmpty()) {
                     throw new IllegalArgumentException("Required metadata field missing: " + required);
                 }
             }
             
-            // Check no unexpected fields are present
-            for (String field : metadata.keySet()) {
-                if (!allowedFields.contains(field)) {
+            // Check no unexpected fields are present (case-insensitive)
+            for (String field : metadataLower.keySet()) {
+                if (!allowedFieldsLower.contains(field)) {
                     throw new IllegalArgumentException("Unexpected metadata field: " + field + ". Allowed fields: " + allowedFields);
                 }
             }
@@ -142,23 +159,23 @@ public class CatalogService {
             
         if (contexts.size() == 1) {
             ContextKey contextKey = contexts.iterator().next();
-            // Optimized: Get only XPath strings instead of full catalog entries
-            List<String> existingXpaths = repository.findXpathsByContextAndMetadata(contextId, contextKey.metadata());
-            Set<String> currentXpaths = observations.stream()
-                .map(CatalogObservationDTO::xpath)
+            // Optimized: Get only field path strings instead of full catalog entries
+            List<String> existingFieldPaths = repository.findFieldPathsByContextAndMetadata(contextId, contextKey.metadata());
+            Set<String> currentFieldPaths = observations.stream()
+                .map(CatalogObservationDTO::fieldPath)
                 .collect(LinkedHashSet::new, Set::add, Set::addAll);
                 
-            // Find XPaths that need to be updated to minOccurs=0 (present in DB but not in current observations)
-            List<String> xpathsToUpdate = existingXpaths.stream()
-                .filter(xpath -> !currentXpaths.contains(xpath))
+            // Find field paths that need to be updated to minOccurs=0 (present in DB but not in current observations)
+            List<String> fieldPathsToUpdate = existingFieldPaths.stream()
+                .filter(fieldPath -> !currentFieldPaths.contains(fieldPath))
                 .toList();
                 
-            // If we have XPaths to update, fetch only those entries and update them
-            List<CatalogEntry> entriesToUpdate = xpathsToUpdate.isEmpty() ? 
+            // If we have field paths to update, fetch only those entries and update them
+            List<CatalogEntry> entriesToUpdate = fieldPathsToUpdate.isEmpty() ? 
                 List.of() : 
                 repository.searchByCriteria(new CatalogSearchCriteria(contextId, contextKey.metadata(), null))
                     .stream()
-                    .filter(entry -> xpathsToUpdate.contains(entry.getXpath()))
+                    .filter(entry -> fieldPathsToUpdate.contains(entry.getFieldPath()))
                     .peek(entry -> entry.setMinOccurs(0))
                     .toList();
                 
@@ -177,22 +194,62 @@ public class CatalogService {
     private CatalogSearchCriteria sanitizeSearchCriteria(CatalogSearchCriteria criteria) {
         String cleanedContextId = criteria.contextId() != null ? 
             validationService.validateAndCleanContextId(criteria.contextId()) : null;
-        String cleanedXpathContains = criteria.xpathContains() != null ?
-            validationService.validateAndCleanXPath(criteria.xpathContains()) : null;
+        String cleanedFieldPathContains = criteria.fieldPathContains() != null ?
+            validationService.validateAndCleanFieldPath(criteria.fieldPathContains()) : null;
         Map<String, String> cleanedMetadata = criteria.metadata() != null ?
             validationService.validateAndCleanMetadata(criteria.metadata()) : null;
             
-        return new CatalogSearchCriteria(cleanedContextId, cleanedMetadata, cleanedXpathContains);
+        return new CatalogSearchCriteria(cleanedContextId, cleanedMetadata, cleanedFieldPathContains);
     }
     
     private Map<String, String> filterToRequiredMetadata(Context context, Map<String, String> metadata) {
         Map<String, String> filteredMetadata = new TreeMap<>();
+        
+        // Create case-insensitive lookup map
+        Map<String, String> metadataLower = metadata.entrySet().stream()
+            .collect(HashMap::new, 
+                (map, entry) -> map.put(entry.getKey().toLowerCase(), entry.getValue().toLowerCase()),
+                HashMap::putAll);
+        
         for (String requiredField : context.getRequiredMetadata()) {
-            String value = metadata.get(requiredField);
+            String value = metadataLower.get(requiredField.toLowerCase());
             if (value != null) {
-                filteredMetadata.put(requiredField, value);
+                // Store with normalized lowercase key and value
+                filteredMetadata.put(requiredField.toLowerCase(), value);
             }
         }
+        return filteredMetadata;
+    }
+    
+    private Map<String, String> filterToAllowedMetadata(Context context, Map<String, String> metadata) {
+        Map<String, String> filteredMetadata = new TreeMap<>();
+        
+        // Create case-insensitive lookup map
+        Map<String, String> metadataLower = metadata.entrySet().stream()
+            .collect(HashMap::new, 
+                (map, entry) -> map.put(entry.getKey().toLowerCase(), entry.getValue().toLowerCase()),
+                HashMap::putAll);
+        
+        // Include required metadata
+        for (String requiredField : context.getRequiredMetadata()) {
+            String value = metadataLower.get(requiredField.toLowerCase());
+            if (value != null) {
+                // Store with normalized lowercase key and value
+                filteredMetadata.put(requiredField.toLowerCase(), value);
+            }
+        }
+        
+        // Include optional metadata if present
+        if (context.getOptionalMetadata() != null) {
+            for (String optionalField : context.getOptionalMetadata()) {
+                String value = metadataLower.get(optionalField.toLowerCase());
+                if (value != null) {
+                    // Store with normalized lowercase key and value
+                    filteredMetadata.put(optionalField.toLowerCase(), value);
+                }
+            }
+        }
+        
         return filteredMetadata;
     }
 }

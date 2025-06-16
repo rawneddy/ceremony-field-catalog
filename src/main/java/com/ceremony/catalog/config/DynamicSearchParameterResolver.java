@@ -15,7 +15,7 @@ import java.util.Set;
 public class DynamicSearchParameterResolver implements HandlerMethodArgumentResolver {
     
     private static final Set<String> KNOWN_PARAMETERS = Set.of(
-        "contextId", "xpathContains", "page", "size"
+        "contextId", "fieldPathContains", "page", "size"
     );
 
     @Override
@@ -33,8 +33,8 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
         String contextId = webRequest.getParameter("contextId");
         contextId = (contextId != null && !contextId.trim().isEmpty()) ? contextId : null;
         
-        String xpathContains = webRequest.getParameter("xpathContains");
-        xpathContains = (xpathContains != null && !xpathContains.trim().isEmpty()) ? xpathContains : null;
+        String fieldPathContains = webRequest.getParameter("fieldPathContains");
+        fieldPathContains = (fieldPathContains != null && !fieldPathContains.trim().isEmpty()) ? fieldPathContains : null;
         
         // Parse page parameter
         int page = 0;
@@ -65,12 +65,13 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
             if (!KNOWN_PARAMETERS.contains(paramName)) {
                 String value = webRequest.getParameter(paramName);
                 if (value != null && !value.trim().isEmpty()) {
-                    metadata.put(paramName, value);
+                    // Normalize metadata keys and values to lowercase for case-insensitive handling
+                    metadata.put(paramName.toLowerCase(), value.toLowerCase());
                 }
             }
         }
         
         // Create and return the immutable Record
-        return new CatalogSearchRequest(contextId, xpathContains, page, size, metadata);
+        return new CatalogSearchRequest(contextId, fieldPathContains, page, size, metadata);
     }
 }

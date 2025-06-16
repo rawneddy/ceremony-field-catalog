@@ -86,7 +86,7 @@ public class CatalogController {
     
     @Operation(
         summary = "Search catalog fields",
-        description = "Search for field entries in the catalog using various criteria. Supports context-based filtering, metadata filtering, and XPath pattern matching. Results are paginated."
+        description = "Search for field entries in the catalog using various criteria. Supports context-based filtering, metadata filtering, and field path pattern matching. Results are paginated."
     )
     @ApiResponses({
         @ApiResponse(
@@ -107,7 +107,7 @@ public class CatalogController {
                             "productCode": "DDA",
                             "productSubCode": "4S"
                           },
-                          "xpath": "/Ceremony/Accounts/Account/FeeCode/Amount",
+                          "fieldPath": "/Ceremony/Accounts/Account/FeeCode/Amount",
                           "maxOccurs": 1,
                           "minOccurs": 1,
                           "allowsNull": false,
@@ -136,7 +136,7 @@ public class CatalogController {
     @GetMapping("/fields")
     public Page<CatalogEntry> searchCatalog(
             @Parameter(
-                description = "Search criteria including context, metadata filters, xpath patterns, and pagination",
+                description = "Search criteria including context, metadata filters, field path patterns, and pagination",
                 required = false
             )
             @Valid CatalogSearchRequest request) {

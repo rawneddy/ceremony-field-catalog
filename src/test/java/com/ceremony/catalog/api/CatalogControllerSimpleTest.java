@@ -40,7 +40,7 @@ class CatalogControllerSimpleTest extends IntegrationTestBase {
         // Submit observations using builder
         var observations = List.of(
             TestDataBuilder.depositsObservation()
-                .withXpath("/Ceremony/Amount")
+                .withFieldPath("/Ceremony/Amount")
                 .build()
         );
 
@@ -74,13 +74,13 @@ class CatalogControllerSimpleTest extends IntegrationTestBase {
         // Submit observations using builders
         var depositsObs = List.of(
             TestDataBuilder.depositsObservation()
-                .withXpath("/Ceremony/Amount")
+                .withFieldPath("/Ceremony/Amount")
                 .build()
         );
 
         var loansObs = List.of(
             TestDataBuilder.loansObservation()
-                .withXpath("/BMIC/FICO")
+                .withFieldPath("/BMIC/FICO")
                 .build()
         );
 
@@ -116,7 +116,7 @@ class CatalogControllerSimpleTest extends IntegrationTestBase {
         var observations = List.of(
             TestDataBuilder.observation()
                 .withMetadata("someField", "someValue")
-                .withXpath("/Test/Path")
+                .withFieldPath("/Test/Path")
                 .build()
         );
 

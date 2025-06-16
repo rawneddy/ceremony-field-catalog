@@ -33,21 +33,21 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         // Primary index for context-based queries
         indexOps.ensureIndex(new Index()
             .on("contextId", Sort.Direction.ASC)
-            .on("xpath", Sort.Direction.ASC));
+            .on("fieldPath", Sort.Direction.ASC));
             
-        // Index for xpath pattern searches
+        // Index for field path pattern searches
         indexOps.ensureIndex(new Index()
-            .on("xpath", Sort.Direction.ASC));
+            .on("fieldPath", Sort.Direction.ASC));
             
-        // Optimized compound index for findXpathsByContextAndMetadata queries
+        // Optimized compound index for findFieldPathsByContextAndMetadata queries
         // This supports efficient queries on contextId + metadata combinations
         indexOps.ensureIndex(new Index()
             .on("contextId", Sort.Direction.ASC)
             .on("metadata", Sort.Direction.ASC)
-            .named("idx_context_metadata_xpath_optimized"));
+            .named("idx_context_metadata_fieldpath_optimized"));
             
-        // Text index for xpath search if needed (commented out as text indexes require special setup)
-        // indexOps.ensureIndex(new Index().on("xpath", "text"));
+        // Text index for field path search if needed (commented out as text indexes require special setup)
+        // indexOps.ensureIndex(new Index().on("fieldPath", "text"));
     }
 
     @Override
@@ -75,18 +75,18 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
                 }
             });
         
-        // Filter by xpath pattern if specified
-        Optional.ofNullable(criteriaDto.xpathContains())
-            .ifPresent(v -> filters.add(Criteria.where("xpath").regex(v, "i")));
+        // Filter by field path pattern if specified
+        Optional.ofNullable(criteriaDto.fieldPathContains())
+            .ifPresent(v -> filters.add(Criteria.where("fieldPath").regex(v, "i")));
         
         Query query = new Query();
         if (!filters.isEmpty()) {
             query.addCriteria(new Criteria().andOperator(filters.toArray(new Criteria[0])));
         }
         
-        // Apply sorting by xpath by default
+        // Apply sorting by field path by default
         if (pageable.getSort().isUnsorted()) {
-            query.with(Sort.by(Sort.Direction.ASC, "xpath"));
+            query.with(Sort.by(Sort.Direction.ASC, "fieldPath"));
         }
         
         long total = mongoTemplate.count(query, CatalogEntry.class);
@@ -96,7 +96,7 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
     }
 
     @Override
-    public List<String> findXpathsByContextAndMetadata(String contextId, Map<String, String> metadata) {
+    public List<String> findFieldPathsByContextAndMetadata(String contextId, Map<String, String> metadata) {
         Query query = new Query();
         
         // Add context filter
@@ -115,14 +115,14 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
             }
         }
         
-        // Project only xpath field for minimal data transfer
-        query.fields().include("xpath");
+        // Project only fieldPath field for minimal data transfer
+        query.fields().include("fieldPath");
         
-        // Execute query and extract distinct XPath values
+        // Execute query and extract distinct field path values
         return mongoTemplate.find(query, CatalogEntry.class)
             .stream()
-            .map(CatalogEntry::getXpath)
-            .filter(xpath -> xpath != null && !xpath.trim().isEmpty())
+            .map(CatalogEntry::getFieldPath)
+            .filter(fieldPath -> fieldPath != null && !fieldPath.trim().isEmpty())
             .distinct()
             .collect(Collectors.toList());
     }

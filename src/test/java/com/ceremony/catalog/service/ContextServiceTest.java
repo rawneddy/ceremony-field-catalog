@@ -258,4 +258,187 @@ class ContextServiceTest {
         
         assertThat(deleted).isFalse();
     }
+
+    // ===== CASE-INSENSITIVE METADATA TESTS =====
+
+    @Test
+    void createContextNormalizesMetadataFieldsToLowercase() {
+        var dto = new ContextDefinitionDTO(
+            "test-context",
+            "Test Context",
+            "Test description",
+            List.of("ProductCode", "ACTION", "SubType"),  // Mixed case required fields
+            List.of("OptionalField", "CATEGORY"),  // Mixed case optional fields
+            true
+        );
+        
+        Context created = contextService.createContext(dto);
+        
+        // Verify that all metadata field names are normalized to lowercase
+        assertThat(created.getRequiredMetadata()).containsExactly("productcode", "action", "subtype");
+        assertThat(created.getOptionalMetadata()).containsExactly("optionalfield", "category");
+    }
+
+    @Test
+    void updateContextNormalizesOptionalMetadataToLowercase() {
+        // Create initial context with mixed case
+        var initialDto = new ContextDefinitionDTO(
+            "test-context",
+            "Test Context",
+            "Test description",
+            List.of("ProductCode", "Action"),  // Mixed case required fields
+            List.of("OptionalField"),  // Mixed case optional field
+            true
+        );
+        contextService.createContext(initialDto);
+        
+        // Update with new optional metadata in different case
+        var updateDto = new ContextDefinitionDTO(
+            "test-context",
+            "Updated Context",
+            "Updated description",
+            List.of("productcode", "action"), // Same required metadata (lowercase)
+            List.of("NEWFIELD", "AnotherField"), // Mixed case optional fields
+            true
+        );
+        
+        var updated = contextService.updateContext("test-context", updateDto);
+        
+        assertThat(updated).isPresent();
+        assertThat(updated.get().getRequiredMetadata()).containsExactly("productcode", "action");
+        assertThat(updated.get().getOptionalMetadata()).containsExactly("newfield", "anotherfield");
+    }
+
+    @Test
+    void updateContextAcceptsCaseVariationsOfRequiredMetadata() {
+        // Create initial context
+        var initialDto = new ContextDefinitionDTO(
+            "test-context",
+            "Test Context",
+            "Test description",
+            List.of("productcode", "action"),
+            List.of("optional1"),
+            true
+        );
+        contextService.createContext(initialDto);
+        
+        // Update with same required metadata but different case - should be allowed
+        var updateDto = new ContextDefinitionDTO(
+            "test-context",
+            "Updated Context",
+            "Updated description",
+            List.of("ProductCode", "ACTION"), // Same fields, different case
+            List.of("optional2"),
+            true
+        );
+        
+        var updated = contextService.updateContext("test-context", updateDto);
+        
+        // Should succeed because it's the same set of fields (case-insensitive)
+        assertThat(updated).isPresent();
+        assertThat(updated.get().getDisplayName()).isEqualTo("Updated Context");
+        assertThat(updated.get().getRequiredMetadata()).containsExactly("productcode", "action");
+        assertThat(updated.get().getOptionalMetadata()).containsExactly("optional2");
+    }
+
+    @Test
+    void updateContextRejectsCaseVariationsThatActuallyAddFields() {
+        // Create initial context
+        var initialDto = new ContextDefinitionDTO(
+            "test-context",
+            "Test Context",
+            "Test description",
+            List.of("productcode", "action"),
+            List.of("optional1"),
+            true
+        );
+        contextService.createContext(initialDto);
+        
+        // Try to add a genuinely new required field (not just case variation)
+        var updateDto = new ContextDefinitionDTO(
+            "test-context",
+            "Updated Context",
+            "Updated description",
+            List.of("ProductCode", "ACTION", "newfield"), // Added genuinely new field
+            List.of("optional1"),
+            true
+        );
+        
+        assertThatThrownBy(() -> contextService.updateContext("test-context", updateDto))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Required metadata cannot be changed after context creation");
+    }
+
+    @Test
+    void updateContextRejectsCaseVariationsThatActuallyRemoveFields() {
+        // Create initial context with 3 required fields
+        var initialDto = new ContextDefinitionDTO(
+            "test-context",
+            "Test Context",
+            "Test description",
+            List.of("productcode", "action", "subtype"),
+            List.of("optional1"),
+            true
+        );
+        contextService.createContext(initialDto);
+        
+        // Try to remove a required field (but include case variations of the others)
+        var updateDto = new ContextDefinitionDTO(
+            "test-context",
+            "Updated Context",
+            "Updated description",
+            List.of("ProductCode", "ACTION"), // Missing subtype, even with case variations
+            List.of("optional1"),
+            true
+        );
+        
+        assertThatThrownBy(() -> contextService.updateContext("test-context", updateDto))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Required metadata cannot be changed after context creation");
+    }
+
+    @Test
+    void createContextHandlesNullOptionalMetadata() {
+        var dto = new ContextDefinitionDTO(
+            "test-context",
+            "Test Context",
+            "Test description",
+            List.of("ProductCode", "ACTION"), // Mixed case required fields
+            null, // Null optional metadata
+            true
+        );
+        
+        Context created = contextService.createContext(dto);
+        
+        assertThat(created.getRequiredMetadata()).containsExactly("productcode", "action");
+        assertThat(created.getOptionalMetadata()).isNull();
+    }
+
+    @Test
+    void updateContextHandlesNullRequiredMetadata() {
+        // Create initial context
+        var initialDto = new ContextDefinitionDTO(
+            "test-context",
+            "Test Context",
+            "Test description",
+            List.of("productcode"),
+            List.of("optional1"),
+            true
+        );
+        contextService.createContext(initialDto);
+        
+        // Try to update with null required metadata
+        var updateDto = new ContextDefinitionDTO(
+            "test-context",
+            "Updated Context",
+            "Updated description",
+            null, // Null required metadata
+            List.of("optional1"),
+            true
+        );
+        
+        assertThatThrownBy(() -> contextService.updateContext("test-context", updateDto))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("Required metadata cannot be changed after context creation");
+    }
 }

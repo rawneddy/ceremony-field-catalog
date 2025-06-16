@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 
 import java.util.Map;
 
-@Schema(description = "Field observation data containing metadata, xpath, and occurrence statistics")
+@Schema(description = "Field observation data containing metadata, field path, and occurrence statistics")
 public record CatalogObservationDTO(
     @Schema(
         description = "Metadata key-value pairs that identify the context and characteristics of this field",
@@ -24,12 +24,12 @@ public record CatalogObservationDTO(
     Map<String, String> metadata,
     
     @Schema(
-        description = "XPath expression identifying the location of this field in the XML structure",
+        description = "Field path identifying the location of this field in the document structure",
         example = "/Ceremony/Accounts/Account/FeeCode/Amount",
         requiredMode = Schema.RequiredMode.REQUIRED
     )
-    @NotBlank(message = "XPath is required")
-    String xpath,
+    @NotBlank(message = "Field path is required")
+    String fieldPath,
     
     @Schema(
         description = "Number of times this field was observed in the current processing batch",

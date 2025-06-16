@@ -20,8 +20,11 @@ class FieldKeyTest {
         var fieldKey = new FieldKey("deposits", metadata, "/Ceremony/Amount");
         
         assertThat(fieldKey.contextId()).isEqualTo("deposits");
-        assertThat(fieldKey.xpath()).isEqualTo("/Ceremony/Amount");
-        assertThat(fieldKey.metadata()).containsAllEntriesOf(metadata);
+        assertThat(fieldKey.fieldPath()).isEqualTo("/Ceremony/Amount");
+        // Verify that metadata is normalized to lowercase (both keys and values)
+        assertThat(fieldKey.metadata()).containsEntry("productcode", "dda");
+        assertThat(fieldKey.metadata()).containsEntry("productsubcode", "4s");
+        assertThat(fieldKey.metadata()).containsEntry("action", "fulfillment");
     }
 
     @Test
@@ -76,16 +79,16 @@ class FieldKeyTest {
 
     @Test
     void requiresNonNullContextId() {
-        assertThatThrownBy(() -> new FieldKey(null, Map.of(), "/xpath"))
+        assertThatThrownBy(() -> new FieldKey(null, Map.of(), "/fieldPath"))
             .isInstanceOf(NullPointerException.class)
             .hasMessageContaining("contextId cannot be null");
     }
 
     @Test
-    void requiresNonNullXpath() {
+    void requiresNonNullFieldPath() {
         assertThatThrownBy(() -> new FieldKey("deposits", Map.of(), null))
             .isInstanceOf(NullPointerException.class)
-            .hasMessageContaining("xpath cannot be null");
+            .hasMessageContaining("fieldPath cannot be null");
     }
 
 
@@ -95,7 +98,7 @@ class FieldKeyTest {
             "field§with§sections", "value=with=equals&and&ampersands"
         );
         
-        var fieldKey = new FieldKey("deposits", metadata, "/xpath");
+        var fieldKey = new FieldKey("deposits", metadata, "/fieldPath");
         String keyString = fieldKey.toString();
         
         // Should generate a consistent hash-based ID regardless of special characters
@@ -108,7 +111,7 @@ class FieldKeyTest {
         // Test the Integer.MIN_VALUE edge case where Math.abs would cause collision
         // We can't easily force this, but we can verify the method handles it
         Map<String, String> metadata = Map.of("test", "value");
-        var fieldKey = new FieldKey("context", metadata, "/xpath");
+        var fieldKey = new FieldKey("context", metadata, "/fieldPath");
         String keyString = fieldKey.toString();
         
         // Should always generate a valid field ID
@@ -116,7 +119,95 @@ class FieldKeyTest {
         assertThat(keyString).matches("field_\\d+");
         
         // Should be consistent
-        var fieldKey2 = new FieldKey("context", metadata, "/xpath");
+        var fieldKey2 = new FieldKey("context", metadata, "/fieldPath");
         assertThat(fieldKey2.toString()).isEqualTo(keyString);
+    }
+
+    @Test
+    void metadataIsCaseInsensitive() {
+        // Test that different case combinations generate the same field key
+        Map<String, String> metadata1 = Map.of(
+            "ProductCode", "DDA",
+            "Action", "FULFILLMENT"
+        );
+        Map<String, String> metadata2 = Map.of(
+            "productcode", "dda", 
+            "action", "fulfillment"
+        );
+        Map<String, String> metadata3 = Map.of(
+            "PRODUCTCODE", "Dda",
+            "ACTION", "Fulfillment"
+        );
+        
+        var fieldKey1 = new FieldKey("deposits", metadata1, "/Ceremony/Amount");
+        var fieldKey2 = new FieldKey("deposits", metadata2, "/Ceremony/Amount");
+        var fieldKey3 = new FieldKey("deposits", metadata3, "/Ceremony/Amount");
+        
+        // All should generate the same hash/toString value
+        assertThat(fieldKey1.toString()).isEqualTo(fieldKey2.toString());
+        assertThat(fieldKey2.toString()).isEqualTo(fieldKey3.toString());
+        
+        // Verify that the internal metadata is normalized to lowercase
+        assertThat(fieldKey1.metadata()).containsEntry("productcode", "dda");
+        assertThat(fieldKey1.metadata()).containsEntry("action", "fulfillment");
+        assertThat(fieldKey2.metadata()).containsEntry("productcode", "dda");
+        assertThat(fieldKey2.metadata()).containsEntry("action", "fulfillment");
+        assertThat(fieldKey3.metadata()).containsEntry("productcode", "dda");
+        assertThat(fieldKey3.metadata()).containsEntry("action", "fulfillment");
+    }
+
+    @Test
+    void metadataCaseInsensitiveWithNullValues() {
+        // Test case insensitivity with null values
+        Map<String, String> metadata1 = Map.of("ProductCode", "DDA");
+        Map<String, String> metadata2 = Map.of("productcode", "dda");
+        
+        var fieldKey1 = new FieldKey("deposits", metadata1, "/Ceremony/Amount");
+        var fieldKey2 = new FieldKey("deposits", metadata2, "/Ceremony/Amount");
+        
+        assertThat(fieldKey1.toString()).isEqualTo(fieldKey2.toString());
+        assertThat(fieldKey1.metadata()).containsEntry("productcode", "dda");
+        assertThat(fieldKey2.metadata()).containsEntry("productcode", "dda");
+    }
+
+    @Test
+    void metadataCaseInsensitiveWithSpecialCharacters() {
+        // Test case insensitivity with special characters and numbers
+        Map<String, String> metadata1 = Map.of(
+            "Product_Code123", "DDA-4S",
+            "Sub.Type", "SPECIAL_CHARS"
+        );
+        Map<String, String> metadata2 = Map.of(
+            "product_code123", "dda-4s",
+            "sub.type", "special_chars"
+        );
+        
+        var fieldKey1 = new FieldKey("deposits", metadata1, "/Ceremony/Amount");
+        var fieldKey2 = new FieldKey("deposits", metadata2, "/Ceremony/Amount");
+        
+        assertThat(fieldKey1.toString()).isEqualTo(fieldKey2.toString());
+        assertThat(fieldKey1.metadata()).containsEntry("product_code123", "dda-4s");
+        assertThat(fieldKey1.metadata()).containsEntry("sub.type", "special_chars");
+    }
+
+    @Test
+    void metadataCaseInsensitiveEmptyAndWhitespace() {
+        // Test case insensitivity with empty values and whitespace
+        Map<String, String> metadata1 = Map.of(
+            "ProductCode", " DDA ",
+            "Action", ""
+        );
+        Map<String, String> metadata2 = Map.of(
+            "productcode", " dda ",
+            "action", ""
+        );
+        
+        var fieldKey1 = new FieldKey("deposits", metadata1, "/Ceremony/Amount");
+        var fieldKey2 = new FieldKey("deposits", metadata2, "/Ceremony/Amount");
+        
+        assertThat(fieldKey1.toString()).isEqualTo(fieldKey2.toString());
+        // Note: whitespace is preserved, only case is normalized
+        assertThat(fieldKey1.metadata()).containsEntry("productcode", " dda ");
+        assertThat(fieldKey1.metadata()).containsEntry("action", "");
     }
 }

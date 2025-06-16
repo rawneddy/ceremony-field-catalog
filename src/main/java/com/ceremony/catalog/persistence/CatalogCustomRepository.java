@@ -12,12 +12,12 @@ public interface CatalogCustomRepository {
     Page<CatalogEntry> searchByCriteria(CatalogSearchCriteria criteria, Pageable pageable);
     
     /**
-     * Optimized query to find XPath strings by context and metadata.
-     * Returns only the XPath values for minimal data transfer and memory usage.
+     * Optimized query to find field paths by context and metadata.
+     * Returns only the field path values for minimal data transfer and memory usage.
      * 
      * @param contextId the context ID to filter by
      * @param metadata the metadata key-value pairs to filter by
-     * @return list of distinct XPath strings matching the criteria
+     * @return list of distinct field path strings matching the criteria
      */
-    List<String> findXpathsByContextAndMetadata(String contextId, Map<String, String> metadata);
+    List<String> findFieldPathsByContextAndMetadata(String contextId, Map<String, String> metadata);
 }

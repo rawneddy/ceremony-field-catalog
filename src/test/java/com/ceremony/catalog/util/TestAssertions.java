@@ -16,7 +16,7 @@ import java.util.Objects;
  * import static com.ceremony.catalog.util.TestAssertions.*;
  * 
  * assertThat(catalogEntry)
- *     .hasXpath("/Test/Path")
+ *     .hasFieldPath("/Test/Path")
  *     .hasContextId("deposits")
  *     .hasMetadata("productCode", "DDA")
  *     .hasMinOccurs(1);
@@ -52,10 +52,10 @@ public class TestAssertions {
             super(actual, CatalogEntryAssert.class);
         }
         
-        public CatalogEntryAssert hasXpath(String expectedXpath) {
+        public CatalogEntryAssert hasFieldPath(String expectedFieldPath) {
             isNotNull();
-            if (!Objects.equals(actual.getXpath(), expectedXpath)) {
-                failWithMessage("Expected xpath <%s> but was <%s>", expectedXpath, actual.getXpath());
+            if (!Objects.equals(actual.getFieldPath(), expectedFieldPath)) {
+                failWithMessage("Expected fieldPath <%s> but was <%s>", expectedFieldPath, actual.getFieldPath());
             }
             return this;
         }

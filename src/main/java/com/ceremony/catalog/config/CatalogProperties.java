@@ -90,10 +90,10 @@ public class CatalogProperties {
 
     @Data
     public static class Validation {
-        @Schema(description = "Maximum length for XPath expressions", example = "1000")
-        @Min(value = 10, message = "Max XPath length must be at least 10")
-        @Max(value = 10000, message = "Max XPath length cannot exceed 10000")
-        private int maxXpathLength = 1000;
+        @Schema(description = "Maximum length for field path expressions", example = "1000")
+        @Min(value = 10, message = "Max field path length must be at least 10")
+        @Max(value = 10000, message = "Max field path length cannot exceed 10000")
+        private int maxFieldPathLength = 1000;
 
         @Schema(description = "Maximum length for context IDs", example = "100")
         @Min(value = 1, message = "Max context ID length must be at least 1")

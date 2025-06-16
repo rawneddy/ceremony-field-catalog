@@ -77,7 +77,7 @@ public abstract class IntegrationTestBase {
     /**
      * Creates a test catalog observation with sensible defaults
      */
-    protected CatalogObservationDTO createTestObservation(Map<String, String> metadata, String xpath) {
-        return new CatalogObservationDTO(metadata, xpath, 1, false, false);
+    protected CatalogObservationDTO createTestObservation(Map<String, String> metadata, String fieldPath) {
+        return new CatalogObservationDTO(metadata, fieldPath, 1, false, false);
     }
 }

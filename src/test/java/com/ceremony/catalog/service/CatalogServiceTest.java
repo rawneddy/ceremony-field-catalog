@@ -20,14 +20,29 @@ class CatalogServiceTest extends ServiceTestBase {
     
     // Base class provides setup and cleanup
     
+    /**
+     * Helper method to create a context with both required and optional metadata fields
+     */
+    private void createContext(String contextId, List<String> requiredFields, List<String> optionalFields) {
+        var contextDef = new com.ceremony.catalog.api.dto.ContextDefinitionDTO(
+            contextId,
+            contextId + " Test Context",
+            "Test context for " + contextId,
+            requiredFields,
+            optionalFields,
+            true
+        );
+        contextService.createContext(contextDef);
+    }
+    
     @Test
     void minOccursDropsToZeroWhenFieldMissing() {
         // Setup context using helper
-        createAndVerifyContext("deposits", "productCode", "productSubCode", "action");
+        createAndVerifyContext("deposits", "productcode", "productsubcode", "action");
         
         catalogService.merge("deposits", List.of(
             TestDataBuilder.depositsObservation()
-                .withXpath("/Ceremony/FeeCode")
+                .withFieldPath("/Ceremony/FeeCode")
                 .build()
         ));
 
@@ -35,16 +50,16 @@ class CatalogServiceTest extends ServiceTestBase {
         var entries = catalogRepository.findAll();
         assertThat(entries).hasSize(1);
         TestAssertions.assertThat(entries.get(0))
-            .hasXpath("/Ceremony/FeeCode")
+            .hasFieldPath("/Ceremony/FeeCode")
             .hasContextId("deposits")
             .hasMinOccurs(1)
             .hasMaxOccurs(1);
 
         // Submit second observation missing the field - should set minOccurs to 0
         Map<String, String> metadata = Map.of(
-            "productCode", "DDA",
-            "productSubCode", "4S",
-            "action", "Fulfillment"
+            "productcode", "dda",
+            "productsubcode", "4s",
+            "action", "fulfillment"
         );
         catalogService.merge("deposits", List.of(
             new CatalogObservationDTO(metadata, "/Ceremony/DifferentField", 1, false, false)
@@ -54,7 +69,7 @@ class CatalogServiceTest extends ServiceTestBase {
         assertThat(entries).hasSize(2);
         
         var feeCodeEntry = entries.stream()
-            .filter(e -> e.getXpath().equals("/Ceremony/FeeCode"))
+            .filter(e -> e.getFieldPath().equals("/Ceremony/FeeCode"))
             .findFirst()
             .orElseThrow();
         assertThat(feeCodeEntry.getMinOccurs()).isEqualTo(0); // Should be zero now
@@ -63,12 +78,12 @@ class CatalogServiceTest extends ServiceTestBase {
 
     @Test
     void maxOccursIncreasesWhenHigherCountSeen() {
-        createAndVerifyContext("deposits", "productCode", "productSubCode", "action");
+        createAndVerifyContext("deposits", "productcode", "productsubcode", "action");
         
         Map<String, String> metadata = Map.of(
-            "productCode", "DDA",
-            "productSubCode", "4S",
-            "action", "Fulfillment"
+            "productcode", "dda",
+            "productsubcode", "4s",
+            "action", "fulfillment"
         );
 
         // First observation with count 1
@@ -91,12 +106,12 @@ class CatalogServiceTest extends ServiceTestBase {
 
     @Test
     void allowsNullAndEmptyFlagsAccumulate() {
-        createAndVerifyContext("deposits", "productCode", "productSubCode", "action");
+        createAndVerifyContext("deposits", "productcode", "productsubcode", "action");
         
         Map<String, String> metadata = Map.of(
-            "productCode", "DDA",
-            "productSubCode", "4S",
-            "action", "Fulfillment"
+            "productcode", "dda",
+            "productsubcode", "4s",
+            "action", "fulfillment"
         );
 
         // First observation: no null, no empty
@@ -141,11 +156,11 @@ class CatalogServiceTest extends ServiceTestBase {
 
     @Test
     void failsWhenRequiredMetadataMissing() {
-        createAndVerifyContext("deposits", "productCode", "productSubCode", "action");
+        createAndVerifyContext("deposits", "productcode", "productsubcode", "action");
         
-        // Missing required productCode field
+        // Missing required productcode field
         Map<String, String> incompleteMetadata = Map.of(
-            "productSubCode", "4S",
+            "productsubcode", "4S",
             "action", "Fulfillment"
         );
         
@@ -154,18 +169,18 @@ class CatalogServiceTest extends ServiceTestBase {
                 new CatalogObservationDTO(incompleteMetadata, "/Test/Path", 1, false, false)
             ))
         ).isInstanceOf(IllegalArgumentException.class)
-         .hasMessageContaining("Required metadata field missing: productCode");
+         .hasMessageContaining("Required metadata field missing: productcode");
     }
 
     @Test
     void failsWhenUnexpectedMetadataProvided() {
-        createAndVerifyContext("deposits", "productCode", "productSubCode", "action");
+        createAndVerifyContext("deposits", "productcode", "productsubcode", "action");
         
         // Contains unexpected field
         Map<String, String> invalidMetadata = Map.of(
-            "productCode", "DDA",
-            "productSubCode", "4S", 
-            "action", "Fulfillment",
+            "productcode", "dda",
+            "productsubcode", "4s", 
+            "action", "fulfillment",
             "unexpectedField", "value"
         );
         
@@ -174,17 +189,17 @@ class CatalogServiceTest extends ServiceTestBase {
                 new CatalogObservationDTO(invalidMetadata, "/Test/Path", 1, false, false)
             ))
         ).isInstanceOf(IllegalArgumentException.class)
-         .hasMessageContaining("Unexpected metadata field: unexpectedField");
+         .hasMessageContaining("Unexpected metadata field: unexpectedfield");
     }
 
     @Test
     void searchFindsFieldsByContext() {
-        createAndVerifyContext("deposits", "productCode", "productSubCode", "action");
+        createAndVerifyContext("deposits", "productcode", "productsubcode", "action");
         
         Map<String, String> metadata = Map.of(
-            "productCode", "DDA",
-            "productSubCode", "4S",
-            "action", "Fulfillment"
+            "productcode", "dda",
+            "productsubcode", "4s",
+            "action", "fulfillment"
         );
 
         catalogService.merge("deposits", List.of(
@@ -196,18 +211,18 @@ class CatalogServiceTest extends ServiceTestBase {
         Page<CatalogEntry> results = catalogService.find(criteria, PageRequest.of(0, 10));
 
         assertThat(results.getContent()).hasSize(2);
-        assertThat(results.getContent().stream().map(CatalogEntry::getXpath))
+        assertThat(results.getContent().stream().map(CatalogEntry::getFieldPath))
             .containsExactlyInAnyOrder("/Ceremony/Amount", "/Ceremony/Name");
     }
 
     @Test
-    void searchFindsByXpathPattern() {
-        createAndVerifyContext("deposits", "productCode", "productSubCode", "action");
+    void searchFindsByFieldPathPattern() {
+        createAndVerifyContext("deposits", "productcode", "productsubcode", "action");
         
         Map<String, String> metadata = Map.of(
-            "productCode", "DDA",
-            "productSubCode", "4S",
-            "action", "Fulfillment"
+            "productcode", "dda",
+            "productsubcode", "4s",
+            "action", "fulfillment"
         );
 
         catalogService.merge("deposits", List.of(
@@ -215,10 +230,177 @@ class CatalogServiceTest extends ServiceTestBase {
             new CatalogObservationDTO(metadata, "/Ceremony/Amount", 1, false, false)
         ));
 
-        var criteria = new CatalogSearchCriteria(null, null, "Fee");
+        var criteria = new CatalogSearchCriteria(null, null, "/Ceremony/FeeCode");
         Page<CatalogEntry> results = catalogService.find(criteria, PageRequest.of(0, 10));
 
         assertThat(results.getContent()).hasSize(1);
-        assertThat(results.getContent().get(0).getXpath()).isEqualTo("/Ceremony/FeeCode");
+        assertThat(results.getContent().get(0).getFieldPath()).isEqualTo("/Ceremony/FeeCode");
+    }
+
+    // ===== CASE-INSENSITIVE METADATA TESTS =====
+
+    @Test
+    void acceptsObservationWithMixedCaseRequiredMetadata() {
+        // Context defines required metadata in lowercase
+        createAndVerifyContext("deposits", "productcode", "action");
+        
+        // Submit observation with mixed case metadata - should succeed
+        Map<String, String> mixedCaseMetadata = Map.of(
+            "ProductCode", "DDA",  // uppercase first letter
+            "ACTION", "Fulfillment"  // all uppercase
+        );
+
+        // Should not throw an exception
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(mixedCaseMetadata, "/Ceremony/Amount", 1, false, false)
+        ));
+
+        var entries = catalogRepository.findAll();
+        assertThat(entries).hasSize(1);
+        
+        // Verify metadata is stored in normalized lowercase form
+        var entry = entries.get(0);
+        assertThat(entry.getMetadata()).containsEntry("productcode", "dda");
+        assertThat(entry.getMetadata()).containsEntry("action", "fulfillment");
+    }
+
+    @Test
+    void acceptsObservationWithAllUppercaseRequiredMetadata() {
+        createAndVerifyContext("deposits", "productcode", "action");
+        
+        Map<String, String> uppercaseMetadata = Map.of(
+            "PRODUCTCODE", "DDA",
+            "ACTION", "FULFILLMENT"
+        );
+
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(uppercaseMetadata, "/Ceremony/Amount", 1, false, false)
+        ));
+
+        var entries = catalogRepository.findAll();
+        assertThat(entries).hasSize(1);
+        
+        var entry = entries.get(0);
+        assertThat(entry.getMetadata()).containsEntry("productcode", "dda");
+        assertThat(entry.getMetadata()).containsEntry("action", "fulfillment");
+    }
+
+    @Test
+    void failsWhenRequiredMetadataMissingDespiteCaseVariations() {
+        createAndVerifyContext("deposits", "productcode", "action");
+        
+        // Submit observation missing required field (even with case variations)
+        Map<String, String> incompleteMetadata = Map.of(
+            "ProductCode", "DDA"
+            // Missing "action" field
+        );
+
+        assertThatThrownBy(() -> 
+            catalogService.merge("deposits", List.of(
+                new CatalogObservationDTO(incompleteMetadata, "/Ceremony/Amount", 1, false, false)
+            ))
+        ).isInstanceOf(IllegalArgumentException.class)
+         .hasMessageContaining("Required metadata field missing: action");
+    }
+
+    @Test
+    void rejectsUnexpectedMetadataFieldsRegardlessOfCase() {
+        createAndVerifyContext("deposits", "productcode", "action");
+        
+        Map<String, String> metadataWithUnexpectedField = Map.of(
+            "ProductCode", "DDA",
+            "Action", "Fulfillment",
+            "UnexpectedField", "SomeValue"  // This should cause validation to fail
+        );
+
+        assertThatThrownBy(() -> 
+            catalogService.merge("deposits", List.of(
+                new CatalogObservationDTO(metadataWithUnexpectedField, "/Ceremony/Amount", 1, false, false)
+            ))
+        ).isInstanceOf(IllegalArgumentException.class)
+         .hasMessageContaining("Unexpected metadata field: unexpectedfield");
+    }
+
+    @Test
+    void mergesSameFieldsWithDifferentMetadataCasing() {
+        createAndVerifyContext("deposits", "productcode", "action");
+        
+        // First observation with lowercase metadata
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(
+                Map.of("productcode", "dda", "action", "fulfillment"),
+                "/Ceremony/Amount", 
+                1, false, false
+            )
+        ));
+
+        // Second observation with uppercase metadata for same field
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(
+                Map.of("PRODUCTCODE", "DDA", "ACTION", "FULFILLMENT"),
+                "/Ceremony/Amount", 
+                2, false, false
+            )
+        ));
+
+        // Should have merged into single entry (not created separate entries)
+        var entries = catalogRepository.findAll();
+        assertThat(entries).hasSize(1);
+        
+        var entry = entries.get(0);
+        assertThat(entry.getMaxOccurs()).isEqualTo(2);  // Should have updated
+        assertThat(entry.getMinOccurs()).isEqualTo(1);
+        assertThat(entry.getMetadata()).containsEntry("productcode", "dda");
+        assertThat(entry.getMetadata()).containsEntry("action", "fulfillment");
+    }
+
+    @Test
+    void handlesOptionalMetadataWithCaseVariations() {
+        // Create context with both required and optional metadata
+        createContext("deposits", List.of("productcode"), List.of("subcategory"));
+        
+        // Submit observation with mixed case optional metadata
+        Map<String, String> metadata = Map.of(
+            "ProductCode", "dda",  // required field
+            "SubCategory", "premium"  // optional field with different case
+        );
+
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(metadata, "/Ceremony/Amount", 1, false, false)
+        ));
+
+        var entries = catalogRepository.findAll();
+        assertThat(entries).hasSize(1);
+        
+        var entry = entries.get(0);
+        assertThat(entry.getMetadata()).containsEntry("productcode", "dda");
+        assertThat(entry.getMetadata()).containsEntry("subcategory", "premium");
+    }
+
+    @Test
+    void searchWorksWithCaseInsensitiveMetadata() {
+        createAndVerifyContext("deposits", "productcode", "action");
+        
+        // Submit observations with different case metadata
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(
+                Map.of("ProductCode", "dda", "Action", "fulfillment"),
+                "/Ceremony/Amount", 
+                1, false, false
+            ),
+            new CatalogObservationDTO(
+                Map.of("productcode", "sav", "action", "inquiry"),
+                "/Ceremony/Balance", 
+                1, false, false
+            )
+        ));
+
+        // Search with lowercase metadata should find both
+        var searchMetadata = Map.of("productcode", "dda");
+        var criteria = new CatalogSearchCriteria("deposits", searchMetadata, null);
+        Page<CatalogEntry> results = catalogService.find(criteria, PageRequest.of(0, 10));
+
+        assertThat(results.getContent()).hasSize(1);
+        assertThat(results.getContent().get(0).getFieldPath()).isEqualTo("/Ceremony/Amount");
     }
 }

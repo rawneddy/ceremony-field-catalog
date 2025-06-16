@@ -21,8 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  *     void queryPerformance_ShouldBeUnder50ms() {
  *         // Setup test data...
  *         
- *         measurePerformance("findXpathsByContextAndMetadata", 
- *             () -> repository.findXpathsByContextAndMetadata("deposits", metadata),
+ *         measurePerformance("findFieldPathsByContextAndMetadata", 
+ *             () -> repository.findFieldPathsByContextAndMetadata("deposits", metadata),
  *             50L);
  *     }
  * }

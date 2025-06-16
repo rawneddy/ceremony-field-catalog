@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Performance benchmark tests for database query optimization.
  * These tests demonstrate the performance improvements from the optimized
- * findXpathsByContextAndMetadata method compared to the previous approach.
+ * findFieldPathsByContextAndMetadata method compared to the previous approach.
  */
 class QueryPerformanceTest extends PerformanceTestBase {
 
@@ -35,134 +35,134 @@ class QueryPerformanceTest extends PerformanceTestBase {
     }
 
     @Test
-    void findXpathsByContextAndMetadata_Performance_SmallDataset() {
+    void findFieldPathsByContextAndMetadata_Performance_SmallDataset() {
         // Setup: Create 100 catalog entries using builder
         List<CatalogObservationDTO> observations = createTestObservations(100);
         catalogService.merge("deposits", observations);
 
         Map<String, String> testMetadata = Map.of(
-            "productCode", "DDA",
-            "productSubCode", "4S",
-            "action", "Fulfillment"
+            "productcode", "dda",
+            "productsubcode", "4s",
+            "action", "fulfillment"
         );
 
         // Measure optimized query performance using base class helper
-        List<String> xpaths = measurePerformance(
+        List<String> fieldPaths = measurePerformance(
             "Small dataset (100 entries)",
-            () -> catalogRepository.findXpathsByContextAndMetadata("deposits", testMetadata),
+            () -> catalogRepository.findFieldPathsByContextAndMetadata("deposits", testMetadata),
             50L
         );
 
         // Assertions
-        assertThat(xpaths).isNotEmpty();
+        assertThat(fieldPaths).isNotEmpty();
     }
 
     @Test
-    void findXpathsByContextAndMetadata_Performance_MediumDataset() {
+    void findFieldPathsByContextAndMetadata_Performance_MediumDataset() {
         // Setup: Create 1000 catalog entries using builder
         List<CatalogObservationDTO> observations = createTestObservations(1000);
         catalogService.merge("deposits", observations);
 
         Map<String, String> testMetadata = Map.of(
-            "productCode", "DDA",
-            "productSubCode", "4S",
-            "action", "Fulfillment"
+            "productcode", "dda",
+            "productsubcode", "4s",
+            "action", "fulfillment"
         );
 
         // Measure optimized query performance using base class helper
-        List<String> xpaths = measurePerformance(
+        List<String> fieldPaths = measurePerformance(
             "Medium dataset (1000 entries)",
-            () -> catalogRepository.findXpathsByContextAndMetadata("deposits", testMetadata),
+            () -> catalogRepository.findFieldPathsByContextAndMetadata("deposits", testMetadata),
             100L
         );
 
         // Assertions
-        assertThat(xpaths).isNotEmpty();
+        assertThat(fieldPaths).isNotEmpty();
     }
 
     @Test
-    void findXpathsByContextAndMetadata_Performance_LargeDataset() {
+    void findFieldPathsByContextAndMetadata_Performance_LargeDataset() {
         // Setup: Create 5000 catalog entries across different metadata combinations
         List<CatalogObservationDTO> observations = createDiverseTestObservations(5000);
         catalogService.merge("deposits", observations);
 
         Map<String, String> testMetadata = Map.of(
-            "productCode", "DDA",
-            "productSubCode", "4S",
-            "action", "Fulfillment"
+            "productcode", "dda",
+            "productsubcode", "4s",
+            "action", "fulfillment"
         );
 
         // Measure optimized query performance using base class helper
-        List<String> xpaths = measurePerformance(
+        List<String> fieldPaths = measurePerformance(
             "Large dataset (5000 entries)",
-            () -> catalogRepository.findXpathsByContextAndMetadata("deposits", testMetadata),
+            () -> catalogRepository.findFieldPathsByContextAndMetadata("deposits", testMetadata),
             200L
         );
 
         // Assertions
-        assertThat(xpaths).isNotEmpty();
+        assertThat(fieldPaths).isNotEmpty();
     }
 
     @Test
-    void findXpathsByContextAndMetadata_Accuracy() {
+    void findFieldPathsByContextAndMetadata_Accuracy() {
         // Setup: Create specific test data using builders
         List<CatalogObservationDTO> observations = List.of(
             TestDataBuilder.depositsObservation()
-                .withXpath("/Ceremony/Account/Amount")
+                .withFieldPath("/Ceremony/Account/Amount")
                 .build(),
             TestDataBuilder.depositsObservation()
-                .withXpath("/Ceremony/Account/FeeCode")
+                .withFieldPath("/Ceremony/Account/FeeCode")
                 .build(),
             TestDataBuilder.depositsObservation()
                 .withProductCode("SAV")
                 .withProductSubCode("REG")
-                .withXpath("/Ceremony/Account/InterestRate")
+                .withFieldPath("/Ceremony/Account/InterestRate")
                 .build()
         );
         catalogService.merge("deposits", observations);
 
         // Test: Query for specific metadata
         Map<String, String> targetMetadata = Map.of(
-            "productCode", "DDA",
-            "productSubCode", "4S",
-            "action", "Fulfillment"
+            "productcode", "dda",
+            "productsubcode", "4s",
+            "action", "fulfillment"
         );
         
-        List<String> xpaths = catalogRepository.findXpathsByContextAndMetadata("deposits", targetMetadata);
+        List<String> fieldPaths = catalogRepository.findFieldPathsByContextAndMetadata("deposits", targetMetadata);
 
         // Assertions
-        assertThat(xpaths).hasSize(2);
-        assertThat(xpaths).containsExactlyInAnyOrder(
+        assertThat(fieldPaths).hasSize(2);
+        assertThat(fieldPaths).containsExactlyInAnyOrder(
             "/Ceremony/Account/Amount",
             "/Ceremony/Account/FeeCode"
         );
     }
 
     @Test
-    void findXpathsByContextAndMetadata_MemoryEfficiency() {
+    void findFieldPathsByContextAndMetadata_MemoryEfficiency() {
         // Setup: Create test data
         List<CatalogObservationDTO> observations = createTestObservations(1000);
         catalogService.merge("deposits", observations);
 
         Map<String, String> testMetadata = Map.of(
-            "productCode", "DDA",
-            "productSubCode", "4S",
-            "action", "Fulfillment"
+            "productcode", "dda",
+            "productsubcode", "4s",
+            "action", "fulfillment"
         );
 
         // Measure memory usage by checking returned data size
-        List<String> xpaths = catalogRepository.findXpathsByContextAndMetadata("deposits", testMetadata);
+        List<String> fieldPaths = catalogRepository.findFieldPathsByContextAndMetadata("deposits", testMetadata);
         
-        // Verify we get only XPath strings (minimal data transfer)
-        for (String xpath : xpaths) {
-            assertThat(xpath).isNotBlank();
-            assertThat(xpath).startsWith("/"); // Valid XPath format
+        // Verify we get only fieldPath strings (minimal data transfer)
+        for (String fieldPath : fieldPaths) {
+            assertThat(fieldPath).isNotBlank();
+            assertThat(fieldPath).startsWith("/"); // Valid fieldPath format
         }
         
-        // Should return XPaths for the specific metadata filter (all 1000 in this case since they match)
-        assertThat(xpaths.size()).isLessThanOrEqualTo(1000);
+        // Should return fieldPaths for the specific metadata filter (all 1000 in this case since they match)
+        assertThat(fieldPaths.size()).isLessThanOrEqualTo(1000);
         
-        System.out.printf("Memory efficiency: returned %d XPaths from 1000 total entries%n", xpaths.size());
+        System.out.printf("Memory efficiency: returned %d fieldPaths from 1000 total entries%n", fieldPaths.size());
     }
 
     private List<CatalogObservationDTO> createTestObservations(int count) {
@@ -171,7 +171,7 @@ class QueryPerformanceTest extends PerformanceTestBase {
         for (int i = 0; i < count; i++) {
             observations.add(
                 TestDataBuilder.depositsObservation()
-                    .withXpath(String.format("/Ceremony/Field%d", i))
+                    .withFieldPath(String.format("/Ceremony/Field%d", i))
                     .build()
             );
         }
@@ -181,9 +181,9 @@ class QueryPerformanceTest extends PerformanceTestBase {
 
     private List<CatalogObservationDTO> createDiverseTestObservations(int count) {
         List<CatalogObservationDTO> observations = new ArrayList<>();
-        String[] productCodes = {"DDA", "SAV", "CD", "IRA"};
-        String[] productSubCodes = {"4S", "REG", "SPEC", "PREM"};
-        String[] actions = {"Fulfillment", "Inquiry", "Maintenance"};
+        String[] productCodes = {"dda", "sav", "cd", "ira"};
+        String[] productSubCodes = {"4s", "reg", "spec", "prem"};
+        String[] actions = {"fulfillment", "inquiry", "maintenance"};
         
         for (int i = 0; i < count; i++) {
             observations.add(
@@ -191,7 +191,7 @@ class QueryPerformanceTest extends PerformanceTestBase {
                     .withProductCode(productCodes[i % productCodes.length])
                     .withProductSubCode(productSubCodes[i % productSubCodes.length])
                     .withAction(actions[i % actions.length])
-                    .withXpath(String.format("/Ceremony/Field%d", i))
+                    .withFieldPath(String.format("/Ceremony/Field%d", i))
                     .build()
             );
         }

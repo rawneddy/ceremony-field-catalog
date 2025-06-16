@@ -25,26 +25,26 @@ public class InputValidationService {
     private static final Pattern VALID_METADATA_KEY = Pattern.compile("^[a-zA-Z0-9._-]+$");
     
     /**
-     * Validates and cleans XPath expressions
+     * Validates and cleans field path expressions
      */
-    public String validateAndCleanXPath(String xpath) {
-        if (!StringUtils.hasText(xpath)) {
-            return xpath;
+    public String validateAndCleanFieldPath(String fieldPath) {
+        if (!StringUtils.hasText(fieldPath)) {
+            return fieldPath;
         }
         
-        String cleaned = xpath.trim();
+        String cleaned = fieldPath.trim();
         
-        int maxLength = catalogProperties.getValidation().getMaxXpathLength();
+        int maxLength = catalogProperties.getValidation().getMaxFieldPathLength();
         if (cleaned.length() > maxLength) {
-            throw new IllegalArgumentException("XPath too long (max " + maxLength + " characters)");
+            throw new IllegalArgumentException("Field path too long (max " + maxLength + " characters)");
         }
         
         // Remove control characters only
         cleaned = CONTROL_CHARS.matcher(cleaned).replaceAll("");
         
-        // Basic XPath format validation
-        if (!isValidXPathFormat(cleaned)) {
-            throw new IllegalArgumentException("Invalid XPath format: " + cleaned);
+        // Basic field path format validation
+        if (!isValidFieldPathFormat(cleaned)) {
+            throw new IllegalArgumentException("Invalid field path format: " + cleaned);
         }
         
         return cleaned;
@@ -143,15 +143,13 @@ public class InputValidationService {
         return cleaned;
     }
     
-    private boolean isValidXPathFormat(String xpath) {
-        if (xpath.isEmpty()) {
+    private boolean isValidFieldPathFormat(String fieldPath) {
+        if (fieldPath.isEmpty()) {
             return false;
         }
         
-        // Very basic XPath validation - should contain typical XPath patterns
-        return xpath.startsWith("/") || 
-               xpath.contains("[@") ||
-               xpath.contains("//") ||
-               xpath.matches(".*[a-zA-Z_][a-zA-Z0-9_-]*.*"); // Contains element names
+        // Basic field path validation - should start with / and contain element names
+        return fieldPath.startsWith("/") && 
+               fieldPath.matches(".*[a-zA-Z_][a-zA-Z0-9_-]*.*"); // Contains element names
     }
 }

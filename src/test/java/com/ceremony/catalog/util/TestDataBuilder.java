@@ -20,7 +20,7 @@ import java.util.Map;
  *     
  * CatalogObservationDTO observation = TestDataBuilder.observation()
  *     .withMetadata("productCode", "DDA")
- *     .withXpath("/Test/Path")
+ *     .withFieldPath("/Test/Path")
  *     .allowsNull()
  *     .build();
  * </pre>
@@ -102,7 +102,7 @@ public class TestDataBuilder {
      */
     public static class ObservationBuilder {
         private Map<String, String> metadata = new HashMap<>(Map.of("field1", "value1"));
-        private String xpath = "/Test/Path";
+        private String fieldPath = "/Test/Path";
         private int occurs = 1;
         private boolean allowsNull = false;
         private boolean allowsEmpty = false;
@@ -123,8 +123,8 @@ public class TestDataBuilder {
             return this;
         }
         
-        public ObservationBuilder withXpath(String xpath) {
-            this.xpath = xpath;
+        public ObservationBuilder withFieldPath(String fieldPath) {
+            this.fieldPath = fieldPath;
             return this;
         }
         
@@ -156,7 +156,7 @@ public class TestDataBuilder {
         public CatalogObservationDTO build() {
             return new CatalogObservationDTO(
                 Map.copyOf(metadata), 
-                xpath, 
+                fieldPath, 
                 occurs, 
                 allowsNull, 
                 allowsEmpty
@@ -170,18 +170,18 @@ public class TestDataBuilder {
     public static class DepositsObservationBuilder extends ObservationBuilder {
         public DepositsObservationBuilder() {
             withMetadata(Map.of(
-                "productCode", "DDA",
-                "productSubCode", "4S", 
-                "action", "Fulfillment"
+                "productcode", "dda",
+                "productsubcode", "4s", 
+                "action", "fulfillment"
             ));
         }
         
         public DepositsObservationBuilder withProductCode(String productCode) {
-            return (DepositsObservationBuilder) withMetadata("productCode", productCode);
+            return (DepositsObservationBuilder) withMetadata("productcode", productCode);
         }
         
         public DepositsObservationBuilder withProductSubCode(String productSubCode) {
-            return (DepositsObservationBuilder) withMetadata("productSubCode", productSubCode);
+            return (DepositsObservationBuilder) withMetadata("productsubcode", productSubCode);
         }
         
         public DepositsObservationBuilder withAction(String action) {
@@ -195,11 +195,11 @@ public class TestDataBuilder {
     public static class LoansObservationBuilder extends ObservationBuilder {
         public LoansObservationBuilder() {
             clearMetadata();
-            withMetadata("loanProductCode", "HEQF");
+            withMetadata("loanproductcode", "HEQF");
         }
         
         public LoansObservationBuilder withLoanProductCode(String loanProductCode) {
-            return (LoansObservationBuilder) withMetadata("loanProductCode", loanProductCode);
+            return (LoansObservationBuilder) withMetadata("loanproductcode", loanProductCode);
         }
     }
     
@@ -209,17 +209,17 @@ public class TestDataBuilder {
     public static class OnDemandObservationBuilder extends ObservationBuilder {
         public OnDemandObservationBuilder() {
             withMetadata(Map.of(
-                "formCode", "ACK123",
-                "formVersion", "1.0"
+                "formcode", "ACK123",
+                "formversion", "1.0"
             ));
         }
         
         public OnDemandObservationBuilder withFormCode(String formCode) {
-            return (OnDemandObservationBuilder) withMetadata("formCode", formCode);
+            return (OnDemandObservationBuilder) withMetadata("formcode", formCode);
         }
         
         public OnDemandObservationBuilder withFormVersion(String formVersion) {
-            return (OnDemandObservationBuilder) withMetadata("formVersion", formVersion);
+            return (OnDemandObservationBuilder) withMetadata("formversion", formVersion);
         }
     }
     
@@ -250,21 +250,21 @@ public class TestDataBuilder {
     public static ContextDefinitionDTO depositsContext() {
         return context()
             .withId("deposits")
-            .withRequiredFields("productCode", "productSubCode", "action")
+            .withRequiredFields("productcode", "productsubcode", "action")
             .build();
     }
     
     public static ContextDefinitionDTO loansContext() {
         return context()
             .withId("loans")
-            .withRequiredFields("loanProductCode")
+            .withRequiredFields("loanproductcode")
             .build();
     }
     
     public static ContextDefinitionDTO onDemandContext() {
         return context()
             .withId("ondemand")
-            .withRequiredFields("formCode", "formVersion")
+            .withRequiredFields("formcode", "formversion")
             .build();
     }
 }

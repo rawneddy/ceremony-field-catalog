@@ -96,8 +96,8 @@ public class ConfigurationValidator implements CommandLineRunner {
     private void validateValidationConfiguration() {
         CatalogProperties.Validation validation = catalogProperties.getValidation();
         
-        if (validation.getMaxXpathLength() < 10 || validation.getMaxXpathLength() > 10000) {
-            throw new IllegalStateException("Max XPath length must be between 10 and 10000");
+        if (validation.getMaxFieldPathLength() < 10 || validation.getMaxFieldPathLength() > 10000) {
+            throw new IllegalStateException("Max field path length must be between 10 and 10000");
         }
         
         if (validation.getMaxContextIdLength() < 1 || validation.getMaxContextIdLength() > 500) {

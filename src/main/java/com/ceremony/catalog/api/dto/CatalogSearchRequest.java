@@ -17,11 +17,11 @@ public record CatalogSearchRequest(
     String contextId,
     
     @Schema(
-        description = "XPath pattern to search for (case-insensitive regex match)",
+        description = "Field path pattern to search for (case-insensitive regex match)",
         example = "WithholdingCode",
         requiredMode = Schema.RequiredMode.NOT_REQUIRED
     )
-    String xpathContains,
+    String fieldPathContains,
     
     @Schema(
         description = "Page number for pagination (0-based)",
@@ -59,8 +59,8 @@ public record CatalogSearchRequest(
     }
     
     // Constructor for cases where metadata is populated dynamically
-    public CatalogSearchRequest(String contextId, String xpathContains, int page, int size) {
-        this(contextId, xpathContains, page, size, new HashMap<>());
+    public CatalogSearchRequest(String contextId, String fieldPathContains, int page, int size) {
+        this(contextId, fieldPathContains, page, size, new HashMap<>());
     }
     
     // Default constructor equivalent
@@ -72,7 +72,7 @@ public record CatalogSearchRequest(
         return new CatalogSearchCriteria(
             contextId,
             metadata.isEmpty() ? null : metadata,
-            xpathContains
+            fieldPathContains
         );
     }
 }

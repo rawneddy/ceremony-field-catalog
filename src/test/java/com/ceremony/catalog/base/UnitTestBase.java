@@ -73,7 +73,7 @@ public abstract class UnitTestBase {
         when(catalogProperties.getCache()).thenReturn(cache);
         
         // Setup sensible defaults for validation
-        when(validation.getMaxXpathLength()).thenReturn(1000);
+        when(validation.getMaxFieldPathLength()).thenReturn(1000);
         when(validation.getMaxContextIdLength()).thenReturn(100);
         when(validation.getMaxMetadataKeyLength()).thenReturn(100);
         when(validation.getMaxMetadataValueLength()).thenReturn(500);
@@ -117,15 +117,15 @@ public abstract class UnitTestBase {
     /**
      * Creates a test catalog observation with sensible defaults
      */
-    protected CatalogObservationDTO createTestObservation(Map<String, String> metadata, String xpath) {
-        return new CatalogObservationDTO(metadata, xpath, 1, false, false);
+    protected CatalogObservationDTO createTestObservation(Map<String, String> metadata, String fieldPath) {
+        return new CatalogObservationDTO(metadata, fieldPath, 1, false, false);
     }
     
     /**
      * Common assertion helper for catalog entries
      */
-    protected void assertCatalogEntry(CatalogEntry entry, String expectedXpath, String expectedContextId) {
-        assertThat(entry.getXpath()).isEqualTo(expectedXpath);
+    protected void assertCatalogEntry(CatalogEntry entry, String expectedFieldPath, String expectedContextId) {
+        assertThat(entry.getFieldPath()).isEqualTo(expectedFieldPath);
         assertThat(entry.getContextId()).isEqualTo(expectedContextId);
     }
     
