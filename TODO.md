@@ -1,122 +1,43 @@
-# Ceremony Field Catalog - Comprehensive Code Review Recommendations
+# Ceremony Field Catalog - Development Roadmap
 
 ## Overview
 This document outlines recommended improvements to create a "pit of success" where future developers naturally fall into correct patterns. The recommendations are organized by priority and impact.
 
-## Phase 1: Critical Improvements (Immediate Action)
+## Phase 2: Important Improvements (Current Focus)
 
-### 1. Standardize DTO Patterns
-**Problem**: Mixed DTO patterns (Records vs Lombok classes) create inconsistency.
-- `CatalogSearchCriteria` uses Record (good)
-- `CatalogSearchRequest` uses Lombok @Data (inconsistent)
+### 4. API Documentation and Validation ✅ (COMPLETED)
+**Goal**: Add comprehensive OpenAPI documentation and ensure proper API validation.
 
-**Solution**: Standardize on Records for all DTOs
-```java
-// Replace CatalogSearchRequest with:
-public record CatalogSearchRequest(
-    String contextId,
-    String xpathContains,
-    @Min(value = 0, message = "Page must be non-negative") int page,
-    @Min(value = 1, message = "Size must be positive") int size
-) {
-    public CatalogSearchRequest {
-        page = page < 0 ? 0 : page;
-        size = size < 1 ? 20 : size;
-    }
-}
-```
+**Tasks**:
+- [x] Add springdoc-openapi dependency to pom.xml
+- [x] Add OpenAPI annotations to all REST endpoints
+- [x] Configure OpenAPI documentation with proper API info
+- [x] Ensure all DTOs have proper validation annotations
+- [x] Add example values for better API documentation
 
-### 2. Comprehensive Error Handling
-**Problem**: Only `IllegalArgumentException` is handled globally.
+**Results**: 
+- Complete OpenAPI 3 documentation available at `/swagger-ui/index.html` and `/v3/api-docs`
+- All endpoints documented with detailed descriptions, examples, and response schemas
+- Comprehensive schema annotations on all DTOs with examples
+- Error response documentation with sample error formats
+- API organized by logical tags (Field Catalog, Context Management)
 
-**Solution**: Expand `GlobalExceptionHandler`
-```java
-@ExceptionHandler({MethodArgumentNotValidException.class, ConstraintViolationException.class})
-public ResponseEntity<ErrorResponse> handleValidation(Exception e) { ... }
+### 5. Add Observability Dependencies
+**Goal**: Add monitoring and health check capabilities.
 
-@ExceptionHandler(DataAccessException.class)
-public ResponseEntity<ErrorResponse> handleDataAccess(DataAccessException e) { ... }
+**Tasks**:
+- [ ] Add Actuator dependency for health checks and metrics
+- [ ] Add Prometheus metrics registry
+- [ ] Configure management endpoints
+- [ ] Add application info and build info
 
-@ExceptionHandler(Exception.class)
-public ResponseEntity<ErrorResponse> handleGeneral(Exception e) { ... }
-```
+### 6. Enhanced Configuration Management  
+**Goal**: Replace hardcoded values with environment-specific configuration.
 
-### 3. Input Sanitization and Security
-**Problem**: No input sanitization for XPath patterns and metadata values.
-
-**Solution**: Add validation service
-```java
-@Service
-public class InputSanitizationService {
-    public String sanitizeXPath(String xpath) {
-        return xpath.replaceAll("[<>\"']", "");
-    }
-    
-    public Map<String, String> sanitizeMetadata(Map<String, String> metadata) { ... }
-}
-```
-
-## Phase 2: Important Improvements (Next Sprint)
-
-### 4. Add Observability Dependencies
-**Problem**: Missing monitoring and API documentation tools.
-
-**Solution**: Add to `pom.xml`
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-actuator</artifactId>
-</dependency>
-<dependency>
-    <groupId>io.micrometer</groupId>
-    <artifactId>micrometer-registry-prometheus</artifactId>
-</dependency>
-<dependency>
-    <groupId>org.springdoc</groupId>
-    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-    <version>2.1.0</version>
-</dependency>
-```
-
-### 5. Enhanced Configuration Management
-**Problem**: Hardcoded values in `application.yml`.
-
-**Solution**: Environment-specific configuration
-```yaml
-# application.yml
-spring:
-  data:
-    mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/ceremony_catalog}
-  
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  
-app:
-  catalog:
-    batch-size: ${CATALOG_BATCH_SIZE:1000}
-    max-results: ${CATALOG_MAX_RESULTS:10000}
-```
-
-### 6. API Documentation and Validation
-**Solution**: Add comprehensive OpenAPI annotations
-```java
-@RestController
-@RequestMapping("/api/v1/catalog")
-@Tag(name = "Catalog", description = "Field observation catalog API")
-public class CatalogController {
-    
-    @Operation(summary = "Submit field observations")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Successfully processed"),
-        @ApiResponse(responseCode = "400", description = "Invalid input")
-    })
-    public ResponseEntity<Void> submitObservations(...) { ... }
-}
-```
+**Tasks**:
+- [ ] Extract MongoDB URI to environment variables
+- [ ] Add application-specific configuration properties
+- [ ] Configure different profiles for dev/test/prod
 
 ## Phase 3: Performance & Quality Improvements (Future Sprints)
 
@@ -245,3 +166,42 @@ This comprehensive plan ensures future developers fall into the pit of success t
 3. **Observability**: Built-in monitoring and documentation
 4. **Performance**: Optimized patterns by default
 5. **Quality**: Automated enforcement of architectural decisions
+
+---
+
+## Appendix: Completed Work
+
+### ✅ Phase 1: Critical Improvements (COMPLETED)
+
+#### 1. Standardize DTO Patterns ✅
+**COMPLETED**: Converted `CatalogSearchRequest` from Lombok @Data to Record pattern for immutability.
+- Updated `DynamicSearchParameterResolver` to work with immutable Records
+- Updated `CatalogController` to use Record accessor methods
+- All DTOs now follow consistent Record pattern
+
+#### 2. Comprehensive Error Handling ✅  
+**COMPLETED**: Expanded `GlobalExceptionHandler` with comprehensive error handling for 7 exception types:
+- `MethodArgumentNotValidException` - validation errors
+- `ConstraintViolationException` - constraint violations  
+- `MethodArgumentTypeMismatchException` - type conversion errors
+- `HttpMessageNotReadableException` - malformed JSON
+- `DataAccessException` - database errors
+- `Exception` - general catch-all with proper logging
+- Added structured error responses with timestamps and status codes
+
+#### 3. Input Validation and Security ✅
+**COMPLETED**: Created `InputValidationService` with validation-first approach:
+- XPath validation (format checking, length limits)
+- Metadata validation (key/value cleaning, format validation)
+- Context ID validation (format and length checking)
+- Control character removal and length validation
+- Integrated throughout `CatalogService` for all operations
+- Clear error messages for invalid input
+
+**Key Security Features Implemented:**
+- Maximum length validation for all inputs
+- Format validation for XPath, context IDs, and metadata keys
+- Control character removal
+- Comprehensive logging of validation actions
+
+**Results**: All 40 unit tests pass, API functionality verified, input validation prevents malicious data while providing clear error messages.
