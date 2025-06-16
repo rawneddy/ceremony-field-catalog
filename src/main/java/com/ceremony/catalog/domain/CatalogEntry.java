@@ -19,7 +19,6 @@ public class CatalogEntry {
     private Map<String, String> metadata;
     
     private String xpath;
-    private String dataType;
     private int maxOccurs;
     private int minOccurs;
     private boolean allowsNull;

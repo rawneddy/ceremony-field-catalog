@@ -84,7 +84,6 @@ class CatalogControllerSimpleTest {
                     "action", "Fulfillment"
                 ),
                 "/Ceremony/Amount", 
-                "data", 
                 1, 
                 false, 
                 false
@@ -145,13 +144,13 @@ class CatalogControllerSimpleTest {
                 "productSubCode", "4S", 
                 "action", "Fulfillment"
             ),
-            "/Ceremony/Amount", "data", 1, false, false
+            "/Ceremony/Amount", 1, false, false
         ));
 
         // Submit loans observation  
         var loansObs = List.of(new CatalogObservationDTO(
             Map.of("loanProductCode", "HEQF"),
-            "/BMIC/FICO", "data", 1, false, false
+            "/BMIC/FICO", 1, false, false
         ));
 
         var request1 = new HttpEntity<>(depositsObs, headers);
@@ -185,7 +184,7 @@ class CatalogControllerSimpleTest {
     void submitToNonExistentContextFails() {
         var observations = List.of(new CatalogObservationDTO(
             Map.of("someField", "someValue"),
-            "/Test/Path", "data", 1, false, false
+            "/Test/Path", 1, false, false
         ));
 
         var headers = new HttpHeaders();

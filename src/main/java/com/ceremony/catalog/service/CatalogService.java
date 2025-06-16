@@ -31,9 +31,9 @@ public class CatalogService {
         // Validate observations against context requirements
         validateObservations(context, observations);
         
-        // Collect all field IDs for batch query
+        // Collect all field IDs for batch query (using only required metadata for field identity)
         Set<String> fieldIds = observations.stream()
-            .map(dto -> new FieldKey(contextId, dto.metadata(), dto.dataType(), dto.xpath()).toString())
+            .map(dto -> new FieldKey(contextId, filterToRequiredMetadata(context, dto.metadata()), dto.xpath()).toString())
             .collect(LinkedHashSet::new, Set::add, Set::addAll);
         
         // Single batch query to get all existing entries
@@ -45,7 +45,8 @@ public class CatalogService {
         List<CatalogEntry> entriesToSave = new ArrayList<>();
         
         for (CatalogObservationDTO dto : observations) {
-            FieldKey fieldKey = new FieldKey(contextId, dto.metadata(), dto.dataType(), dto.xpath());
+            Map<String, String> requiredMetadata = filterToRequiredMetadata(context, dto.metadata());
+            FieldKey fieldKey = new FieldKey(contextId, requiredMetadata, dto.xpath());
             String id = fieldKey.toString();
             
             CatalogEntry entry = existingEntries.get(id);
@@ -57,13 +58,12 @@ public class CatalogService {
                 entry.setAllowsEmpty(entry.isAllowsEmpty() || dto.hasEmpty());
                 entriesToSave.add(entry);
             } else {
-                // Create new entry
+                // Create new entry - store only required metadata for consistency
                 CatalogEntry newEntry = CatalogEntry.builder()
                     .id(id)
                     .contextId(contextId)
-                    .metadata(dto.metadata())
+                    .metadata(requiredMetadata)
                     .xpath(dto.xpath())
-                    .dataType(dto.dataType())
                     .maxOccurs(dto.count())
                     .minOccurs(dto.count())
                     .allowsNull(dto.hasNull())
@@ -106,9 +106,13 @@ public class CatalogService {
     }
     
     private void handleSingleContextCleanup(String contextId, List<CatalogObservationDTO> observations) {
+        // Get context to filter metadata
+        Context context = contextService.getContext(contextId).orElse(null);
+        if (context == null) return;
+        
         // Check if all observations are from the same context (they should be since they're submitted to a specific context)
         Set<ContextKey> contexts = observations.stream()
-            .map(o -> new ContextKey(contextId, o.metadata()))
+            .map(o -> new ContextKey(contextId, filterToRequiredMetadata(context, o.metadata())))
             .collect(LinkedHashSet::new, Set::add, Set::addAll);
             
         if (contexts.size() == 1) {
@@ -133,5 +137,16 @@ public class CatalogService {
     
     public Page<CatalogEntry> find(CatalogSearchCriteria criteria, Pageable pageable) {
         return repository.searchByCriteria(criteria, pageable);
+    }
+    
+    private Map<String, String> filterToRequiredMetadata(Context context, Map<String, String> metadata) {
+        Map<String, String> filteredMetadata = new TreeMap<>();
+        for (String requiredField : context.getRequiredMetadata()) {
+            String value = metadata.get(requiredField);
+            if (value != null) {
+                filteredMetadata.put(requiredField, value);
+            }
+        }
+        return filteredMetadata;
     }
 }

@@ -76,7 +76,7 @@ class CatalogServiceTest {
         );
         
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/FeeCode", "data", 1, false, false)
+            new CatalogObservationDTO(metadata, "/Ceremony/FeeCode", 1, false, false)
         ));
 
         // Verify first field created
@@ -87,7 +87,7 @@ class CatalogServiceTest {
 
         // Submit second observation missing the field - should set minOccurs to 0
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/DifferentField", "data", 1, false, false)
+            new CatalogObservationDTO(metadata, "/Ceremony/DifferentField", 1, false, false)
         ));
 
         entries = catalogRepository.findAll();
@@ -113,7 +113,7 @@ class CatalogServiceTest {
 
         // First observation with count 1
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/Amount", "data", 1, false, false)
+            new CatalogObservationDTO(metadata, "/Ceremony/Amount", 1, false, false)
         ));
 
         var entry = catalogRepository.findAll().get(0);
@@ -121,7 +121,7 @@ class CatalogServiceTest {
 
         // Second observation with count 5 should increase maxOccurs
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/Amount", "data", 5, false, false)
+            new CatalogObservationDTO(metadata, "/Ceremony/Amount", 5, false, false)
         ));
 
         entry = catalogRepository.findAll().get(0);
@@ -141,7 +141,7 @@ class CatalogServiceTest {
 
         // First observation: no null, no empty
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/Name", "data", 1, false, false)
+            new CatalogObservationDTO(metadata, "/Ceremony/Name", 1, false, false)
         ));
 
         var entry = catalogRepository.findAll().get(0);
@@ -150,7 +150,7 @@ class CatalogServiceTest {
 
         // Second observation: has null
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/Name", "data", 1, true, false)
+            new CatalogObservationDTO(metadata, "/Ceremony/Name", 1, true, false)
         ));
 
         entry = catalogRepository.findAll().get(0);
@@ -159,7 +159,7 @@ class CatalogServiceTest {
 
         // Third observation: has empty
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/Name", "data", 1, false, true)
+            new CatalogObservationDTO(metadata, "/Ceremony/Name", 1, false, true)
         ));
 
         entry = catalogRepository.findAll().get(0);
@@ -173,7 +173,7 @@ class CatalogServiceTest {
         
         assertThatThrownBy(() -> 
             catalogService.merge("nonexistent", List.of(
-                new CatalogObservationDTO(metadata, "/Test/Path", "data", 1, false, false)
+                new CatalogObservationDTO(metadata, "/Test/Path", 1, false, false)
             ))
         ).isInstanceOf(IllegalArgumentException.class)
          .hasMessageContaining("Context not found or inactive: nonexistent");
@@ -191,7 +191,7 @@ class CatalogServiceTest {
         
         assertThatThrownBy(() -> 
             catalogService.merge("deposits", List.of(
-                new CatalogObservationDTO(incompleteMetadata, "/Test/Path", "data", 1, false, false)
+                new CatalogObservationDTO(incompleteMetadata, "/Test/Path", 1, false, false)
             ))
         ).isInstanceOf(IllegalArgumentException.class)
          .hasMessageContaining("Required metadata field missing: productCode");
@@ -211,7 +211,7 @@ class CatalogServiceTest {
         
         assertThatThrownBy(() -> 
             catalogService.merge("deposits", List.of(
-                new CatalogObservationDTO(invalidMetadata, "/Test/Path", "data", 1, false, false)
+                new CatalogObservationDTO(invalidMetadata, "/Test/Path", 1, false, false)
             ))
         ).isInstanceOf(IllegalArgumentException.class)
          .hasMessageContaining("Unexpected metadata field: unexpectedField");
@@ -228,8 +228,8 @@ class CatalogServiceTest {
         );
 
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/Amount", "data", 1, false, false),
-            new CatalogObservationDTO(metadata, "/Ceremony/Name", "data", 1, false, false)
+            new CatalogObservationDTO(metadata, "/Ceremony/Amount", 1, false, false),
+            new CatalogObservationDTO(metadata, "/Ceremony/Name", 1, false, false)
         ));
 
         var criteria = new CatalogSearchCriteria("deposits", null, null);
@@ -251,8 +251,8 @@ class CatalogServiceTest {
         );
 
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/FeeCode", "data", 1, false, false),
-            new CatalogObservationDTO(metadata, "/Ceremony/Amount", "data", 1, false, false)
+            new CatalogObservationDTO(metadata, "/Ceremony/FeeCode", 1, false, false),
+            new CatalogObservationDTO(metadata, "/Ceremony/Amount", 1, false, false)
         ));
 
         var criteria = new CatalogSearchCriteria(null, null, "Fee");

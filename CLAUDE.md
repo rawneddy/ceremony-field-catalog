@@ -51,51 +51,97 @@ Use `CatalogSmokeTests.http` with VS Code REST Client extension for manual API t
 
 ## Architecture Overview
 
-This is a **field observation catalog system** that tracks XML field usage patterns across three business paths:
+This is a **dynamic field observation catalog system** that tracks XML field usage patterns across unlimited business contexts:
 
-### Business Domain
-- **Deposits**: Action-based with productCode/productSubCode (Fulfillment, DDA, 4S)
-- **Loans**: Loan product code-based (HEQF, HMTG, etc.)
-- **OnDemand**: Form-based with formCode/formVersion (ACK123, v1.0)
+### Dynamic Context System
+- **Context-driven**: Each business domain defines its own metadata schema
+- **Self-service**: Developers create contexts with required/optional metadata
+- **Unlimited contexts**: Supports any number of business domains (Deposits, Loans, RenderData, etc.)
+- **Schema enforcement**: Validates observations against context-defined metadata requirements
+- **Schema evolution**: Allows adding/removing optional metadata; requires new contexts for required metadata changes
 
 ### Core Components
 
 **Domain Models** (`src/main/java/com/ceremony/catalog/domain/`)
+- `Context`: Defines business domain metadata schemas (required/optional fields)
 - `CatalogEntry`: Main MongoDB document representing observed fields
-- `FieldKey`: Composite key for unique field identification
+- `FieldKey`: Hash-based unique field identification (contextId + requiredMetadata + xpath)
 - `ContextKey`: Business context identifier for grouping observations
 
 **API Layer** (`src/main/java/com/ceremony/catalog/api/`)
+- `ContextController`: REST endpoints for context management (CRUD operations)
 - `CatalogController`: REST endpoints for field submission and search
-- `CatalogObservationDTO`: Input contract for field observations
-- `CatalogSearchCriteria`: Search filter parameters
+- `CatalogObservationDTO`: Input contract for field observations (no dataType - XPath provides differentiation)
+- `CatalogSearchCriteria`: Dynamic search filter parameters
+- `DynamicSearchParameterResolver`: Converts any query parameter to metadata search criteria
 
 **Service Layer** (`src/main/java/com/ceremony/catalog/service/`)
-- `CatalogService`: Core business logic for field merging and querying
+- `ContextService`: Context lifecycle management with schema evolution protection
+- `CatalogService`: Core business logic for field merging and querying using required-metadata-only field identity
 - Implements intelligent merge logic: updates occurrence stats for existing fields, creates new entries
 
 **Persistence Layer** (`src/main/java/com/ceremony/catalog/persistence/`)
-- `CatalogRepository`: Standard MongoDB repository
+- `ContextRepository`: Standard MongoDB repository for contexts
+- `CatalogRepository`: Standard MongoDB repository for field observations
 - `CatalogCustomRepository`: Interface for dynamic queries
 - `CatalogCustomRepositoryImpl`: Custom query implementation using MongoTemplate and Criteria API
 
 ### Key Patterns
 
-**Field Merging Logic**: The system merges field observations rather than simple inserts:
-- New fields create catalog entries
-- Existing fields update occurrence statistics (minOccurs, maxOccurs, null/empty allowances)
+**Dynamic Context Management**: 
+- Contexts define metadata schemas for business domains
+- Required metadata changes blocked after creation (prevents field ID conflicts)
+- Optional metadata evolution allowed (adding/removing optional fields)
+- Cross-context collision prevention through contextId in field identity
+
+**Field Identity & Merging Logic**: 
+- Field identity: `hash(contextId + requiredMetadata + xpath)` - no dataType needed
+- Field merging: observations with same identity update occurrence statistics
+- Optional metadata ignored for field identity (same required metadata + xpath = same field)
 - Single-context processing sets `minOccurs=0` for absent fields
 
 **MongoDB Integration**:
-- Uses `@Document("catalog_fields")` collection mapping
-- String-based IDs from concatenated field keys
+- Uses `@Document("catalog_fields")` and `@Document("contexts")` collection mapping
+- Hash-based field IDs (e.g., `field_12345678`) for clean, collision-resistant identification
 - Compound indexes for optimal query performance
-- MongoTemplate for complex dynamic queries
+- MongoTemplate for complex dynamic queries with any metadata field
 
 **Testing Philosophy**:
 - Integration-first using Testcontainers
 - Real MongoDB containers for test confidence
 - Focus on business logic over unit testing
+
+### API Usage Patterns
+
+**Context Management**:
+```bash
+# Create context
+POST /catalog/contexts
+{"contextId": "deposits", "requiredMetadata": ["productCode"], "optionalMetadata": ["channel"]}
+
+# Update context (optional metadata only)
+PUT /catalog/contexts/deposits
+{"requiredMetadata": ["productCode"], "optionalMetadata": ["channel", "region"]}
+```
+
+**Field Observations**:
+```bash
+# Submit observations to specific context
+POST /catalog/contexts/deposits/observations
+[{"metadata": {"productCode": "DDA", "channel": "Online"}, "xpath": "/Ceremony/Amount", "count": 1, "hasNull": false, "hasEmpty": false}]
+```
+
+**Dynamic Search**:
+```bash
+# Search within context
+GET /catalog/fields?contextId=deposits&page=0&size=10
+
+# Cross-context search by any metadata
+GET /catalog/fields?productCode=DDA&page=0&size=10
+
+# XPath pattern search
+GET /catalog/fields?xpath=/Ceremony/Amount
+```
 
 ## Development Guidelines
 

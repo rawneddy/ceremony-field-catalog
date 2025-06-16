@@ -8,14 +8,12 @@ import java.util.stream.Collectors;
 public record FieldKey(
     String contextId,
     Map<String, String> metadata,
-    String dataType,
     String xpath
 ) {
     public FieldKey {
         // Compact constructor for validation
         Objects.requireNonNull(contextId, "contextId cannot be null");
         Objects.requireNonNull(xpath, "xpath cannot be null");
-        Objects.requireNonNull(dataType, "dataType cannot be null");
         
         // Sort metadata for consistent key generation
         metadata = metadata == null ? Map.of() : new TreeMap<>(metadata);
@@ -23,24 +21,19 @@ public record FieldKey(
     
     @Override
     public String toString() {
-        // Use a delimiter that's unlikely to appear in field values
+        // Create a consistent string representation for hashing
         String metadataString = metadata.entrySet().stream()
-            .map(entry -> escape(entry.getKey()) + "=" + escape(safe(entry.getValue())))
+            .map(entry -> entry.getKey() + "=" + safe(entry.getValue()))
             .collect(Collectors.joining("&"));
             
-        return String.join("§",
-            escape(contextId),
-            escape(metadataString),
-            escape(dataType),
-            escape(xpath)
-        );
+        String keyString = String.join("|", contextId, metadataString, xpath);
+        
+        // Generate a consistent hash-based ID (avoid Math.abs collision on MIN_VALUE)
+        int hash = keyString.hashCode();
+        return "field_" + (hash == Integer.MIN_VALUE ? 0 : Math.abs(hash));
     }
     
     private static String safe(String value) {
         return value == null ? "" : value;
-    }
-    
-    private static String escape(String value) {
-        return value.replace("§", "§§").replace("=", "==").replace("&", "&&");
     }
 }

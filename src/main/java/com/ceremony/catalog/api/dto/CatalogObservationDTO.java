@@ -13,9 +13,6 @@ public record CatalogObservationDTO(
     @NotBlank(message = "XPath is required")
     String xpath,
     
-    @NotBlank(message = "Data type is required")
-    String dataType,
-    
     @Min(value = 0, message = "Count must be non-negative")
     int count,
     
