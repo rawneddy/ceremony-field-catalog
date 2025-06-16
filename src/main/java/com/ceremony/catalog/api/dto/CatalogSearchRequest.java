@@ -54,7 +54,7 @@ public record CatalogSearchRequest(
     public CatalogSearchRequest {
         // Defensive defaults and validation
         page = page < 0 ? 0 : page;
-        size = size < 1 ? 50 : (size > 1000 ? 1000 : size);
+        size = size < 1 ? 50 : size; // Default will be overridden by controller if needed
         metadata = metadata != null ? Map.copyOf(metadata) : new HashMap<>();
     }
     

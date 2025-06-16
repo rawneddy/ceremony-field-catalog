@@ -1,4 +1,73 @@
+# =============================================================================
+# Ceremony Field Catalog Configuration
+# =============================================================================
+
+# Spring Framework Configuration
 spring:
+  application:
+    name: ceremony-field-catalog
   data:
     mongodb:
-      uri: mongodb://localhost:27017/ceremony_catalog
+      uri: ${MONGODB_URI:mongodb://localhost:27017/ceremony_catalog}
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: ${SERVER_CONTEXT_PATH:}
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# Logging Configuration
+logging:
+  level:
+    com.ceremony.catalog: ${LOG_LEVEL_CATALOG:INFO}
+    org.springframework.data.mongodb: ${LOG_LEVEL_MONGODB:WARN}
+    org.springframework.web: ${LOG_LEVEL_WEB:WARN}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Catalog Application Configuration
+app:
+  catalog:
+    database:
+      mongo-uri: ${MONGODB_URI:mongodb://localhost:27017/ceremony_catalog}
+      connection-timeout-seconds: ${DB_CONNECTION_TIMEOUT:30}
+      max-connections: ${DB_MAX_CONNECTIONS:100}
+    batch:
+      max-size: ${CATALOG_BATCH_SIZE:1000}
+      timeout: ${CATALOG_BATCH_TIMEOUT:PT5M}
+      parallel-processing: ${CATALOG_PARALLEL_PROCESSING:true}
+    search:
+      max-results: ${CATALOG_MAX_RESULTS:10000}
+      default-page-size: ${CATALOG_DEFAULT_PAGE_SIZE:50}
+      max-page-size: ${CATALOG_MAX_PAGE_SIZE:1000}
+      timeout: ${CATALOG_SEARCH_TIMEOUT:PT30S}
+    validation:
+      max-xpath-length: ${VALIDATION_MAX_XPATH_LENGTH:1000}
+      max-context-id-length: ${VALIDATION_MAX_CONTEXT_ID_LENGTH:100}
+      max-metadata-key-length: ${VALIDATION_MAX_METADATA_KEY_LENGTH:100}
+      max-metadata-value-length: ${VALIDATION_MAX_METADATA_VALUE_LENGTH:500}
+    cache:
+      enabled: ${CACHE_ENABLED:true}
+      ttl: ${CACHE_TTL:PT15M}
+      max-size: ${CACHE_MAX_SIZE:1000}
+
+# SpringDoc OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    display-request-duration: true
+    display-operation-id: true
+    default-models-expand-depth: 1
+    default-model-expand-depth: 1
+  show-actuator: ${SPRINGDOC_SHOW_ACTUATOR:false}

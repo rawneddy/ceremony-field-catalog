@@ -1,5 +1,7 @@
 package com.ceremony.catalog.service;
 
+import com.ceremony.catalog.config.CatalogProperties;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -10,16 +12,13 @@ import java.util.regex.Pattern;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class InputValidationService {
+    
+    private final CatalogProperties catalogProperties;
     
     // Pattern for control characters that should be removed
     private static final Pattern CONTROL_CHARS = Pattern.compile("[\\x00-\\x1F\\x7F]");
-    
-    // Maximum length constraints
-    private static final int MAX_XPATH_LENGTH = 1000;
-    private static final int MAX_METADATA_KEY_LENGTH = 100;
-    private static final int MAX_METADATA_VALUE_LENGTH = 500;
-    private static final int MAX_CONTEXT_ID_LENGTH = 100;
     
     // Basic validation patterns
     private static final Pattern VALID_CONTEXT_ID = Pattern.compile("^[a-zA-Z0-9._-]+$");
@@ -35,8 +34,9 @@ public class InputValidationService {
         
         String cleaned = xpath.trim();
         
-        if (cleaned.length() > MAX_XPATH_LENGTH) {
-            throw new IllegalArgumentException("XPath too long (max " + MAX_XPATH_LENGTH + " characters)");
+        int maxLength = catalogProperties.getValidation().getMaxXpathLength();
+        if (cleaned.length() > maxLength) {
+            throw new IllegalArgumentException("XPath too long (max " + maxLength + " characters)");
         }
         
         // Remove control characters only
@@ -60,8 +60,9 @@ public class InputValidationService {
         
         String cleaned = contextId.trim();
         
-        if (cleaned.length() > MAX_CONTEXT_ID_LENGTH) {
-            throw new IllegalArgumentException("Context ID too long (max " + MAX_CONTEXT_ID_LENGTH + " characters)");
+        int maxLength = catalogProperties.getValidation().getMaxContextIdLength();
+        if (cleaned.length() > maxLength) {
+            throw new IllegalArgumentException("Context ID too long (max " + maxLength + " characters)");
         }
         
         // Remove control characters only
@@ -104,8 +105,9 @@ public class InputValidationService {
         
         String cleaned = key.trim();
         
-        if (cleaned.length() > MAX_METADATA_KEY_LENGTH) {
-            throw new IllegalArgumentException("Metadata key too long (max " + MAX_METADATA_KEY_LENGTH + " characters): " + key);
+        int maxLength = catalogProperties.getValidation().getMaxMetadataKeyLength();
+        if (cleaned.length() > maxLength) {
+            throw new IllegalArgumentException("Metadata key too long (max " + maxLength + " characters): " + key);
         }
         
         // Remove control characters only
@@ -130,8 +132,9 @@ public class InputValidationService {
         
         String cleaned = value.trim();
         
-        if (cleaned.length() > MAX_METADATA_VALUE_LENGTH) {
-            throw new IllegalArgumentException("Metadata value too long (max " + MAX_METADATA_VALUE_LENGTH + " characters)");
+        int maxLength = catalogProperties.getValidation().getMaxMetadataValueLength();
+        if (cleaned.length() > maxLength) {
+            throw new IllegalArgumentException("Metadata value too long (max " + maxLength + " characters)");
         }
         
         // Remove control characters only - preserve everything else including spaces, special chars

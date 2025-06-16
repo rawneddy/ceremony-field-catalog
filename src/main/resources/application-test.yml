@@ -1,0 +1,68 @@
+# =============================================================================
+# Test Profile Configuration
+# =============================================================================
+
+# Test-specific Spring Configuration
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/ceremony_catalog_test
+
+# Test Server Configuration (Random port for parallel tests)
+server:
+  port: 0
+
+# Test Logging Configuration (Minimal for faster tests)
+logging:
+  level:
+    com.ceremony.catalog: WARN
+    org.springframework.data.mongodb: ERROR
+    org.springframework.web: ERROR
+    org.mongodb.driver: ERROR
+    org.testcontainers: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n"
+
+# Test Catalog Configuration (Optimized for fast tests)
+app:
+  catalog:
+    database:
+      mongo-uri: mongodb://localhost:27017/ceremony_catalog_test
+      connection-timeout-seconds: 5
+      max-connections: 5
+    batch:
+      max-size: 100  # Small batches for tests
+      timeout: PT30S
+      parallel-processing: false  # Deterministic for tests
+    search:
+      max-results: 100  # Small for tests
+      default-page-size: 10
+      max-page-size: 50
+      timeout: PT5S
+    validation:
+      max-xpath-length: 200  # Restrictive for tests
+      max-context-id-length: 20
+      max-metadata-key-length: 20
+      max-metadata-value-length: 50
+    cache:
+      enabled: false  # No caching in tests
+      ttl: PT1M
+      max-size: 10
+
+# Test SpringDoc Configuration (Disabled for faster startup)
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
+  show-actuator: false
+
+# Test-specific management configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

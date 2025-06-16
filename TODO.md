@@ -31,13 +31,22 @@ This document outlines recommended improvements to create a "pit of success" whe
 - [ ] Configure management endpoints
 - [ ] Add application info and build info
 
-### 6. Enhanced Configuration Management  
+### 6. Enhanced Configuration Management ✅ (COMPLETED)
 **Goal**: Replace hardcoded values with environment-specific configuration.
 
 **Tasks**:
-- [ ] Extract MongoDB URI to environment variables
-- [ ] Add application-specific configuration properties
-- [ ] Configure different profiles for dev/test/prod
+- [x] Extract MongoDB URI to environment variables
+- [x] Add application-specific configuration properties
+- [x] Configure different profiles for dev/test/prod
+- [x] Add configuration validation and documentation
+
+**Results**:
+- Created comprehensive `CatalogProperties` configuration class with validation
+- Added environment variable support for all configurable values
+- Created profile-specific configurations (dev, test, prod) with appropriate defaults
+- Added `ConfigurationValidator` that validates configuration on startup
+- Updated all services to use configuration instead of hardcoded values
+- Configuration summary logged on startup with active profile details
 
 ## Phase 3: Performance & Quality Improvements (Future Sprints)
 

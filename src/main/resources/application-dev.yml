@@ -1,0 +1,73 @@
+# =============================================================================
+# Development Profile Configuration
+# =============================================================================
+
+# Development-specific Spring Configuration
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/ceremony_catalog_dev
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+
+# Development Server Configuration
+server:
+  port: 8080
+
+# Development Logging Configuration (More verbose for debugging)
+logging:
+  level:
+    com.ceremony.catalog: DEBUG
+    org.springframework.data.mongodb: INFO
+    org.springframework.web: INFO
+    org.mongodb.driver: INFO
+  file:
+    name: logs/ceremony-catalog-dev.log
+
+# Development Catalog Configuration
+app:
+  catalog:
+    database:
+      mongo-uri: mongodb://localhost:27017/ceremony_catalog_dev
+      connection-timeout-seconds: 10
+      max-connections: 20
+    batch:
+      max-size: 500  # Smaller batches for development
+      timeout: PT2M
+      parallel-processing: false  # Easier debugging
+    search:
+      max-results: 1000  # Smaller for development
+      default-page-size: 20
+      max-page-size: 100
+      timeout: PT10S
+    validation:
+      max-xpath-length: 500  # More restrictive for testing
+      max-context-id-length: 50
+      max-metadata-key-length: 50
+      max-metadata-value-length: 200
+    cache:
+      enabled: false  # Disable caching for development
+      ttl: PT5M
+      max-size: 100
+
+# Development SpringDoc Configuration
+springdoc:
+  swagger-ui:
+    enabled: true
+    try-it-out-enabled: true
+  api-docs:
+    enabled: true
+  show-actuator: true
+
+# Development-specific features
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,configprops
+  endpoint:
+    health:
+      show-details: always

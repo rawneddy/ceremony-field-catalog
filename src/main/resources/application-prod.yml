@@ -1,0 +1,84 @@
+# =============================================================================
+# Production Profile Configuration
+# =============================================================================
+
+# Production-specific Spring Configuration
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://mongodb-service:27017/ceremony_catalog}
+
+# Production Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: on_param
+    include-binding-errors: on_param
+    include-stacktrace: never
+    include-exception: false
+
+# Production Logging Configuration (Structured logging for production)
+logging:
+  level:
+    com.ceremony.catalog: INFO
+    org.springframework.data.mongodb: WARN
+    org.springframework.web: WARN
+    org.mongodb.driver: WARN
+  file:
+    name: ${LOG_FILE:/var/log/ceremony-catalog/application.log}
+    max-size: 100MB
+    max-history: 30
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{40} - %msg%n"
+
+# Production Catalog Configuration (Optimized for performance)
+app:
+  catalog:
+    database:
+      mongo-uri: ${MONGODB_URI:mongodb://mongodb-service:27017/ceremony_catalog}
+      connection-timeout-seconds: ${DB_CONNECTION_TIMEOUT:30}
+      max-connections: ${DB_MAX_CONNECTIONS:100}
+    batch:
+      max-size: ${CATALOG_BATCH_SIZE:1000}
+      timeout: ${CATALOG_BATCH_TIMEOUT:PT5M}
+      parallel-processing: ${CATALOG_PARALLEL_PROCESSING:true}
+    search:
+      max-results: ${CATALOG_MAX_RESULTS:10000}
+      default-page-size: ${CATALOG_DEFAULT_PAGE_SIZE:50}
+      max-page-size: ${CATALOG_MAX_PAGE_SIZE:1000}
+      timeout: ${CATALOG_SEARCH_TIMEOUT:PT30S}
+    validation:
+      max-xpath-length: ${VALIDATION_MAX_XPATH_LENGTH:1000}
+      max-context-id-length: ${VALIDATION_MAX_CONTEXT_ID_LENGTH:100}
+      max-metadata-key-length: ${VALIDATION_MAX_METADATA_KEY_LENGTH:100}
+      max-metadata-value-length: ${VALIDATION_MAX_METADATA_VALUE_LENGTH:500}
+    cache:
+      enabled: ${CACHE_ENABLED:true}
+      ttl: ${CACHE_TTL:PT15M}
+      max-size: ${CACHE_MAX_SIZE:1000}
+
+# Production SpringDoc Configuration (Security-conscious)
+springdoc:
+  swagger-ui:
+    enabled: ${SWAGGER_UI_ENABLED:false}  # Disabled by default in production
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:false}    # Disabled by default in production
+  show-actuator: false
+
+# Production Management Configuration (Restricted)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: ${PROMETHEUS_ENABLED:true}
+  security:
+    enabled: ${MANAGEMENT_SECURITY_ENABLED:true}

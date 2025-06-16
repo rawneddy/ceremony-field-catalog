@@ -3,6 +3,7 @@ package com.ceremony.catalog.api;
 import com.ceremony.catalog.api.dto.CatalogObservationDTO;
 import com.ceremony.catalog.api.dto.CatalogSearchRequest;
 import com.ceremony.catalog.api.dto.ErrorResponse;
+import com.ceremony.catalog.config.CatalogProperties;
 import com.ceremony.catalog.domain.CatalogEntry;
 import com.ceremony.catalog.service.CatalogService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +29,7 @@ import java.util.List;
 @Tag(name = "Field Catalog", description = "API for managing field observations and searching the catalog")
 public class CatalogController {
     private final CatalogService catalogService;
+    private final CatalogProperties catalogProperties;
     
     @Operation(
         summary = "Submit field observations",
@@ -138,7 +140,16 @@ public class CatalogController {
                 required = false
             )
             @Valid CatalogSearchRequest request) {
-        Pageable pageable = PageRequest.of(request.page(), request.size());
+        // Apply configuration-based defaults and limits
+        int pageSize = request.size();
+        if (pageSize <= 0) {
+            pageSize = catalogProperties.getSearch().getDefaultPageSize();
+        }
+        if (pageSize > catalogProperties.getSearch().getMaxPageSize()) {
+            pageSize = catalogProperties.getSearch().getMaxPageSize();
+        }
+        
+        Pageable pageable = PageRequest.of(request.page(), pageSize);
         return catalogService.find(request.toCriteria(), pageable);
     }
 }
