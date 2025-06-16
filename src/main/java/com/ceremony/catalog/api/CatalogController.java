@@ -18,14 +18,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CatalogController {
     private final CatalogService catalogService;
-    @PostMapping("/observed-fields")
+    
+    @PostMapping("/contexts/{contextId}/observations")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void submitObservations(@Valid @RequestBody List<CatalogObservationDTO> observations) {
-        catalogService.merge(observations);
+    public void submitObservations(
+            @PathVariable String contextId,
+            @Valid @RequestBody List<CatalogObservationDTO> observations) {
+        catalogService.merge(contextId, observations);
     }
     
     @GetMapping("/fields")
-    public Page<CatalogEntry> searchCatalog(@Valid @ModelAttribute CatalogSearchRequest request) {
+    public Page<CatalogEntry> searchCatalog(@Valid CatalogSearchRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         return catalogService.find(request.toCriteria(), pageable);
     }

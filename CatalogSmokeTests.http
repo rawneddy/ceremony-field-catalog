@@ -1,26 +1,97 @@
-### Deposits Path
-POST http://localhost:8080/catalog/observed-fields
+### 1. Create Deposits Context
+POST http://localhost:8080/catalog/contexts
+Content-Type: application/json
+
+{
+  "contextId": "deposits",
+  "displayName": "Deposits",
+  "description": "Ceremony XML processing for account deposits",
+  "requiredMetadata": ["productCode", "productSubCode", "action"],
+  "optionalMetadata": [],
+  "active": true
+}
+
+### 2. Create Loans Context
+POST http://localhost:8080/catalog/contexts
+Content-Type: application/json
+
+{
+  "contextId": "loans", 
+  "displayName": "Loans",
+  "description": "Loan application processing",
+  "requiredMetadata": ["loanProductCode"],
+  "optionalMetadata": [],
+  "active": true
+}
+
+### 3. Create OnDemand Context
+POST http://localhost:8080/catalog/contexts
+Content-Type: application/json
+
+{
+  "contextId": "ondemand",
+  "displayName": "OnDemand",
+  "description": "Document generation and form processing",
+  "requiredMetadata": ["formCode", "formVersion"],
+  "optionalMetadata": [],
+  "active": true
+}
+
+### 4. Create RenderData Context (Example of your new use case)
+POST http://localhost:8080/catalog/contexts
+Content-Type: application/json
+
+{
+  "contextId": "renderdata",
+  "displayName": "Render Data",
+  "description": "Document rendering XML data",
+  "requiredMetadata": ["documentCode"],
+  "optionalMetadata": ["productCode", "productSubCode"],
+  "active": true
+}
+
+### 5. List All Contexts
+GET http://localhost:8080/catalog/contexts
+
+### 6. Get Specific Context
+GET http://localhost:8080/catalog/contexts/deposits
+
+### 7. Submit Deposits Observations
+POST http://localhost:8080/catalog/contexts/deposits/observations
 Content-Type: application/json
 
 [{
-  "pathType": "deposits",
-  "action": "Fulfillment",
-  "productCode": "DDA",
-  "productSubCode": "4S",
+  "metadata": {
+    "action": "Fulfillment",
+    "productCode": "DDA",
+    "productSubCode": "4S"
+  },
   "xpath": "/Ceremony/Accounts/Account/FeeCode/Amount",
   "dataType": "data",
   "count": 1,
   "hasNull": false,
   "hasEmpty": false
+}, {
+  "metadata": {
+    "action": "Fulfillment", 
+    "productCode": "DDA",
+    "productSubCode": "4S"
+  },
+  "xpath": "/Ceremony/Accounts/Account/WithholdingCode",
+  "dataType": "data",
+  "count": 1,
+  "hasNull": true,
+  "hasEmpty": false
 }]
 
-### Loans Path
-POST http://localhost:8080/catalog/observed-fields
+### 8. Submit Loans Observations
+POST http://localhost:8080/catalog/contexts/loans/observations
 Content-Type: application/json
 
 [{
-  "pathType": "loans",
-  "loanProductCode": "HEQF",
+  "metadata": {
+    "loanProductCode": "HEQF"
+  },
   "xpath": "/BMIC/Application/FICO",
   "dataType": "data",
   "count": 1,
@@ -28,14 +99,15 @@ Content-Type: application/json
   "hasEmpty": false
 }]
 
-### OnDemand Path
-POST http://localhost:8080/catalog/observed-fields
+### 9. Submit OnDemand Observations
+POST http://localhost:8080/catalog/contexts/ondemand/observations
 Content-Type: application/json
 
 [{
-  "pathType": "ondemand",
-  "formCode": "ACK123",
-  "formVersion": "1.0",
+  "metadata": {
+    "formCode": "ACK123",
+    "formVersion": "1.0"
+  },
   "xpath": "/eDocument/PrimaryCustomer/Name/First",
   "dataType": "data",
   "count": 1,
@@ -43,11 +115,114 @@ Content-Type: application/json
   "hasEmpty": false
 }]
 
-### Get Catalog Fields
-GET http://localhost:8080/catalog/fields?pathType=deposits&productCode=DDA&productSubCode=4S&page=0&size=10
+### 10. Submit RenderData Observations (with optional productCode)
+POST http://localhost:8080/catalog/contexts/renderdata/observations
+Content-Type: application/json
 
-### Get Catalog Fields (all, paged)
+[{
+  "metadata": {
+    "documentCode": "STMT001",
+    "productCode": "DDA",
+    "productSubCode": "4S"
+  },
+  "xpath": "/Document/TaxWithholding",
+  "dataType": "data", 
+  "count": 1,
+  "hasNull": true,
+  "hasEmpty": false
+}]
+
+### 11. Search Fields by Context
+GET http://localhost:8080/catalog/fields?contextId=deposits&page=0&size=10
+
+### 12. Search Fields by Metadata (cross-context search for productCode=DDA)
+GET http://localhost:8080/catalog/fields?productCode=DDA&page=0&size=10
+
+### 13. Search Fields with XPath Pattern
+GET http://localhost:8080/catalog/fields?xpathContains=WithholdingCode&page=0&size=10
+
+### 14. Search Fields with Multiple Dynamic Metadata Filters
+GET http://localhost:8080/catalog/fields?contextId=deposits&productCode=DDA&productSubCode=4S&page=0&size=10
+
+### 15. Search RenderData by DocumentCode (Dynamic Metadata)
+GET http://localhost:8080/catalog/fields?contextId=renderdata&documentCode=STMT001&page=0&size=10
+
+### 16. Cross-Context Search by Any Custom Metadata Field
+GET http://localhost:8080/catalog/fields?customField=customValue&page=0&size=10
+
+### 17. Cross-Context Search Examples
+
+# Find ALL fields with productSubCode="4S" across ANY context
+GET http://localhost:8080/catalog/fields?productSubCode=4S
+
+# Find fields with productSubCode="4S" ONLY in deposits context
+GET http://localhost:8080/catalog/fields?contextId=deposits&productSubCode=4S
+
+# Find ALL fields with productCode="DDA" across ANY context  
+GET http://localhost:8080/catalog/fields?productCode=DDA
+
+# Multiple metadata filters across all contexts
+GET http://localhost:8080/catalog/fields?productCode=DDA&productSubCode=4S
+
+# Your specific use case: productSubCode in XYZ context
+GET http://localhost:8080/catalog/fields?contextId=xyz&productSubCode=4S
+
+### 18. Future-Proof Examples (Any Metadata)
+
+# Search by any custom metadata field across all contexts
+GET http://localhost:8080/catalog/fields?customField=customValue
+
+# Multiple custom fields 
+GET http://localhost:8080/catalog/fields?businessUnit=Commercial&region=West
+
+### 19. Get All Fields (paginated)
 GET http://localhost:8080/catalog/fields?page=0&size=10
 
-### Get Catalog Fields (with xpath filter)
-GET http://localhost:8080/catalog/fields?xpathContains=FeeCode&page=0&size=10
+### Error Test: Submit to Non-existent Context
+POST http://localhost:8080/catalog/contexts/invalid/observations
+Content-Type: application/json
+
+[{
+  "metadata": {
+    "someField": "someValue"
+  },
+  "xpath": "/Test/Path",
+  "dataType": "data",
+  "count": 1,
+  "hasNull": false,
+  "hasEmpty": false
+}]
+
+### Error Test: Missing Required Metadata
+POST http://localhost:8080/catalog/contexts/deposits/observations
+Content-Type: application/json
+
+[{
+  "metadata": {
+    "action": "Fulfillment"
+    // Missing productCode and productSubCode
+  },
+  "xpath": "/Test/Path",
+  "dataType": "data",
+  "count": 1,
+  "hasNull": false,
+  "hasEmpty": false
+}]
+
+### Error Test: Unexpected Metadata Field
+POST http://localhost:8080/catalog/contexts/deposits/observations
+Content-Type: application/json
+
+[{
+  "metadata": {
+    "action": "Fulfillment",
+    "productCode": "DDA", 
+    "productSubCode": "4S",
+    "unexpectedField": "shouldFail"
+  },
+  "xpath": "/Test/Path",
+  "dataType": "data",
+  "count": 1,
+  "hasNull": false,
+  "hasEmpty": false
+}]

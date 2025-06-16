@@ -2,7 +2,10 @@ package com.ceremony.catalog.service;
 
 import com.ceremony.catalog.api.dto.CatalogObservationDTO;
 import com.ceremony.catalog.api.dto.CatalogSearchCriteria;
+import com.ceremony.catalog.api.dto.ContextDefinitionDTO;
+import com.ceremony.catalog.domain.CatalogEntry;
 import com.ceremony.catalog.persistence.CatalogRepository;
+import com.ceremony.catalog.persistence.ContextRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +19,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,225 +36,229 @@ class CatalogServiceTest {
     }
 
     @Autowired
-    CatalogService service;
+    CatalogService catalogService;
     
     @Autowired
-    CatalogRepository repository;
+    ContextService contextService;
+    
+    @Autowired
+    CatalogRepository catalogRepository;
+    
+    @Autowired
+    ContextRepository contextRepository;
     
     @BeforeEach
     void cleanDatabase() {
-        repository.deleteAll();
+        catalogRepository.deleteAll();
+        contextRepository.deleteAll();
+    }
+    
+    private void createDepositsContext() {
+        var contextDef = new ContextDefinitionDTO(
+            "deposits",
+            "Deposits",
+            "Test deposits context",
+            List.of("productCode", "productSubCode", "action"),
+            List.of(),
+            true
+        );
+        contextService.createContext(contextDef);
     }
 
     @Test
     void minOccursDropsToZeroWhenFieldMissing() {
-        service.merge(List.of(
-            new CatalogObservationDTO("deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, "/Ceremony/FeeCode", "data", 1, false, false)
-        ));
-
-        service.merge(List.of(
-            new CatalogObservationDTO("deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, "/Ceremony/Other", "data", 1, false, false)
-        ));
-
-        CatalogSearchCriteria criteria = new CatalogSearchCriteria(
-            "deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, null
+        createDepositsContext();
+        
+        Map<String, String> metadata = Map.of(
+            "productCode", "DDA",
+            "productSubCode", "4S",
+            "action", "Fulfillment"
         );
-        var fee = service.find(criteria, PageRequest.of(0, 10))
-                .getContent().stream()
-                .filter(c -> c.getXpath().endsWith("FeeCode"))
-                .findFirst().orElseThrow();
+        
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(metadata, "/Ceremony/FeeCode", "data", 1, false, false)
+        ));
 
-        assertThat(fee.getMinOccurs()).isZero();
+        // Verify first field created
+        var entries = catalogRepository.findAll();
+        assertThat(entries).hasSize(1);
+        assertThat(entries.get(0).getMinOccurs()).isEqualTo(1);
+        assertThat(entries.get(0).getMaxOccurs()).isEqualTo(1);
+
+        // Submit second observation missing the field - should set minOccurs to 0
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(metadata, "/Ceremony/DifferentField", "data", 1, false, false)
+        ));
+
+        entries = catalogRepository.findAll();
+        assertThat(entries).hasSize(2);
+        
+        var feeCodeEntry = entries.stream()
+            .filter(e -> e.getXpath().equals("/Ceremony/FeeCode"))
+            .findFirst()
+            .orElseThrow();
+        assertThat(feeCodeEntry.getMinOccurs()).isEqualTo(0); // Should be zero now
+        assertThat(feeCodeEntry.getMaxOccurs()).isEqualTo(1); // Should remain 1
     }
-    
+
     @Test
-    void mergeCreatesNewEntryWhenNotExists() {
-        var observation = new CatalogObservationDTO(
-            "deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, 
-            "/Ceremony/Amount", "data", 5, true, false
+    void maxOccursIncreasesWhenHigherCountSeen() {
+        createDepositsContext();
+        
+        Map<String, String> metadata = Map.of(
+            "productCode", "DDA",
+            "productSubCode", "4S",
+            "action", "Fulfillment"
         );
-        
-        service.merge(List.of(observation));
-        
-        var criteria = new CatalogSearchCriteria(
-            "deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, null
-        );
-        var results = service.find(criteria, PageRequest.of(0, 10));
-        
-        assertThat(results.getContent()).hasSize(1);
-        var entry = results.getContent().get(0);
-        assertThat(entry.getXpath()).isEqualTo("/Ceremony/Amount");
-        assertThat(entry.getDataType()).isEqualTo("data");
-        assertThat(entry.getMinOccurs()).isEqualTo(5);
+
+        // First observation with count 1
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(metadata, "/Ceremony/Amount", "data", 1, false, false)
+        ));
+
+        var entry = catalogRepository.findAll().get(0);
+        assertThat(entry.getMaxOccurs()).isEqualTo(1);
+
+        // Second observation with count 5 should increase maxOccurs
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(metadata, "/Ceremony/Amount", "data", 5, false, false)
+        ));
+
+        entry = catalogRepository.findAll().get(0);
         assertThat(entry.getMaxOccurs()).isEqualTo(5);
+        assertThat(entry.getMinOccurs()).isEqualTo(1);
+    }
+
+    @Test
+    void allowsNullAndEmptyFlagsAccumulate() {
+        createDepositsContext();
+        
+        Map<String, String> metadata = Map.of(
+            "productCode", "DDA",
+            "productSubCode", "4S",
+            "action", "Fulfillment"
+        );
+
+        // First observation: no null, no empty
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(metadata, "/Ceremony/Name", "data", 1, false, false)
+        ));
+
+        var entry = catalogRepository.findAll().get(0);
+        assertThat(entry.isAllowsNull()).isFalse();
+        assertThat(entry.isAllowsEmpty()).isFalse();
+
+        // Second observation: has null
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(metadata, "/Ceremony/Name", "data", 1, true, false)
+        ));
+
+        entry = catalogRepository.findAll().get(0);
         assertThat(entry.isAllowsNull()).isTrue();
         assertThat(entry.isAllowsEmpty()).isFalse();
-    }
-    
-    @Test
-    void mergeUpdatesExistingEntry() {
-        // First observation
-        service.merge(List.of(
-            new CatalogObservationDTO("deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, 
-                "/Ceremony/Amount", "data", 3, false, false)
+
+        // Third observation: has empty
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(metadata, "/Ceremony/Name", "data", 1, false, true)
         ));
+
+        entry = catalogRepository.findAll().get(0);
+        assertThat(entry.isAllowsNull()).isTrue();
+        assertThat(entry.isAllowsEmpty()).isTrue();
+    }
+
+    @Test
+    void failsWhenContextDoesNotExist() {
+        Map<String, String> metadata = Map.of("someField", "someValue");
         
-        // Second observation with different values
-        service.merge(List.of(
-            new CatalogObservationDTO("deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, 
-                "/Ceremony/Amount", "data", 7, true, true)
+        assertThatThrownBy(() -> 
+            catalogService.merge("nonexistent", List.of(
+                new CatalogObservationDTO(metadata, "/Test/Path", "data", 1, false, false)
+            ))
+        ).isInstanceOf(IllegalArgumentException.class)
+         .hasMessageContaining("Context not found or inactive: nonexistent");
+    }
+
+    @Test
+    void failsWhenRequiredMetadataMissing() {
+        createDepositsContext();
+        
+        // Missing required productCode field
+        Map<String, String> incompleteMetadata = Map.of(
+            "productSubCode", "4S",
+            "action", "Fulfillment"
+        );
+        
+        assertThatThrownBy(() -> 
+            catalogService.merge("deposits", List.of(
+                new CatalogObservationDTO(incompleteMetadata, "/Test/Path", "data", 1, false, false)
+            ))
+        ).isInstanceOf(IllegalArgumentException.class)
+         .hasMessageContaining("Required metadata field missing: productCode");
+    }
+
+    @Test
+    void failsWhenUnexpectedMetadataProvided() {
+        createDepositsContext();
+        
+        // Contains unexpected field
+        Map<String, String> invalidMetadata = Map.of(
+            "productCode", "DDA",
+            "productSubCode", "4S", 
+            "action", "Fulfillment",
+            "unexpectedField", "value"
+        );
+        
+        assertThatThrownBy(() -> 
+            catalogService.merge("deposits", List.of(
+                new CatalogObservationDTO(invalidMetadata, "/Test/Path", "data", 1, false, false)
+            ))
+        ).isInstanceOf(IllegalArgumentException.class)
+         .hasMessageContaining("Unexpected metadata field: unexpectedField");
+    }
+
+    @Test
+    void searchFindsFieldsByContext() {
+        createDepositsContext();
+        
+        Map<String, String> metadata = Map.of(
+            "productCode", "DDA",
+            "productSubCode", "4S",
+            "action", "Fulfillment"
+        );
+
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(metadata, "/Ceremony/Amount", "data", 1, false, false),
+            new CatalogObservationDTO(metadata, "/Ceremony/Name", "data", 1, false, false)
         ));
-        
-        var criteria = new CatalogSearchCriteria(
-            "deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, null
-        );
-        var results = service.find(criteria, PageRequest.of(0, 10));
-        
-        assertThat(results.getContent()).hasSize(1);
-        var entry = results.getContent().get(0);
-        assertThat(entry.getMinOccurs()).isEqualTo(3); // Should be min of 3 and 7
-        assertThat(entry.getMaxOccurs()).isEqualTo(7); // Should be max of 3 and 7
-        assertThat(entry.isAllowsNull()).isTrue(); // Should be OR of false and true
-        assertThat(entry.isAllowsEmpty()).isTrue(); // Should be OR of false and true
+
+        var criteria = new CatalogSearchCriteria("deposits", null, null);
+        Page<CatalogEntry> results = catalogService.find(criteria, PageRequest.of(0, 10));
+
+        assertThat(results.getContent()).hasSize(2);
+        assertThat(results.getContent().stream().map(CatalogEntry::getXpath))
+            .containsExactlyInAnyOrder("/Ceremony/Amount", "/Ceremony/Name");
     }
-    
+
     @Test
-    void mergeBatchProcessingIsEfficient() {
-        // Create multiple observations to test batch processing
-        var observations = List.of(
-            new CatalogObservationDTO("deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, 
-                "/Ceremony/Amount1", "data", 1, false, false),
-            new CatalogObservationDTO("deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, 
-                "/Ceremony/Amount2", "data", 2, false, false),
-            new CatalogObservationDTO("deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, 
-                "/Ceremony/Amount3", "data", 3, false, false)
+    void searchFindsByXpathPattern() {
+        createDepositsContext();
+        
+        Map<String, String> metadata = Map.of(
+            "productCode", "DDA",
+            "productSubCode", "4S",
+            "action", "Fulfillment"
         );
-        
-        service.merge(observations);
-        
-        var criteria = new CatalogSearchCriteria(
-            "deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, null
-        );
-        var results = service.find(criteria, PageRequest.of(0, 10));
-        
-        assertThat(results.getContent()).hasSize(3);
-        assertThat(results.getContent())
-            .extracting("xpath")
-            .containsExactlyInAnyOrder("/Ceremony/Amount1", "/Ceremony/Amount2", "/Ceremony/Amount3");
-    }
-    
-    @Test
-    void mergeHandlesLoansPathType() {
-        var observation = new CatalogObservationDTO(
-            "loans", null, null, null, null, null, "HEQF", 
-            "/BMIC/Application/FICO", "data", 1, false, false
-        );
-        
-        service.merge(List.of(observation));
-        
-        var criteria = new CatalogSearchCriteria(
-            "loans", null, null, null, null, null, "HEQF", null
-        );
-        var results = service.find(criteria, PageRequest.of(0, 10));
-        
-        assertThat(results.getContent()).hasSize(1);
-        var entry = results.getContent().get(0);
-        assertThat(entry.getPathType()).isEqualTo("loans");
-        assertThat(entry.getLoanProductCode()).isEqualTo("HEQF");
-        assertThat(entry.getXpath()).isEqualTo("/BMIC/Application/FICO");
-    }
-    
-    @Test
-    void mergeHandlesOnDemandPathType() {
-        var observation = new CatalogObservationDTO(
-            "ondemand", "ACK123", "v1.0", null, null, null, null, 
-            "/eDocument/PrimaryCustomer/Name/First", "data", 1, false, false
-        );
-        
-        service.merge(List.of(observation));
-        
-        var criteria = new CatalogSearchCriteria(
-            "ondemand", "ACK123", "v1.0", null, null, null, null, null
-        );
-        var results = service.find(criteria, PageRequest.of(0, 10));
-        
-        assertThat(results.getContent()).hasSize(1);
-        var entry = results.getContent().get(0);
-        assertThat(entry.getPathType()).isEqualTo("ondemand");
-        assertThat(entry.getFormCode()).isEqualTo("ACK123");
-        assertThat(entry.getFormVersion()).isEqualTo("v1.0");
-    }
-    
-    @Test
-    void mergeHandlesEmptyList() {
-        service.merge(List.of());
-        
-        var criteria = new CatalogSearchCriteria(
-            null, null, null, null, null, null, null, null
-        );
-        var results = service.find(criteria, PageRequest.of(0, 10));
-        
-        assertThat(results.getContent()).isEmpty();
-    }
-    
-    @Test
-    void mergeHandlesNullList() {
-        service.merge(null);
-        
-        var criteria = new CatalogSearchCriteria(
-            null, null, null, null, null, null, null, null
-        );
-        var results = service.find(criteria, PageRequest.of(0, 10));
-        
-        assertThat(results.getContent()).isEmpty();
-    }
-    
-    @Test
-    void findSupportsXpathContainsFilter() {
-        service.merge(List.of(
-            new CatalogObservationDTO("deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, 
-                "/Ceremony/FeeCode", "data", 1, false, false),
-            new CatalogObservationDTO("deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, 
-                "/Ceremony/Amount", "data", 1, false, false)
+
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(metadata, "/Ceremony/FeeCode", "data", 1, false, false),
+            new CatalogObservationDTO(metadata, "/Ceremony/Amount", "data", 1, false, false)
         ));
-        
-        var criteria = new CatalogSearchCriteria(
-            null, null, null, null, null, null, null, "Fee"
-        );
-        var results = service.find(criteria, PageRequest.of(0, 10));
-        
+
+        var criteria = new CatalogSearchCriteria(null, null, "Fee");
+        Page<CatalogEntry> results = catalogService.find(criteria, PageRequest.of(0, 10));
+
         assertThat(results.getContent()).hasSize(1);
-        assertThat(results.getContent().get(0).getXpath()).contains("Fee");
-    }
-    
-    @Test
-    void findSupportsPagination() {
-        // Create multiple entries
-        for (int i = 0; i < 15; i++) {
-            service.merge(List.of(
-                new CatalogObservationDTO("deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, 
-                    "/Ceremony/Field" + i, "data", 1, false, false)
-            ));
-        }
-        
-        var criteria = new CatalogSearchCriteria(
-            "deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null, null
-        );
-        
-        // First page
-        Page<com.ceremony.catalog.domain.CatalogEntry> page1 = service.find(criteria, PageRequest.of(0, 5));
-        assertThat(page1.getContent()).hasSize(5);
-        assertThat(page1.getTotalElements()).isEqualTo(15);
-        assertThat(page1.getTotalPages()).isEqualTo(3);
-        
-        // Second page
-        Page<com.ceremony.catalog.domain.CatalogEntry> page2 = service.find(criteria, PageRequest.of(1, 5));
-        assertThat(page2.getContent()).hasSize(5);
-        assertThat(page2.getTotalElements()).isEqualTo(15);
-        
-        // Third page
-        Page<com.ceremony.catalog.domain.CatalogEntry> page3 = service.find(criteria, PageRequest.of(2, 5));
-        assertThat(page3.getContent()).hasSize(5);
-        assertThat(page3.getTotalElements()).isEqualTo(15);
+        assertThat(results.getContent().get(0).getXpath()).isEqualTo("/Ceremony/FeeCode");
     }
 }

@@ -4,6 +4,8 @@ import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Map;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -12,19 +14,11 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class CatalogEntry {
     @Id
     private String id;
-    // Universal Key Parts
-    private String pathType;
-    private String formCode;
-    private String formVersion;
-    // Deposits-Only Key Parts
-    private String action;
-    private String productCode;
-    private String productSubCode;
-    // Loans-Only Key Parts
-    private String loanProductCode;
-    // Field Location Properties
+    
+    private String contextId;
+    private Map<String, String> metadata;
+    
     private String xpath;
-    // Field Metadata
     private String dataType;
     private int maxOccurs;
     private int minOccurs;

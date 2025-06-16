@@ -1,12 +1,9 @@
 package com.ceremony.catalog.api.dto;
 
+import java.util.Map;
+
 public record CatalogSearchCriteria(
-    String pathType,
-    String formCode,
-    String formVersion,
-    String action,
-    String productCode,
-    String productSubCode,
-    String loanProductCode,
+    String contextId,
+    Map<String, String> metadata,
     String xpathContains
 ) {}

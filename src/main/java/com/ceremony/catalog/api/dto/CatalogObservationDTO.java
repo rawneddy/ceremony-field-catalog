@@ -4,16 +4,11 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.Map;
+
 public record CatalogObservationDTO(
-    @NotBlank(message = "Path type is required")
-    String pathType,
-    
-    String formCode,
-    String formVersion,
-    String action,
-    String productCode,
-    String productSubCode,
-    String loanProductCode,
+    @NotNull(message = "Metadata is required")
+    Map<String, String> metadata,
     
     @NotBlank(message = "XPath is required")
     String xpath,

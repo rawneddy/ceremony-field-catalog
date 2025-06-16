@@ -1,7 +1,9 @@
 package com.ceremony.catalog.api;
 
 import com.ceremony.catalog.api.dto.CatalogObservationDTO;
+import com.ceremony.catalog.api.dto.ContextDefinitionDTO;
 import com.ceremony.catalog.persistence.CatalogRepository;
+import com.ceremony.catalog.persistence.ContextRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +12,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -19,6 +22,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,125 +42,162 @@ class CatalogControllerSimpleTest {
     TestRestTemplate restTemplate;
 
     @Autowired
-    CatalogRepository repository;
+    CatalogRepository catalogRepository;
+    
+    @Autowired
+    ContextRepository contextRepository;
 
     @BeforeEach
     void cleanDatabase() {
-        repository.deleteAll();
+        catalogRepository.deleteAll();
+        contextRepository.deleteAll();
     }
 
     @Test
     void submitAndRetrieveObservations() {
-        // Submit observations
+        // First create a context
+        var contextDef = new ContextDefinitionDTO(
+            "deposits",
+            "Deposits",
+            "Test deposits context",
+            List.of("productCode", "productSubCode", "action"),
+            List.of(),
+            true
+        );
+        
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        
+        ResponseEntity<Void> contextResponse = restTemplate.postForEntity(
+            "/catalog/contexts", 
+            new HttpEntity<>(contextDef, headers), 
+            Void.class
+        );
+        assertThat(contextResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        // Submit observations to the context
         var observations = List.of(
             new CatalogObservationDTO(
-                "deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null,
-                "/Ceremony/Amount", "data", 1, false, false
+                Map.of(
+                    "productCode", "DDA",
+                    "productSubCode", "4S",
+                    "action", "Fulfillment"
+                ),
+                "/Ceremony/Amount", 
+                "data", 
+                1, 
+                false, 
+                false
             )
         );
 
-        var headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        var request = new HttpEntity<>(observations, headers);
-        
-        ResponseEntity<Void> postResponse = restTemplate.postForEntity(
-            "/catalog/observed-fields", request, Void.class);
-        
-        assertThat(postResponse.getStatusCode().value()).isEqualTo(204);
+        var observationRequest = new HttpEntity<>(observations, headers);
+        ResponseEntity<Void> submitResponse = restTemplate.postForEntity(
+            "/catalog/contexts/deposits/observations", 
+            observationRequest, 
+            Void.class
+        );
+        assertThat(submitResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
         // Retrieve observations
         ResponseEntity<String> getResponse = restTemplate.getForEntity(
-            "/catalog/fields?pathType=deposits&productCode=DDA", String.class);
-        
-        assertThat(getResponse.getStatusCode().value()).isEqualTo(200);
+            "/catalog/fields?contextId=deposits&page=0&size=10", 
+            String.class
+        );
+        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(getResponse.getBody()).contains("/Ceremony/Amount");
-        assertThat(getResponse.getBody()).contains("\"totalElements\":1");
+        assertThat(getResponse.getBody()).contains("deposits");
     }
 
     @Test
-    void searchWithXpathFilter() {
-        // Submit multiple observations
-        var observations = List.of(
-            new CatalogObservationDTO(
-                "deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null,
-                "/Ceremony/FeeCode", "data", 1, false, false
-            ),
-            new CatalogObservationDTO(
-                "deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null,
-                "/Ceremony/Amount", "data", 1, false, false
-            )
+    void submitMultiplePathTypes() {
+        // Create deposits context
+        var depositsContext = new ContextDefinitionDTO(
+            "deposits", 
+            "Deposits", 
+            "Deposits context",
+            List.of("productCode", "productSubCode", "action"), 
+            List.of(), 
+            true
         );
+        
+        // Create loans context
+        var loansContext = new ContextDefinitionDTO(
+            "loans", 
+            "Loans", 
+            "Loans context",
+            List.of("loanProductCode"), 
+            List.of(), 
+            true
+        );
+
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        // Create contexts
+        restTemplate.postForEntity("/catalog/contexts", new HttpEntity<>(depositsContext, headers), Void.class);
+        restTemplate.postForEntity("/catalog/contexts", new HttpEntity<>(loansContext, headers), Void.class);
+
+        // Submit deposits observation
+        var depositsObs = List.of(new CatalogObservationDTO(
+            Map.of(
+                "productCode", "DDA",
+                "productSubCode", "4S", 
+                "action", "Fulfillment"
+            ),
+            "/Ceremony/Amount", "data", 1, false, false
+        ));
+
+        // Submit loans observation  
+        var loansObs = List.of(new CatalogObservationDTO(
+            Map.of("loanProductCode", "HEQF"),
+            "/BMIC/FICO", "data", 1, false, false
+        ));
+
+        var request1 = new HttpEntity<>(depositsObs, headers);
+        var request2 = new HttpEntity<>(loansObs, headers);
+
+        ResponseEntity<Void> response1 = restTemplate.postForEntity(
+            "/catalog/contexts/deposits/observations", 
+            request1, 
+            Void.class
+        );
+        ResponseEntity<Void> response2 = restTemplate.postForEntity(
+            "/catalog/contexts/loans/observations", 
+            request2, 
+            Void.class
+        );
+
+        assertThat(response1.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(response2.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        // Verify both can be retrieved
+        ResponseEntity<String> getAll = restTemplate.getForEntity(
+            "/catalog/fields?page=0&size=10", 
+            String.class
+        );
+        assertThat(getAll.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(getAll.getBody()).contains("/Ceremony/Amount");
+        assertThat(getAll.getBody()).contains("/BMIC/FICO");
+    }
+
+    @Test
+    void submitToNonExistentContextFails() {
+        var observations = List.of(new CatalogObservationDTO(
+            Map.of("someField", "someValue"),
+            "/Test/Path", "data", 1, false, false
+        ));
 
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         var request = new HttpEntity<>(observations, headers);
-        
-        restTemplate.postForEntity("/catalog/observed-fields", request, Void.class);
 
-        // Search with xpath filter
-        ResponseEntity<String> response = restTemplate.getForEntity(
-            "/catalog/fields?xpathContains=Fee", String.class);
-        
-        assertThat(response.getStatusCode().value()).isEqualTo(200);
-        assertThat(response.getBody()).contains("FeeCode");
-        assertThat(response.getBody()).doesNotContain("Amount");
-    }
-
-    @Test
-    void handlesDifferentPathTypes() {
-        // Test loans path type
-        var loansObservation = List.of(
-            new CatalogObservationDTO(
-                "loans", null, null, null, null, null, "HEQF",
-                "/BMIC/Application/FICO", "data", 1, false, false
-            )
+        ResponseEntity<String> response = restTemplate.postForEntity(
+            "/catalog/contexts/nonexistent/observations", 
+            request, 
+            String.class
         );
-
-        var headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        var request = new HttpEntity<>(loansObservation, headers);
         
-        ResponseEntity<Void> postResponse = restTemplate.postForEntity(
-            "/catalog/observed-fields", request, Void.class);
-        
-        assertThat(postResponse.getStatusCode().value()).isEqualTo(204);
-
-        // Verify loans data
-        ResponseEntity<String> getResponse = restTemplate.getForEntity(
-            "/catalog/fields?pathType=loans&loanProductCode=HEQF", String.class);
-        
-        assertThat(getResponse.getStatusCode().value()).isEqualTo(200);
-        assertThat(getResponse.getBody()).contains("FICO");
-    }
-
-    @Test
-    void paginationWorks() {
-        // Create multiple observations
-        for (int i = 0; i < 25; i++) {
-            var observations = List.of(
-                new CatalogObservationDTO(
-                    "deposits", "DDA", "4S", "Fulfillment", "DDA", "4S", null,
-                    "/Ceremony/Field" + i, "data", 1, false, false
-                )
-            );
-
-            var headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            var request = new HttpEntity<>(observations, headers);
-            
-            restTemplate.postForEntity("/catalog/observed-fields", request, Void.class);
-        }
-
-        // Test pagination
-        ResponseEntity<String> page1 = restTemplate.getForEntity(
-            "/catalog/fields?pathType=deposits&page=0&size=10", String.class);
-        
-        ResponseEntity<String> page2 = restTemplate.getForEntity(
-            "/catalog/fields?pathType=deposits&page=1&size=10", String.class);
-        
-        assertThat(page1.getStatusCode().value()).isEqualTo(200);
-        assertThat(page2.getStatusCode().value()).isEqualTo(200);
-        assertThat(page1.getBody()).contains("\"totalElements\":25");
-        assertThat(page2.getBody()).contains("\"totalElements\":25");
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 }

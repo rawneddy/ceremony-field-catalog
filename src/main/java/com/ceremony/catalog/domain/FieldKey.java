@@ -1,33 +1,38 @@
 package com.ceremony.catalog.domain;
 
+import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 public record FieldKey(
-    String pathType,
-    String formCode,
-    String formVersion,
-    String action,
-    String productCode,
-    String productSubCode,
-    String loanProductCode,
+    String contextId,
+    Map<String, String> metadata,
     String dataType,
     String xpath
 ) {
     public FieldKey {
         // Compact constructor for validation
-        Objects.requireNonNull(pathType, "pathType cannot be null");
+        Objects.requireNonNull(contextId, "contextId cannot be null");
         Objects.requireNonNull(xpath, "xpath cannot be null");
         Objects.requireNonNull(dataType, "dataType cannot be null");
+        
+        // Sort metadata for consistent key generation
+        metadata = metadata == null ? Map.of() : new TreeMap<>(metadata);
     }
     
     @Override
     public String toString() {
         // Use a delimiter that's unlikely to appear in field values
-        // and escape any occurrences of it
+        String metadataString = metadata.entrySet().stream()
+            .map(entry -> escape(entry.getKey()) + "=" + escape(safe(entry.getValue())))
+            .collect(Collectors.joining("&"));
+            
         return String.join("§",
-            escape(safe(pathType)), escape(safe(formCode)), escape(safe(formVersion)),
-            escape(safe(action)), escape(safe(productCode)), escape(safe(productSubCode)),
-            escape(safe(loanProductCode)), escape(safe(dataType)), escape(safe(xpath))
+            escape(contextId),
+            escape(metadataString),
+            escape(dataType),
+            escape(xpath)
         );
     }
     
@@ -36,6 +41,6 @@ public record FieldKey(
     }
     
     private static String escape(String value) {
-        return value.replace("§", "§§");
+        return value.replace("§", "§§").replace("=", "==").replace("&", "&&");
     }
 }
