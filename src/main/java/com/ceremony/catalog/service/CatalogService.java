@@ -19,21 +19,26 @@ import java.util.*;
 public class CatalogService {
     private final CatalogRepository repository;
     private final ContextService contextService;
+    private final InputValidationService validationService;
     
     public void merge(String contextId, List<CatalogObservationDTO> observations) {
         if (observations == null || observations.isEmpty()) return;
         
-        // Validate context exists and is active
-        Context context = contextService.getContext(contextId)
-            .filter(Context::isActive)
-            .orElseThrow(() -> new IllegalArgumentException("Context not found or inactive: " + contextId));
+        // Validate and clean context ID
+        String cleanedContextId = validationService.validateAndCleanContextId(contextId);
         
-        // Validate observations against context requirements
-        validateObservations(context, observations);
+        // Validate context exists and is active
+        Context context = contextService.getContext(cleanedContextId)
+            .filter(Context::isActive)
+            .orElseThrow(() -> new IllegalArgumentException("Context not found or inactive: " + cleanedContextId));
+        
+        // Validate and clean observations against context requirements
+        List<CatalogObservationDTO> cleanedObservations = validateAndCleanObservations(observations);
+        validateObservations(context, cleanedObservations);
         
         // Collect all field IDs for batch query (using only required metadata for field identity)
-        Set<String> fieldIds = observations.stream()
-            .map(dto -> new FieldKey(contextId, filterToRequiredMetadata(context, dto.metadata()), dto.xpath()).toString())
+        Set<String> fieldIds = cleanedObservations.stream()
+            .map(dto -> new FieldKey(cleanedContextId, filterToRequiredMetadata(context, dto.metadata()), dto.xpath()).toString())
             .collect(LinkedHashSet::new, Set::add, Set::addAll);
         
         // Single batch query to get all existing entries
@@ -44,9 +49,9 @@ public class CatalogService {
         // Process all observations and collect entries to save
         List<CatalogEntry> entriesToSave = new ArrayList<>();
         
-        for (CatalogObservationDTO dto : observations) {
+        for (CatalogObservationDTO dto : cleanedObservations) {
             Map<String, String> requiredMetadata = filterToRequiredMetadata(context, dto.metadata());
-            FieldKey fieldKey = new FieldKey(contextId, requiredMetadata, dto.xpath());
+            FieldKey fieldKey = new FieldKey(cleanedContextId, requiredMetadata, dto.xpath());
             String id = fieldKey.toString();
             
             CatalogEntry entry = existingEntries.get(id);
@@ -61,7 +66,7 @@ public class CatalogService {
                 // Create new entry - store only required metadata for consistency
                 CatalogEntry newEntry = CatalogEntry.builder()
                     .id(id)
-                    .contextId(contextId)
+                    .contextId(cleanedContextId)
                     .metadata(requiredMetadata)
                     .xpath(dto.xpath())
                     .maxOccurs(dto.count())
@@ -77,7 +82,27 @@ public class CatalogService {
         repository.saveAll(entriesToSave);
         
         // Handle single-context cleanup
-        handleSingleContextCleanup(contextId, observations);
+        handleSingleContextCleanup(cleanedContextId, cleanedObservations);
+    }
+    
+    private List<CatalogObservationDTO> validateAndCleanObservations(List<CatalogObservationDTO> observations) {
+        return observations.stream()
+            .map(this::validateAndCleanObservation)
+            .toList();
+    }
+    
+    private CatalogObservationDTO validateAndCleanObservation(CatalogObservationDTO observation) {
+        String cleanedXpath = validationService.validateAndCleanXPath(observation.xpath());
+        Map<String, String> cleanedMetadata = validationService.validateAndCleanMetadata(observation.metadata());
+        
+        // Return new DTO with cleaned values
+        return new CatalogObservationDTO(
+            cleanedMetadata,
+            cleanedXpath,
+            observation.count(),
+            observation.hasNull(),
+            observation.hasEmpty()
+        );
     }
     
     private void validateObservations(Context context, List<CatalogObservationDTO> observations) {
@@ -136,7 +161,20 @@ public class CatalogService {
     }
     
     public Page<CatalogEntry> find(CatalogSearchCriteria criteria, Pageable pageable) {
-        return repository.searchByCriteria(criteria, pageable);
+        // Sanitize search criteria
+        CatalogSearchCriteria sanitizedCriteria = sanitizeSearchCriteria(criteria);
+        return repository.searchByCriteria(sanitizedCriteria, pageable);
+    }
+    
+    private CatalogSearchCriteria sanitizeSearchCriteria(CatalogSearchCriteria criteria) {
+        String cleanedContextId = criteria.contextId() != null ? 
+            validationService.validateAndCleanContextId(criteria.contextId()) : null;
+        String cleanedXpathContains = criteria.xpathContains() != null ?
+            validationService.validateAndCleanXPath(criteria.xpathContains()) : null;
+        Map<String, String> cleanedMetadata = criteria.metadata() != null ?
+            validationService.validateAndCleanMetadata(criteria.metadata()) : null;
+            
+        return new CatalogSearchCriteria(cleanedContextId, cleanedMetadata, cleanedXpathContains);
     }
     
     private Map<String, String> filterToRequiredMetadata(Context context, Map<String, String> metadata) {

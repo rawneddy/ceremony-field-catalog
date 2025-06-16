@@ -27,35 +27,34 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
                                 NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
         
-        CatalogSearchRequest request = new CatalogSearchRequest();
         Map<String, String> metadata = new HashMap<>();
         
-        // Handle known parameters
+        // Extract known parameters
         String contextId = webRequest.getParameter("contextId");
-        if (contextId != null && !contextId.trim().isEmpty()) {
-            request.setContextId(contextId);
-        }
+        contextId = (contextId != null && !contextId.trim().isEmpty()) ? contextId : null;
         
         String xpathContains = webRequest.getParameter("xpathContains");
-        if (xpathContains != null && !xpathContains.trim().isEmpty()) {
-            request.setXpathContains(xpathContains);
-        }
+        xpathContains = (xpathContains != null && !xpathContains.trim().isEmpty()) ? xpathContains : null;
         
-        String page = webRequest.getParameter("page");
-        if (page != null && !page.trim().isEmpty()) {
+        // Parse page parameter
+        int page = 0;
+        String pageParam = webRequest.getParameter("page");
+        if (pageParam != null && !pageParam.trim().isEmpty()) {
             try {
-                request.setPage(Integer.parseInt(page));
+                page = Integer.parseInt(pageParam);
             } catch (NumberFormatException e) {
-                request.setPage(0);
+                page = 0;
             }
         }
         
-        String size = webRequest.getParameter("size");
-        if (size != null && !size.trim().isEmpty()) {
+        // Parse size parameter
+        int size = 50;
+        String sizeParam = webRequest.getParameter("size");
+        if (sizeParam != null && !sizeParam.trim().isEmpty()) {
             try {
-                request.setSize(Integer.parseInt(size));
+                size = Integer.parseInt(sizeParam);
             } catch (NumberFormatException e) {
-                request.setSize(50);
+                size = 50;
             }
         }
         
@@ -71,7 +70,7 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
             }
         }
         
-        request.setMetadata(metadata);
-        return request;
+        // Create and return the immutable Record
+        return new CatalogSearchRequest(contextId, xpathContains, page, size, metadata);
     }
 }

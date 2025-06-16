@@ -29,7 +29,7 @@ public class CatalogController {
     
     @GetMapping("/fields")
     public Page<CatalogEntry> searchCatalog(@Valid CatalogSearchRequest request) {
-        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
+        Pageable pageable = PageRequest.of(request.page(), request.size());
         return catalogService.find(request.toCriteria(), pageable);
     }
 }
