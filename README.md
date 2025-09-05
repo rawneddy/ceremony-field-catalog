@@ -1,6 +1,6 @@
 # Ceremony Field Catalog API
 
-A Spring Boot + MongoDB API for tracking and cataloging observed XML fields across different business paths (deposits, loans, ondemand). Designed for extensibility, integration testing, and modern development workflows.
+A Spring Boot + MongoDB API for tracking and cataloging observed XML fields across different business paths (deposits, loans, ondemand) for use in a legacy application that relies on XML data but has no schema defined for that data. Designed for extensibility, integration testing, and modern development workflows.  This application will allow you to then "reverse engineer" the XML schema for a given situation.
 
 ## Features
 - RESTful API for submitting and querying observed field data
