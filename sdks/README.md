@@ -15,7 +15,6 @@ A fire-and-forget C# SDK for submitting XML field observations to the Ceremony F
 - **Fire-and-forget** - Returns immediately, processing happens in background
 - **Controlled throughput** - Uses BlockingCollection with dedicated worker thread
 - **Backpressure handling** - Drops items when queue is full (configurable capacity)
-- **Graceful shutdown** - Can drain queue before application exits
 
 This SDK is designed for legacy systems where field catalog submission is non-critical telemetry that should never impact the main business flow.
 
@@ -92,18 +91,6 @@ CeremonyFieldCatalogSdk.SubmitObservations(xmlString, "deposits", metadata);
 // Example 3: XElement input (if you already have parsed XML)
 var element = XElement.Parse(xmlString);
 CeremonyFieldCatalogSdk.SubmitObservations(element, "deposits", metadata);
-
-
-// ============================================================================
-// GRACEFUL SHUTDOWN (optional, during application shutdown)
-// ============================================================================
-
-// Wait up to 30 seconds for queue to drain
-bool drained = CeremonyFieldCatalogSdk.Shutdown(TimeSpan.FromSeconds(30));
-if (!drained)
-{
-    _logger.Warn("Catalog queue did not fully drain before shutdown");
-}
 ```
 
 #### How It Works
@@ -151,7 +138,7 @@ The Python SDK is a **functionally identical implementation** of the .NET SDK, c
 
 #### Test Coverage
 
-The Python test suite (`test_ceremony_catalog_sdk.py`) includes **54 tests** covering:
+The Python test suite (`test_ceremony_catalog_sdk.py`) includes **49 tests** covering:
 
 | Category | Tests | What's Verified |
 |----------|-------|-----------------|
@@ -161,7 +148,6 @@ The Python test suite (`test_ceremony_catalog_sdk.py`) includes **54 tests** cov
 | Batching | 3 | Batch size boundaries, correct splitting |
 | Fire-and-Forget | 4 | Immediate return, never throws on bad input |
 | Initialization | 5 | Idempotent, defaults, validation |
-| Shutdown | 5 | Queue drain, timeout, idempotent |
 | Error Handling | 5 | Network errors, API errors, callback invocation |
 | API Contract | 4 | JSON field names match Java API exactly |
 | Integration | 2 | Full flow with realistic XML, concurrency |
@@ -195,13 +181,12 @@ The Python and .NET implementations are **verified identical** in:
 | Aspect | Behavior |
 |--------|----------|
 | Constants | Batch size 500, queue capacity 10000 |
-| Initialization | Idempotent, trims trailing slash, validates batch size |
+| Initialization | Idempotent, thread-safe, trims trailing slash, validates batch size |
 | Queue | Bounded, drops when full, dedicated daemon worker thread |
 | XML Parsing | Only leaf elements counted, attributes with `/@` prefix |
 | Empty Detection | Whitespace-only and empty strings both set `hasEmpty: true` |
 | JSON Output | Field names: `metadata`, `fieldPath`, `count`, `hasNull`, `hasEmpty` |
 | Error Handling | Never throws, invokes callback, swallows callback errors |
-| Shutdown | Graceful drain with timeout, returns drain status |
 
 #### For Developers
 

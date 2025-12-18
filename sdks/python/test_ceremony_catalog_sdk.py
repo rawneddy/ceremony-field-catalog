@@ -14,7 +14,6 @@ import threading
 import time
 import xml.etree.ElementTree as ET
 from unittest.mock import Mock, patch, MagicMock
-from datetime import timedelta
 from typing import List, Dict, Any
 import requests
 
@@ -317,6 +316,9 @@ class TestQueueBehavior:
             queue_capacity=100
         )
 
+        # Reset call count to ensure clean state
+        mock_session.post.reset_mock()
+
         for i in range(5):
             xml = f"<Root><Item>{i}</Item></Root>"
             sdk.submit_observations_string(xml, "test-context", {"index": str(i)})
@@ -531,57 +533,6 @@ class TestInitialization:
         )
 
         assert sdk._batch_size == sdk.DEFAULT_BATCH_SIZE
-
-
-# =============================================================================
-# Shutdown Tests
-# =============================================================================
-
-class TestShutdown:
-    """Tests for graceful shutdown."""
-
-    def test_shutdown_drains_queue(self, initialized_sdk):
-        """Test that shutdown waits for queue to drain."""
-        xml = "<Root><Child>value</Child></Root>"
-
-        # Submit some work
-        for i in range(3):
-            sdk.submit_observations_string(xml, "test", {})
-
-        # Shutdown with generous timeout
-        result = sdk.shutdown(timeout=5.0)
-
-        assert result is True
-        # All items should have been processed
-        assert initialized_sdk.post.call_count == 3
-
-    def test_shutdown_with_timedelta(self, initialized_sdk):
-        """Test shutdown accepts timedelta."""
-        result = sdk.shutdown(timeout=timedelta(seconds=1))
-        assert result is True
-
-    def test_shutdown_returns_true_if_not_initialized(self):
-        """Test shutdown returns True when not initialized."""
-        result = sdk.shutdown(timeout=1.0)
-        assert result is True
-
-    def test_shutdown_idempotent(self, initialized_sdk):
-        """Test that multiple shutdown calls are safe."""
-        result1 = sdk.shutdown(timeout=1.0)
-        result2 = sdk.shutdown(timeout=1.0)
-
-        assert result1 is True
-        assert result2 is True
-
-    def test_submit_after_shutdown_is_ignored(self, initialized_sdk):
-        """Test that submitting after shutdown is silently ignored."""
-        sdk.shutdown(timeout=1.0)
-
-        # This should not raise
-        sdk.submit_observations_string("<Root/>", "test", {})
-
-        # Give a moment to ensure no processing happens
-        time.sleep(0.2)
 
 
 # =============================================================================
@@ -861,8 +812,8 @@ class TestIntegration:
 
         sdk.submit_observations_string(xml, "deposits", metadata)
 
-        # Graceful shutdown ensures all work is processed
-        sdk.shutdown(timeout=5.0)
+        # Wait for processing
+        time.sleep(1.0)
 
         # Verify API was called
         assert mock_session.post.called
@@ -926,7 +877,7 @@ class TestIntegration:
         assert len(results) == 5
 
         # Give time for processing
-        sdk.shutdown(timeout=5.0)
+        time.sleep(2.0)
 
         # All submissions should have been processed (50 total)
         assert mock_session.post.call_count == 50
@@ -948,7 +899,7 @@ class TestEdgeCases:
         # Should handle without issues
         sdk.submit_observations_string(xml, "test", {})
 
-        sdk.shutdown(timeout=10.0)
+        time.sleep(2.0)
 
         assert initialized_sdk.post.called
 
@@ -958,7 +909,7 @@ class TestEdgeCases:
         xml = "<L1><L2><L3><L4><L5><L6><L7><L8><L9><L10>deep</L10></L9></L8></L7></L6></L5></L4></L3></L2></L1>"
 
         sdk.submit_observations_string(xml, "test", {})
-        sdk.shutdown(timeout=5.0)
+        time.sleep(1.0)
 
         call_args = initialized_sdk.post.call_args
         json_payload = call_args.kwargs.get('json') or call_args[1].get('json')
@@ -971,7 +922,7 @@ class TestEdgeCases:
         xml = "<Root><Data>&lt;script&gt;alert('xss')&lt;/script&gt;</Data></Root>"
 
         sdk.submit_observations_string(xml, "test", {})
-        sdk.shutdown(timeout=5.0)
+        time.sleep(1.0)
 
         # Should complete without error
         assert initialized_sdk.post.called
@@ -981,7 +932,7 @@ class TestEdgeCases:
         xml = "<Root><Name>日本語</Name><Emoji>🎉</Emoji></Root>"
 
         sdk.submit_observations_string(xml, "test", {})
-        sdk.shutdown(timeout=5.0)
+        time.sleep(1.0)
 
         assert initialized_sdk.post.called
 
@@ -991,7 +942,7 @@ class TestEdgeCases:
         metadata = {"key": "", "other": "value"}
 
         sdk.submit_observations_string(xml, "test", metadata)
-        sdk.shutdown(timeout=5.0)
+        time.sleep(1.0)
 
         call_args = initialized_sdk.post.call_args
         json_payload = call_args.kwargs.get('json') or call_args[1].get('json')

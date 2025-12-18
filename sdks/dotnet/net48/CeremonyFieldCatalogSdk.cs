@@ -31,7 +31,6 @@ namespace Ceremony.Catalog.Sdk
     /// Usage:
     /// 1. Call Initialize() once at application startup
     /// 2. Call SubmitObservations() for each XML document (returns immediately)
-    /// 3. Optionally call Shutdown() during application shutdown for graceful drain
     /// </summary>
     public static class CeremonyFieldCatalogSdk
     {
@@ -51,10 +50,9 @@ namespace Ceremony.Catalog.Sdk
 
         // State tracking
         private static volatile bool _initialized;
-        private static volatile bool _shutdownRequested;
         private static readonly object _initLock = new object();
 
-        #region Initialization and Shutdown
+        #region Initialization
 
         /// <summary>
         /// Initializes the SDK. Must be called once at application startup before submitting observations.
@@ -84,7 +82,6 @@ namespace Ceremony.Catalog.Sdk
                     _baseUrl = baseUrl != null ? baseUrl.TrimEnd('/') : "";
                     _batchSize = batchSize > 0 ? batchSize : DefaultBatchSize;
                     _globalErrorHandler = onError;
-                    _shutdownRequested = false;
 
                     // Create bounded queue - TryAdd will return false when full
                     _queue = new BlockingCollection<ObservationWorkItem>(boundedCapacity: queueCapacity);
@@ -103,38 +100,6 @@ namespace Ceremony.Catalog.Sdk
                 {
                     SafeInvokeErrorCallback(onError, ex);
                 }
-            }
-        }
-
-        /// <summary>
-        /// Gracefully shuts down the SDK, allowing queued items to be processed.
-        /// Call this during application shutdown for clean termination.
-        /// </summary>
-        /// <param name="timeout">Maximum time to wait for queue to drain</param>
-        /// <returns>True if queue was fully drained, false if timeout occurred</returns>
-        public static bool Shutdown(TimeSpan timeout)
-        {
-            lock (_initLock)
-            {
-                if (!_initialized || _shutdownRequested)
-                {
-                    return true;
-                }
-
-                _shutdownRequested = true;
-            }
-
-            try
-            {
-                // Signal no more items will be added
-                _queue.CompleteAdding();
-
-                // Wait for worker thread to finish processing remaining items
-                return _workerThread.Join(timeout);
-            }
-            catch
-            {
-                return false;
             }
         }
 
@@ -196,8 +161,8 @@ namespace Ceremony.Catalog.Sdk
         /// </summary>
         private static void EnqueueWork(Func<List<CatalogObservationDto>> extractionFunc, string contextId)
         {
-            // Silent fail if not initialized or shutting down
-            if (!_initialized || _shutdownRequested || _queue == null)
+            // Silent fail if not initialized
+            if (!_initialized || _queue == null)
             {
                 return;
             }

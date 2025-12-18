@@ -16,25 +16,20 @@ This SDK is designed for use in legacy systems where:
 Usage:
 1. Call initialize() once at application startup
 2. Call submit_observations() for each XML document (returns immediately)
-3. Optionally call shutdown() during application shutdown for graceful drain
 """
 
 import queue
 import threading
 import xml.etree.ElementTree as ET
-from typing import Dict, List, Optional, Callable, Union, Any
+from typing import Dict, List, Optional, Callable, Any
 from dataclasses import dataclass
 import requests
-from datetime import timedelta
 
 
 # Constants
 DEFAULT_BATCH_SIZE = 500
 DEFAULT_QUEUE_CAPACITY = 10000
 OBSERVATIONS_ENDPOINT = "/catalog/contexts/{}/observations"
-
-# Sentinel value to signal shutdown
-_SHUTDOWN_SENTINEL = object()
 
 
 @dataclass
@@ -96,8 +91,7 @@ _base_url: str = ""
 _batch_size: int = DEFAULT_BATCH_SIZE
 _global_error_handler: Optional[Callable[[Exception], None]] = None
 _initialized: bool = False
-_shutdown_requested: bool = False
-_state_lock = threading.Lock()  # Protects _initialized and _shutdown_requested
+_state_lock = threading.Lock()  # Protects _initialized
 
 
 def initialize(
@@ -118,7 +112,7 @@ def initialize(
         on_error: Optional global error callback for logging (will not throw)
     """
     global _queue, _worker_thread, _session, _base_url, _batch_size
-    global _global_error_handler, _initialized, _shutdown_requested
+    global _global_error_handler, _initialized
 
     with _state_lock:
         if _initialized:
@@ -129,7 +123,6 @@ def initialize(
         _base_url = base_url.rstrip('/') if base_url else ""
         _batch_size = batch_size if batch_size > 0 else DEFAULT_BATCH_SIZE
         _global_error_handler = on_error
-        _shutdown_requested = False
 
         # Create bounded queue - put_nowait will raise queue.Full when full
         _queue = queue.Queue(maxsize=queue_capacity)
@@ -149,55 +142,13 @@ def initialize(
         _safe_invoke_error_callback(on_error, ex)
 
 
-def shutdown(timeout: Union[float, timedelta]) -> bool:
-    """
-    Gracefully shuts down the SDK, allowing queued items to be processed.
-    Call this during application shutdown for clean termination.
-
-    Args:
-        timeout: Maximum time to wait for queue to drain (float seconds or timedelta)
-
-    Returns:
-        True if queue was fully drained, False if timeout occurred
-    """
-    global _shutdown_requested
-
-    with _state_lock:
-        if not _initialized or _shutdown_requested:
-            return True
-
-    try:
-        _shutdown_requested = True
-
-        # Signal no more items will be added by putting sentinel
-        if _queue is not None:
-            _queue.put(_SHUTDOWN_SENTINEL)
-
-        # Convert timedelta to seconds if needed
-        timeout_seconds = timeout.total_seconds() if isinstance(timeout, timedelta) else timeout
-
-        # Wait for worker thread to finish processing remaining items
-        if _worker_thread is not None:
-            _worker_thread.join(timeout=timeout_seconds)
-            return not _worker_thread.is_alive()
-
-        return True
-
-    except Exception:
-        return False
-
-
 def reset() -> None:
     """
     Resets the SDK state. Used for testing purposes only.
     Should not be called in production code.
     """
     global _queue, _worker_thread, _session, _base_url, _batch_size
-    global _global_error_handler, _initialized, _shutdown_requested
-
-    # Shutdown first if initialized
-    if _initialized and not _shutdown_requested:
-        shutdown(timeout=1.0)
+    global _global_error_handler, _initialized
 
     with _state_lock:
         _queue = None
@@ -207,7 +158,6 @@ def reset() -> None:
         _batch_size = DEFAULT_BATCH_SIZE
         _global_error_handler = None
         _initialized = False
-        _shutdown_requested = False
 
 
 # region Public Fire-and-Forget API
@@ -275,10 +225,9 @@ def _enqueue_work(
     """
     Enqueues work for background processing. Never blocks, never throws.
     """
-    # Silent fail if not initialized or shutting down
-    with _state_lock:
-        if not _initialized or _shutdown_requested or _queue is None:
-            return
+    # Silent fail if not initialized
+    if not _initialized or _queue is None:
+        return
 
     try:
         # Validate contextId
@@ -310,7 +259,7 @@ def _enqueue_work(
 def _process_queue() -> None:
     """
     Background worker thread that processes the queue.
-    Blocks when empty and exits when shutdown sentinel is received.
+    Blocks when empty, runs until process exits (daemon thread).
     """
     if _queue is None:
         return
@@ -319,10 +268,6 @@ def _process_queue() -> None:
         while True:
             try:
                 work_item = _queue.get()
-
-                # Check for shutdown sentinel
-                if work_item is _SHUTDOWN_SENTINEL:
-                    break
 
                 try:
                     _process_work_item(work_item)
@@ -579,10 +524,5 @@ def _get_queue() -> Optional[queue.Queue]:
 def _is_initialized() -> bool:
     """Returns whether the SDK is initialized. For testing only."""
     return _initialized
-
-
-def _is_shutdown_requested() -> bool:
-    """Returns whether shutdown was requested. For testing only."""
-    return _shutdown_requested
 
 # endregion
