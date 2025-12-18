@@ -1,13 +1,37 @@
 # Ceremony Field Catalog API Specification
 
 ## Overview
-The Ceremony Field Catalog API is a Spring Boot REST service for tracking and cataloging observed XML fields across different business paths. This document provides complete API specification for UI integration.
+
+The Ceremony Field Catalog API is a Spring Boot REST service that tracks XML field usage patterns across multiple business contexts. The API uses a **dynamic Context system** where observation points are defined via API, not hardcoded.
+
+## Core Concepts
+
+### Context
+A **Context** defines an observation point with its own metadata schema:
+- `contextId`: Unique identifier (e.g., "deposits", "renderdata", "ondemand")
+- `requiredMetadata`: Fields that determine field identity (e.g., `["productCode", "productSubCode", "action"]`)
+- `optionalMetadata`: Additional fields that can be stored but don't affect identity
+- `active`: Whether the context accepts new observations
+
+### CatalogEntry
+A **CatalogEntry** represents an observed field:
+- `id`: Hash-based unique identifier
+- `contextId`: Which context this field belongs to
+- `metadata`: Key-value pairs (required + optional metadata)
+- `fieldPath`: XPath of the observed field
+- `maxOccurs` / `minOccurs`: Occurrence statistics
+- `allowsNull` / `allowsEmpty`: Value characteristics
+
+### Field Identity
+Field identity is computed as: `hash(contextId + requiredMetadata + fieldPath)`
+- Same context + same required metadata + same fieldPath = same field (stats merge)
+- Optional metadata is stored but doesn't affect identity
 
 ## Base Configuration
 
 ### Endpoints
 - **Development:** `http://localhost:8080`
-- **Production:** TBD (configure via environment variable)
+- **Production:** Configure via environment variable `SPRING_DATA_MONGODB_URI`
 
 ### Authentication
 - **Current:** No authentication required
@@ -15,90 +39,271 @@ The Ceremony Field Catalog API is a Spring Boot REST service for tracking and ca
 
 ### CORS Configuration
 - Configured to allow requests from `http://localhost:3000` for development
-- Production origins will be configured separately
+- Production origins configured separately
+
+### OpenAPI/Swagger
+- **Swagger UI:** `http://localhost:8080/swagger-ui.html`
+- **OpenAPI Spec:** `http://localhost:8080/v3/api-docs`
+
+---
 
 ## API Endpoints
 
-### 1. Submit Field Observations
+### Context Management
 
-**Endpoint:** `POST /catalog/observed-fields`
+#### 1. Create Context
 
-**Purpose:** Submit one or more field observations for cataloging
+**Endpoint:** `POST /catalog/contexts`
 
-**Request Headers:**
+**Purpose:** Create a new observation context that defines metadata requirements
+
+**Request:**
+```json
+{
+  "contextId": "deposits",
+  "displayName": "Deposits",
+  "description": "Ceremony XML processing for account deposits",
+  "requiredMetadata": ["productCode", "productSubCode", "action"],
+  "optionalMetadata": ["channel", "region"],
+  "active": true
+}
 ```
-Content-Type: application/json
+
+**Response:** `201 Created`
+```json
+{
+  "contextId": "deposits",
+  "displayName": "Deposits",
+  "description": "Ceremony XML processing for account deposits",
+  "requiredMetadata": ["productCode", "productSubCode", "action"],
+  "optionalMetadata": ["channel", "region"],
+  "active": true,
+  "createdAt": "2024-01-15T10:30:00Z",
+  "updatedAt": null
+}
 ```
 
-**Request Body:**
+**Validation Rules:**
+- `contextId`: Required, unique, alphanumeric with hyphens
+- `displayName`: Required
+- `requiredMetadata`: Required, cannot be empty
+- `active`: Required
+
+---
+
+#### 2. List All Contexts
+
+**Endpoint:** `GET /catalog/contexts`
+
+**Purpose:** Retrieve all available contexts
+
+**Response:** `200 OK`
 ```json
 [
   {
-    "pathType": "deposits",           // Required: deposits|loans|ondemand
-    "formCode": "DDA",               // Optional: For ondemand path
-    "formVersion": "4S",             // Optional: For ondemand path  
-    "action": "Fulfillment",         // Optional: For deposits path
-    "productCode": "DDA",            // Optional: For deposits path
-    "productSubCode": "4S",          // Optional: For deposits path
-    "loanProductCode": "HEQF",       // Optional: For loans path
-    "xpath": "/Ceremony/Account/FeeCode", // Required: XML path
-    "dataType": "data",              // Required: data type
-    "count": 1,                      // Required: occurrence count (≥0)
-    "hasNull": false,                // Required: allows null values
-    "hasEmpty": false                // Required: allows empty values
+    "contextId": "deposits",
+    "displayName": "Deposits",
+    "description": "Ceremony XML processing for account deposits",
+    "requiredMetadata": ["productCode", "productSubCode", "action"],
+    "optionalMetadata": ["channel"],
+    "active": true,
+    "createdAt": "2024-01-15T10:30:00Z",
+    "updatedAt": null
+  },
+  {
+    "contextId": "renderdata",
+    "displayName": "Document Rendering Data",
+    "description": "Fields sent to PDF Generation API per document",
+    "requiredMetadata": ["documentCode"],
+    "optionalMetadata": ["productCode", "productSubCode"],
+    "active": true,
+    "createdAt": "2024-01-16T08:00:00Z",
+    "updatedAt": null
   }
 ]
 ```
 
-**Response:**
-- **Success:** HTTP 204 No Content
-- **Validation Error:** HTTP 400 Bad Request
-- **Server Error:** HTTP 500 Internal Server Error
+---
 
-**Business Rules:**
-- `pathType` determines which other fields are relevant:
-  - **deposits:** Use action, productCode, productSubCode
-  - **loans:** Use loanProductCode
-  - **ondemand:** Use formCode, formVersion
-- Multiple observations can be submitted in a single request
-- System merges duplicate observations intelligently
+#### 3. Get Context by ID
 
-### 2. Search Catalog Fields
+**Endpoint:** `GET /catalog/contexts/{contextId}`
+
+**Purpose:** Retrieve a specific context
+
+**Response:** `200 OK` or `404 Not Found`
+
+---
+
+#### 4. Update Context
+
+**Endpoint:** `PUT /catalog/contexts/{contextId}`
+
+**Purpose:** Update an existing context (optional metadata only)
+
+**Request:**
+```json
+{
+  "contextId": "deposits",
+  "displayName": "Deposits",
+  "description": "Updated description",
+  "requiredMetadata": ["productCode", "productSubCode", "action"],
+  "optionalMetadata": ["channel", "region", "businessUnit"],
+  "active": true
+}
+```
+
+**Important:** `requiredMetadata` **cannot be changed** after creation (would invalidate existing field IDs). Only `optionalMetadata`, `displayName`, `description`, and `active` can be modified.
+
+**Response:** `200 OK` or `400 Bad Request` if trying to modify required metadata
+
+---
+
+#### 5. Delete Context
+
+**Endpoint:** `DELETE /catalog/contexts/{contextId}`
+
+**Purpose:** Delete a context (also removes associated field observations)
+
+**Response:** `204 No Content` or `404 Not Found`
+
+---
+
+### Field Observations
+
+#### 6. Submit Field Observations
+
+**Endpoint:** `POST /catalog/contexts/{contextId}/observations`
+
+**Purpose:** Submit field observations for a specific context
+
+**Path Parameters:**
+- `contextId`: The target context (e.g., "deposits", "renderdata")
+
+**Request:**
+```json
+[
+  {
+    "metadata": {
+      "productCode": "DDA",
+      "productSubCode": "4S",
+      "action": "Fulfillment"
+    },
+    "fieldPath": "/Ceremony/Accounts/Account/FeeCode/Amount",
+    "count": 1,
+    "hasNull": false,
+    "hasEmpty": false
+  },
+  {
+    "metadata": {
+      "productCode": "DDA",
+      "productSubCode": "4S",
+      "action": "Fulfillment"
+    },
+    "fieldPath": "/Ceremony/Accounts/Account/WithholdingCode",
+    "count": 1,
+    "hasNull": true,
+    "hasEmpty": false
+  }
+]
+```
+
+**Response:** `204 No Content`
+
+**Validation Rules:**
+- `metadata`: Must include all `requiredMetadata` fields defined by the context
+- `metadata`: Cannot include fields not in `requiredMetadata` or `optionalMetadata`
+- `fieldPath`: Required, valid XPath format
+- `count`: Required, non-negative integer
+- `hasNull` / `hasEmpty`: Required booleans
+
+**Error Responses:**
+- `400 Bad Request`: Context not found, missing required metadata, unexpected metadata field
+- `500 Internal Server Error`: Database or processing error
+
+**Business Logic:**
+- If field already exists (same contextId + requiredMetadata + fieldPath): merge stats
+  - `maxOccurs` = max(existing, new count)
+  - `minOccurs` = min(existing, new count)
+  - `allowsNull` = existing OR new hasNull
+  - `allowsEmpty` = existing OR new hasEmpty
+- If field doesn't exist: create new entry
+- Single-context cleanup: If all observations have same metadata, existing fields not in batch get `minOccurs = 0`
+
+---
+
+### Field Search
+
+#### 7. Search Catalog Fields
 
 **Endpoint:** `GET /catalog/fields`
 
 **Purpose:** Search and retrieve cataloged fields with filtering and pagination
 
 **Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `contextId` | string | No | Filter by context (omit for cross-context search) |
+| `fieldPathContains` | string | No | Case-insensitive pattern match on fieldPath |
+| `page` | integer | No | Page number (0-based, default: 0) |
+| `size` | integer | No | Page size (1-1000, default: 20) |
+| `*` | string | No | Any other parameter treated as metadata filter |
+
+**Dynamic Metadata Filtering:**
+Any query parameter not in the standard list becomes a metadata filter:
 ```
-pathType         string    Optional  Filter by business path (deposits|loans|ondemand)
-formCode         string    Optional  Filter by form code (ondemand path)
-formVersion      string    Optional  Filter by form version (ondemand path)  
-action          string    Optional  Filter by action (deposits path)
-productCode     string    Optional  Filter by product code (deposits path)
-productSubCode  string    Optional  Filter by product sub code (deposits path)
-loanProductCode string    Optional  Filter by loan product code (loans path)
-xpathContains   string    Optional  Filter by XPath pattern (case-insensitive)
-page            integer   Optional  Page number (0-based, default: 0)
-size            integer   Optional  Page size (1-1000, default: 50)
+GET /catalog/fields?contextId=deposits&productCode=DDA&productSubCode=4S
+```
+This filters for fields where `metadata.productCode = "DDA"` AND `metadata.productSubCode = "4S"`.
+
+**Example Requests:**
+
+```bash
+# Search within a context
+GET /catalog/fields?contextId=deposits&page=0&size=50
+
+# Search by document code (renderdata context)
+GET /catalog/fields?contextId=renderdata&documentCode=STMT001
+
+# Cross-context search by metadata
+GET /catalog/fields?productCode=DDA
+
+# Search by field path pattern
+GET /catalog/fields?fieldPathContains=WithholdingCode
+
+# Combined filters
+GET /catalog/fields?contextId=deposits&productCode=DDA&fieldPathContains=Account
 ```
 
-**Response Format:**
+**Response:** `200 OK`
 ```json
 {
   "content": [
     {
-      "id": "deposits§§§Fulfillment§DDA§4S§§data§/Ceremony/Account/FeeCode",
-      "pathType": "deposits",
-      "formCode": null,
-      "formVersion": null,
-      "action": "Fulfillment",
-      "productCode": "DDA", 
-      "productSubCode": "4S",
-      "loanProductCode": null,
-      "xpath": "/Ceremony/Account/FeeCode",
-      "dataType": "data",
-      "maxOccurs": 5,
+      "id": "field_377301301",
+      "contextId": "deposits",
+      "metadata": {
+        "action": "fulfillment",
+        "productcode": "dda",
+        "productsubcode": "4s"
+      },
+      "fieldPath": "/Ceremony/Accounts/Account/FeeCode/Amount",
+      "maxOccurs": 1,
+      "minOccurs": 1,
+      "allowsNull": false,
+      "allowsEmpty": false
+    },
+    {
+      "id": "field_892147632",
+      "contextId": "deposits",
+      "metadata": {
+        "action": "fulfillment",
+        "productcode": "dda",
+        "productsubcode": "4s"
+      },
+      "fieldPath": "/Ceremony/Accounts/Account/WithholdingCode",
+      "maxOccurs": 1,
       "minOccurs": 0,
       "allowsNull": true,
       "allowsEmpty": false
@@ -116,9 +321,9 @@ size            integer   Optional  Page size (1-1000, default: 50)
     "paged": true,
     "unpaged": false
   },
-  "last": false,
-  "totalElements": 150,
-  "totalPages": 3,
+  "last": true,
+  "totalElements": 2,
+  "totalPages": 1,
   "first": true,
   "size": 50,
   "number": 0,
@@ -127,114 +332,215 @@ size            integer   Optional  Page size (1-1000, default: 50)
     "sorted": false,
     "unsorted": true
   },
-  "numberOfElements": 50,
+  "numberOfElements": 2,
   "empty": false
 }
 ```
 
-**Response Fields Explanation:**
-- `content[]`: Array of catalog entries matching the search criteria
-- `totalElements`: Total number of records across all pages
-- `totalPages`: Total number of pages available
-- `first`/`last`: Boolean flags for navigation
-- `size`: Requested page size
-- `number`: Current page number (0-based)
-- `numberOfElements`: Actual items in current page
+**Note:** Metadata keys and values are normalized to lowercase for case-insensitive matching.
 
-**Common Search Patterns:**
-```bash
-# Get all deposits fields
-GET /catalog/fields?pathType=deposits
+---
 
-# Search for specific product
-GET /catalog/fields?pathType=deposits&productCode=DDA&productSubCode=4S
+## Data Models
 
-# Find fields containing "Fee" in xpath
-GET /catalog/fields?xpathContains=Fee
+### Context
 
-# Get loans for specific product
-GET /catalog/fields?pathType=loans&loanProductCode=HEQF
-
-# Paginated results
-GET /catalog/fields?page=0&size=25
+```typescript
+interface Context {
+  contextId: string;           // Unique identifier
+  displayName: string;         // Human-readable name
+  description?: string;        // Optional description
+  requiredMetadata: string[];  // Fields that determine field identity
+  optionalMetadata: string[];  // Additional allowed fields
+  active: boolean;             // Whether accepting observations
+  createdAt: string;           // ISO 8601 timestamp
+  updatedAt?: string;          // ISO 8601 timestamp
+}
 ```
+
+### CatalogEntry
+
+```typescript
+interface CatalogEntry {
+  id: string;                           // Hash-based unique ID (e.g., "field_377301301")
+  contextId: string;                    // Reference to context
+  metadata: Record<string, string>;     // Key-value pairs (lowercase normalized)
+  fieldPath: string;                    // XPath of the field
+  maxOccurs: number;                    // Maximum occurrences observed
+  minOccurs: number;                    // Minimum occurrences (0 = sometimes absent)
+  allowsNull: boolean;                  // Has been observed with null
+  allowsEmpty: boolean;                 // Has been observed with empty string
+}
+```
+
+### CatalogObservation (Input)
+
+```typescript
+interface CatalogObservation {
+  metadata: Record<string, string>;  // Must include all required metadata
+  fieldPath: string;                 // XPath of the field
+  count: number;                     // Occurrences in this observation (>=0)
+  hasNull: boolean;                  // Contains null values
+  hasEmpty: boolean;                 // Contains empty strings
+}
+```
+
+### PagedResponse
+
+```typescript
+interface PagedResponse<T> {
+  content: T[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: { empty: boolean; sorted: boolean; unsorted: boolean };
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  last: boolean;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  size: number;
+  number: number;
+  sort: { empty: boolean; sorted: boolean; unsorted: boolean };
+  numberOfElements: number;
+  empty: boolean;
+}
+```
+
+### ErrorResponse
+
+```typescript
+interface ErrorResponse {
+  message: string;
+  status: number;
+  timestamp: string;
+  error: string;
+  validationErrors?: Record<string, string>;
+}
+```
+
+---
 
 ## Error Handling
 
-### Validation Errors (HTTP 400)
+### HTTP Status Codes
+
+| Code | Meaning | When Used |
+|------|---------|-----------|
+| 200 | OK | Successful GET request |
+| 201 | Created | Successful POST creating a resource |
+| 204 | No Content | Successful POST/DELETE with no response body |
+| 400 | Bad Request | Validation error, missing required fields, invalid format |
+| 404 | Not Found | Context or resource doesn't exist |
+| 500 | Internal Server Error | Server-side error |
+
+### Common Error Scenarios
+
+**Context not found:**
 ```json
 {
-  "message": "Validation failed",
+  "message": "Context not found or inactive: invalid-context",
   "status": 400,
-  "timestamp": "2025-06-06T09:43:40.065514",
-  "path": "uri=/catalog/observed-fields",
-  "validationErrors": {
-    "pathType": "Path type is required",
-    "xpath": "XPath is required",
-    "count": "Count must be non-negative"
-  }
+  "timestamp": "2024-01-15T10:30:00Z",
+  "error": "Bad Request"
 }
 ```
 
-### Server Errors (HTTP 500)
+**Missing required metadata:**
 ```json
 {
-  "message": "An unexpected error occurred",
-  "status": 500,
-  "timestamp": "2025-06-06T09:43:40.065514", 
-  "path": "uri=/catalog/observed-fields",
-  "validationErrors": null
+  "message": "Required metadata field missing: productCode",
+  "status": 400,
+  "timestamp": "2024-01-15T10:30:00Z",
+  "error": "Bad Request"
 }
 ```
 
-## Data Model
+**Unexpected metadata field:**
+```json
+{
+  "message": "Unexpected metadata field: unknownField. Allowed fields: [productCode, productSubCode, action, channel]",
+  "status": 400,
+  "timestamp": "2024-01-15T10:30:00Z",
+  "error": "Bad Request"
+}
+```
 
-### Field Entry Structure
-Each catalog entry represents an observed XML field with its metadata:
+---
 
-- **Identity:** Composite key based on pathType + context + xpath + dataType
-- **Context:** Business context (deposits action/product, loans product, ondemand form)
-- **Occurrence Stats:** minOccurs/maxOccurs from observations
-- **Data Quality:** allowsNull/allowsEmpty flags
-- **Path Information:** Full xpath to the field
+## Example Workflows
 
-### Business Path Types
+### Setting Up a New Context
 
-#### Deposits Path
-- **Context:** action + productCode + productSubCode
-- **Example:** Fulfillment + DDA + 4S
-- **Use Cases:** Account opening, transaction processing
+```bash
+# 1. Create the context
+POST /catalog/contexts
+{
+  "contextId": "renderdata",
+  "displayName": "Document Rendering Data",
+  "description": "Fields sent to PDF Generation API per document",
+  "requiredMetadata": ["documentCode"],
+  "optionalMetadata": ["productCode", "productSubCode"],
+  "active": true
+}
 
-#### Loans Path  
-- **Context:** loanProductCode
-- **Example:** HEQF (Home Equity Line)
-- **Use Cases:** Loan application processing
+# 2. Submit observations
+POST /catalog/contexts/renderdata/observations
+[
+  {
+    "metadata": { "documentCode": "STMT001", "productCode": "DDA" },
+    "fieldPath": "/Document/Balance",
+    "count": 1,
+    "hasNull": false,
+    "hasEmpty": false
+  }
+]
 
-#### OnDemand Path
-- **Context:** formCode + formVersion
-- **Example:** ACK123 + v1.0
-- **Use Cases:** Document generation, form processing
+# 3. Search results
+GET /catalog/fields?contextId=renderdata&documentCode=STMT001
+```
+
+### Cross-Context Analysis
+
+```bash
+# Find all fields with productCode=DDA across any context
+GET /catalog/fields?productCode=DDA
+
+# Find all fields containing "Tax" in the path
+GET /catalog/fields?fieldPathContains=Tax
+
+# Compare deposits vs renderdata for same product
+GET /catalog/fields?contextId=deposits&productCode=DDA
+GET /catalog/fields?contextId=renderdata&productCode=DDA
+```
+
+---
 
 ## Rate Limiting & Performance
 
 ### Current Limits
 - No rate limiting implemented
 - Page size maximum: 1000 records
-- Query timeout: 30 seconds
+- Query timeout: Configurable via application properties
 
 ### Performance Considerations
-- Indexed fields: pathType, formCode, action, productCode, loanProductCode
-- XPath searches use regex (may be slower on large datasets)
+- Indexed fields: contextId, fieldPath, metadata combinations
+- FieldPath searches use regex (may be slower on large datasets)
 - Batch submissions recommended for large observation sets
+
+---
 
 ## Future API Changes
 
 ### Planned Enhancements
 - Authentication/authorization
 - Field statistics endpoints
-- Bulk export functionality
+- Bulk export functionality (CSV, XSD generation)
 - Real-time field observation streaming
-- Advanced search with multiple xpath patterns
+- Advanced search with multiple fieldPath patterns
 
 ### Backward Compatibility
 - Current API will remain stable
