@@ -2,7 +2,7 @@
 name = "ceremony-catalog-sdk"
 version = "1.0.0"
 description = "Fire-and-forget SDK for submitting XML field observations to the Ceremony Field Catalog API"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 dependencies = [
     "requests>=2.25.0",
 ]
@@ -15,7 +15,7 @@ dev = [
 ]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 
