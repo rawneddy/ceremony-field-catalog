@@ -6,7 +6,7 @@
 spring:
   data:
     mongodb:
-      uri: mongodb://localhost:27017/ceremony_catalog_dev
+      uri: ${MONGODB_URI:mongodb://localhost:27017/ceremony_catalog_dev}
   devtools:
     restart:
       enabled: true
@@ -31,7 +31,7 @@ logging:
 app:
   catalog:
     database:
-      mongo-uri: mongodb://localhost:27017/ceremony_catalog_dev
+      mongo-uri: ${MONGODB_URI:mongodb://localhost:27017/ceremony_catalog_dev}
       connection-timeout-seconds: 10
       max-connections: 20
     batch:
