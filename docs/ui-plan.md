@@ -37,7 +37,7 @@ ui/
 │   │   │   ├── MetadataFilters.tsx  # Dynamic filters with autocomplete
 │   │   │   ├── ResultsFilter.tsx    # Client-side filter (path + metadata)
 │   │   │   ├── FieldResults.tsx     # Wrapper with view toggle (Table/Tree)
-│   │   │   ├── FieldTable.tsx       # Virtual scrolling, dynamic columns, sortable
+│   │   │   ├── FieldTable.tsx       # Dynamic columns, sortable, keyboard nav
 │   │   │   ├── FieldRow.tsx         # Clickable with highlight state + copy btn
 │   │   │   ├── FieldDetailPanel.tsx # Slide-out detail panel
 │   │   │   ├── HighlightText.tsx    # Highlights search matches in text
@@ -50,7 +50,7 @@ ui/
 │   ├── hooks/
 │   │   ├── useContexts.ts         # Fetch contexts (with optional includeCounts)
 │   │   ├── useContextMutations.ts # Create/update/delete
-│   │   ├── useFieldSearch.ts      # Search (loads all results)
+│   │   ├── useFieldSearch.ts      # Search (single page, max 250 results)
 │   │   ├── useSuggest.ts          # Autocomplete for fieldPath and metadata
 │   │   ├── useXmlUpload.ts        # Handle file parsing and submission
 │   │   └── useDebounce.ts
@@ -154,9 +154,7 @@ Results (156 matches in deposits):
 
 ### Results Interaction Features
 
-**No server-side pagination** - Load all results at once, handle filtering client-side.
-
-**Virtual Scrolling** - Use `@tanstack/react-virtual` for efficient rendering of large result sets. Since we load all results without pagination, virtual scrolling is critical to prevent browser freezes when displaying 1000+ rows. Only renders visible rows plus a small buffer.
+**Single Page Results (POC Simplification)** - API returns max 250 results per request. If more results exist, UI displays "Showing 250 of X results - refine your search for more specific results." No pagination controls or fetching additional pages. This keeps the POC simple while still being useful.
 
 **Keyboard Navigation:**
 - Click row → highlight it, show detail panel on right
@@ -332,7 +330,7 @@ On Upload page, if user selects an inactive context:
 
 ### Phase 3: Field Search Feature (Two-Mode Design)
 1. Build `useContexts` hook (fetch contexts for dropdown)
-2. Build `useFieldSearch` hook with debounce (no pagination - load all results)
+2. Build `useFieldSearch` hook with debounce (single page, max 250 results)
 3. Build `useSuggest` hook for autocomplete (handles both cross-context and scoped)
 4. Build search components:
    - `QuickFindInput` - smart input that shows suggestions only when starts with `/`
@@ -340,7 +338,7 @@ On Upload page, if user selects an inactive context:
    - `MetadataFilters` - dynamic inputs based on selected context with autocomplete
    - `SearchForm` - container managing Mode A vs Mode B state
    - `ResultsFilter` - client-side filter inputs (path filter + metadata filter)
-   - `FieldTable` with virtual scrolling (@tanstack/react-virtual), dynamic columns
+   - `FieldTable` with dynamic columns, sortable headers
    - `FieldRow` - clickable row with highlight state, text highlighting for matches
    - `FieldDetailPanel` - slide-out panel showing full field details
    - `HighlightText` - utility component to highlight search matches in fieldPath
@@ -367,10 +365,12 @@ On Upload page, if user selects an inactive context:
 5. Style inactive contexts with muted/greyed appearance
 
 ### Phase 5: XML Upload Feature
-1. Create `xmlParser.ts` service (port from Python SDK):
+1. Create `xmlParser.ts` service (match C# SDK logic in `CeremonyFieldCatalogSdk.cs`):
    - Recursive XML tree traversal using DOMParser
+   - Strip namespaces (use localName only)
    - Extract field paths: `/Root/Parent/Child` and `/Root/@attr`
-   - Track statistics: count, hasNull, hasEmpty
+   - Track statistics: count, hasNull (`value === null`), hasEmpty (`value is whitespace-only or empty`)
+   - Only count leaf elements (elements without children)
    - Return array of `CatalogObservation` objects
 2. Build `useXmlUpload` hook (parse files, batch submit to API)
 3. Build upload components:
@@ -401,6 +401,16 @@ On Upload page, if user selects an inactive context:
 
 ## Backend Changes Required
 
+### 0. Configure Max Page Size
+Set max page size to 250 in `application.yml`:
+
+```yaml
+catalog:
+  search:
+    default-page-size: 250
+    max-page-size: 250
+```
+
 ### 1. CORS Configuration
 Add to `WebConfig.java`:
 
@@ -408,7 +418,7 @@ Add to `WebConfig.java`:
 @Override
 public void addCorsMappings(CorsRegistry registry) {
     registry.addMapping("/catalog/**")
-        .allowedOrigins("http://localhost:3000")
+        .allowedOrigins("http://localhost:5173", "http://localhost:3000")
         .allowedMethods("GET", "POST", "PUT", "DELETE")
         .allowedHeaders("*");
 }
@@ -485,6 +495,7 @@ Returns each context with optional `fieldCount` property when `includeCounts=tru
 | Context domain | `src/main/java/com/ceremony/catalog/domain/Context.java` |
 | CatalogEntry domain | `src/main/java/com/ceremony/catalog/domain/CatalogEntry.java` |
 | CORS config (to modify) | `src/main/java/com/ceremony/catalog/config/WebConfig.java` |
+| C# SDK XML parser (primary reference) | `sdks/dotnet/net48/CeremonyFieldCatalogSdk.cs` |
 | Python XML parser (reference) | `sdks/python/ceremony_catalog_sdk.py` |
 | Python parser tests (reference) | `sdks/python/test_ceremony_catalog_sdk.py` |
 
@@ -551,7 +562,6 @@ interface UploadStatus {
 {
   "dependencies": {
     "@tanstack/react-query": "^5.x",
-    "@tanstack/react-virtual": "^3.x",
     "axios": "^1.x",
     "react": "^18.x",
     "react-dom": "^18.x",
