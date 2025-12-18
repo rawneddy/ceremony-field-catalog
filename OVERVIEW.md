@@ -2,19 +2,172 @@
 
 ## The Problem This System Solves
 
-This system was built for a legacy PDF rendering pipeline:
+This system was built for a legacy PDF rendering pipeline that processes XML through multiple pathways:
 
 ```
-Legacy Source System → Dynamic XML Generator → LiveCycle Service → PDFs
+┌─────────────────┐     ┌─────────────────────────┐     ┌─────────────┐     ┌──────┐
+│ Calling Systems │ ──► │ Legacy Ceremony System  │ ──► │  LiveCycle  │ ──► │ PDFs │
+└─────────────────┘     │  (XML Transformation)   │     │  Rendering  │     └──────┘
+                        └─────────────────────────┘     └─────────────┘
 ```
 
-The challenge: hundreds of different PDF templates, each requiring specific XML structures, and the XML was generated dynamically based on multiple factors (product type, state, subcodes, etc.). Modernization required:
+The challenge: hundreds of different PDF templates, each requiring specific XML structures, and the XML was generated dynamically based on multiple factors (product type, state, subcodes, document codes, etc.). Modernization required:
 
 1. **Schema files** for every template
 2. **Understanding which XML elements** are actually used for each combination of business variants
 3. **Reverse-engineering a complete field repository** from observed usage
 
 This system captures XML field "observations" over time to build that repository.
+
+---
+
+## The Legacy System's Multiple Pathways
+
+The legacy system isn't a single pipeline - it supports multiple distinct pathways, each with different data flows and transformation logic. The Field Catalog must capture observations from **all** of them.
+
+### Pathway 1: The Ceremony Path
+
+```
+┌──────────────┐    ┌─────────────────────────────────────────────────────────────┐
+│   Calling    │    │              Legacy Ceremony System                          │
+│   System     │───►│  ┌─────────────┐   ┌──────────────┐   ┌──────────────────┐  │
+│              │    │  │ Ceremony    │──►│ Business     │──►│ Per-Document     │──┼──► LiveCycle
+│ Ceremony XML │    │  │ XML (IN)    │   │ Rules Engine │   │ Transforms (OUT) │  │
+└──────────────┘    │  └─────────────┘   │ (which docs?)│   └──────────────────┘  │
+                    │                     └──────────────┘                         │
+                    └─────────────────────────────────────────────────────────────┘
+```
+
+**Flow:**
+1. Calling system sends **Ceremony XML** - a consistent but non-schema'd structure (customers, accounts, products, etc.)
+2. Legacy system runs **business rules** to determine which document codes are needed
+3. For each document code, **transforms** Ceremony XML into document-specific XML conforming to template team's schema
+4. Sends transformed XML to LiveCycle for PDF rendering
+
+**Key characteristics:**
+- Input XML is abstracted from documents (no "this field is for doc XYZ")
+- Business rules determine document selection
+- Heavy transformation per document
+- Field variance driven by: `productCode`, `productSubCode`, `action`, etc.
+
+### Pathway 2: The OnDemand Path
+
+```
+┌──────────────┐    ┌─────────────────────────────────────────────────────────────┐
+│   Calling    │    │              Legacy Ceremony System                          │
+│   System     │───►│                                                              │
+│              │    │  Document XML + Workflow Instructions ─────────────────────┼──► LiveCycle
+│ Pre-formed   │    │  (passthrough - no transforms, no business rules)           │
+│ Document XML │    │                                                              │
+└──────────────┘    └─────────────────────────────────────────────────────────────┘
+```
+
+**Flow:**
+1. Calling system sends **exact XML per document** plus workflow instructions
+2. Legacy system acts as a **passthrough** - no business rules, no transforms
+3. XML forwarded directly to LiveCycle
+
+**Key characteristics:**
+- Used when data isn't related to broader Ceremony XML (banking products, applications)
+- Calling system knows exactly what documents and data it needs
+- Supports e-signing workflows with explicit signer assignments
+- Field variance driven by: `formCode`, `formVersion`
+
+### Pathway 3: The BMIC Path (Loans/Legacy Documents)
+
+```
+┌──────────────┐    ┌─────────────────────────────────────────────────────────────┐
+│   Calling    │    │              Legacy Ceremony System                          │
+│   System     │───►│  ┌───────┐   ┌─────────────┐   ┌──────────────────────────┐ │
+│              │    │  │ ID    │──►│ Fetch BMIC  │──►│ Light Transform          │─┼─► LiveCycle
+│ Reference ID │    │  │       │   │ XML from SOR│   │ (mostly adds new tags)   │ │
+└──────────────┘    │  └───────┘   └─────────────┘   └──────────────────────────┘ │
+                    └─────────────────────────────────────────────────────────────┘
+```
+
+**Flow:**
+1. Calling system sends an **ID** referencing data in a System of Record (SOR)
+2. Legacy system **fetches BMIC XML** from the SOR
+3. Runs **light transforms** - mostly adding new tags, not restructuring
+4. Entire XML (original + added tags) sent to LiveCycle
+
+**Key characteristics:**
+- Used for older loan-related templates
+- BMIC XML is ~90% identical across all documents using this path
+- Transforms add fields rather than restructure
+- All documents share an overarching schema
+- Field variance driven by: `loanProductCode`, possibly `ceremonyType`
+
+---
+
+## Observation Points
+
+The Field Catalog captures observations at multiple points in these pipelines:
+
+### Data Coming IN to Legacy System
+
+| Observation Point | Context | Required Metadata | What It Captures |
+|-------------------|---------|-------------------|------------------|
+| Ceremony XML as received | `ceremony-inbound` | productCode, productSubCode, action | Raw fields from calling systems before any transformation |
+| BMIC XML as fetched | `bmic-inbound` | loanProductCode | Fields from System of Record for loan documents |
+
+### Data Going OUT to Document Rendering
+
+| Observation Point | Context | Required Metadata | What It Captures |
+|-------------------|---------|-------------------|------------------|
+| Per-document rendering XML | `renderdata` | documentCode | Final fields sent to LiveCycle per document template |
+| OnDemand passthrough | `ondemand` | formCode, formVersion | Fields in pre-formed document XML |
+
+### Future Observation Points (Extensible)
+
+The context system allows adding new observation points as needed:
+
+| Potential Point | Context | Required Metadata | Purpose |
+|-----------------|---------|-------------------|---------|
+| Post-normalization XML | `ceremony-normalized` | productCode, productSubCode, documentCode | Capture interim state after first transform pass |
+| Transform-specific | `transform-{name}` | transformId, documentCode | Debug specific transformation stages |
+
+---
+
+## How Contexts Enable Multi-Mode Observation
+
+Each "mode" or observation point is represented by a **Context** with its own metadata schema:
+
+```javascript
+// Ceremony Path - Inbound
+{
+  "contextId": "ceremony-inbound",
+  "requiredMetadata": ["productCode", "productSubCode", "action"],
+  "optionalMetadata": ["channel", "state"]
+}
+
+// Ceremony Path - Per-Document Output
+{
+  "contextId": "renderdata",
+  "requiredMetadata": ["documentCode"],
+  "optionalMetadata": ["productCode", "productSubCode"]
+}
+
+// BMIC Path
+{
+  "contextId": "bmic-inbound",
+  "requiredMetadata": ["loanProductCode"],
+  "optionalMetadata": ["ceremonyType"]
+}
+
+// OnDemand Path
+{
+  "contextId": "ondemand",
+  "requiredMetadata": ["formCode", "formVersion"],
+  "optionalMetadata": []
+}
+```
+
+**Why this design?**
+- Each pathway has fundamentally different "dimensions" that determine field variance
+- Contexts are self-service - new observation points can be added without code changes
+- Required metadata ensures consistent field identity within each observation point
+- Optional metadata allows additional filtering without affecting identity
 
 ---
 
@@ -50,20 +203,18 @@ This system captures XML field "observations" over time to build that repository
 
 ## Key Domain Concepts
 
-### 1. Context - The Business Domain Schema
+### 1. Context - The Observation Point Schema
 
-A **Context** defines a business domain with its own metadata requirements:
+A **Context** defines an observation point with its metadata requirements:
 
 ```java
 // domain/Context.java
-contextId: "deposits"
-displayName: "Deposits"
-requiredMetadata: ["productCode", "productSubCode", "action"]  // MUST have these
-optionalMetadata: ["channel", "region"]                        // CAN have these
+contextId: "renderdata"
+displayName: "Document Rendering Data"
+requiredMetadata: ["documentCode"]           // Determines field identity
+optionalMetadata: ["productCode", "productSubCode"]  // Additional info only
 active: true
 ```
-
-**Why it matters**: Different parts of your legacy system have different "dimensions" that affect which XML fields appear. Deposits might vary by `productCode + productSubCode + action`, while Loans might only vary by `loanProductCode`.
 
 ### 2. CatalogEntry - An Observed Field
 
@@ -72,9 +223,9 @@ Each unique field observation is stored as:
 ```java
 // domain/CatalogEntry.java
 id: "field_12345678"          // Hash-based unique ID
-contextId: "deposits"
-metadata: {productCode: "DDA", productSubCode: "4S", action: "Fulfillment"}
-fieldPath: "/Ceremony/Accounts/Account/FeeCode/Amount"
+contextId: "renderdata"
+metadata: {documentCode: "STMT001", productCode: "DDA"}
+fieldPath: "/Document/TaxWithholding/Amount"
 maxOccurs: 5                  // Most times seen in one document
 minOccurs: 0                  // Least times (0 = sometimes missing)
 allowsNull: true              // Has been seen with null value
@@ -102,10 +253,10 @@ hash(contextId + requiredMetadata + fieldPath)
 ### Submitting Observations
 
 ```
-POST /catalog/contexts/deposits/observations
+POST /catalog/contexts/renderdata/observations
 [{
-  "metadata": {"productCode": "DDA", "productSubCode": "4S", "action": "Fulfillment"},
-  "fieldPath": "/Ceremony/Accounts/Account/FeeCode/Amount",
+  "metadata": {"documentCode": "STMT001", "productCode": "DDA"},
+  "fieldPath": "/Document/TaxWithholding/Amount",
   "count": 1,
   "hasNull": false,
   "hasEmpty": false
@@ -138,7 +289,7 @@ if (entry exists) {
 ### Searching the Catalog
 
 ```
-GET /catalog/fields?contextId=deposits&productCode=DDA
+GET /catalog/fields?contextId=renderdata&documentCode=STMT001
 ```
 
 **Dynamic search**: Any query parameter becomes a metadata filter. The `DynamicSearchParameterResolver` converts unknown parameters to metadata queries.
@@ -168,12 +319,12 @@ Clean, collision-resistant IDs that are consistent across restarts and environme
 When you submit a batch of observations from one specific metadata combination:
 
 ```java
-// If I submit observations for DDA/4S/Fulfillment and don't include /Amount
-// but /Amount exists in the DB for DDA/4S/Fulfillment
-// → set /Amount's minOccurs = 0 (meaning it's optional for this variant)
+// If I submit observations for documentCode=STMT001 and don't include /TaxWithholding
+// but /TaxWithholding exists in the DB for STMT001
+// → set /TaxWithholding's minOccurs = 0 (meaning it's optional for this document)
 ```
 
-This is how you discover "this field is sometimes missing for this product variant."
+This is how you discover "this field is sometimes missing for this document/product variant."
 
 ### 4. Case-Insensitive Everything
 
@@ -185,34 +336,66 @@ private static String normalizeCase(String value) {
 }
 ```
 
-Prevents `productCode=DDA` vs `ProductCode=dda` from creating duplicate entries.
+Prevents `documentCode=STMT001` vs `DocumentCode=stmt001` from creating duplicate entries.
+
+### 5. Extensible Context System
+
+New observation points can be added without code changes:
+
+```bash
+# Add a new observation point for mid-transform XML
+POST /catalog/contexts
+{
+  "contextId": "ceremony-normalized",
+  "displayName": "Post-Normalization Ceremony XML",
+  "requiredMetadata": ["productCode", "productSubCode", "documentCode"],
+  "optionalMetadata": [],
+  "active": true
+}
+```
+
+The legacy system can then start sending observations to this new context immediately.
+
+---
+
+## Cross-Pathway Analysis
+
+With observations from all pathways, you can answer questions like:
+
+| Question | Query |
+|----------|-------|
+| What fields does document STMT001 need? | `GET /catalog/fields?contextId=renderdata&documentCode=STMT001` |
+| What Ceremony XML fields exist for DDA products? | `GET /catalog/fields?contextId=ceremony-inbound&productCode=DDA` |
+| Which documents use a specific field? | `GET /catalog/fields?fieldPathContains=TaxWithholding` |
+| What's different between DDA and SAV? | Compare results for `productCode=DDA` vs `productCode=SAV` |
+| Which fields are always present vs optional? | Filter by `minOccurs > 0` |
 
 ---
 
 ## The Runtime Flow (Visual)
 
 ```
-Day 1: Process 100 DDA/4S/Fulfillment documents
-       → See /Account/Balance 100 times, /Account/FeeCode 80 times
+Day 1: Process 100 ceremonies for documentCode=STMT001
+       → See /Document/Balance 100 times, /Document/TaxWithholding 80 times
 
        Catalog now shows:
-       /Account/Balance:  minOccurs=1, maxOccurs=1 (always present)
-       /Account/FeeCode:  minOccurs=0, maxOccurs=1 (sometimes missing)
+       /Document/Balance:        minOccurs=1, maxOccurs=1 (always present)
+       /Document/TaxWithholding: minOccurs=0, maxOccurs=1 (sometimes missing)
 
-Day 2: Process 50 DDA/4S/Fulfillment documents
-       → /Account/Balance seen 50 times with count=1
-       → /Account/FeeCode seen 20 times with count=3 (repeating element!)
-
-       Catalog now shows:
-       /Account/Balance:  minOccurs=1, maxOccurs=1 (unchanged)
-       /Account/FeeCode:  minOccurs=0, maxOccurs=3 (now we know it repeats!)
-
-Day 3: Process 10 DDA/4S/Fulfillment documents
-       → Only /Account/Balance seen, /Account/FeeCode not in batch
+Day 2: Process 50 ceremonies for documentCode=STMT001
+       → /Document/Balance seen 50 times with count=1
+       → /Document/TaxWithholding seen 20 times with count=3 (repeating element!)
 
        Catalog now shows:
-       /Account/Balance:  minOccurs=1, maxOccurs=1
-       /Account/FeeCode:  minOccurs=0, maxOccurs=3 (minOccurs dropped to 0)
+       /Document/Balance:        minOccurs=1, maxOccurs=1 (unchanged)
+       /Document/TaxWithholding: minOccurs=0, maxOccurs=3 (now we know it repeats!)
+
+Day 3: Process 10 ceremonies for documentCode=STMT001
+       → Only /Document/Balance seen, /Document/TaxWithholding not in batch
+
+       Catalog now shows:
+       /Document/Balance:        minOccurs=1, maxOccurs=1
+       /Document/TaxWithholding: minOccurs=0, maxOccurs=3 (minOccurs stays 0)
 ```
 
 ---
@@ -235,12 +418,13 @@ Day 3: Process 10 DDA/4S/Fulfillment documents
 
 | File | Purpose |
 |------|---------|
-| `CatalogService.java` | Core merge logic (lines 24-89) |
+| `CatalogService.java` | Core merge logic |
 | `FieldKey.java` | Field identity calculation |
 | `Context.java` | Metadata schema definition |
 | `CatalogController.java` | REST endpoints for observations & search |
 | `ContextController.java` | REST endpoints for context management |
 | `CatalogSmokeTests.http` | Example API calls for manual testing |
+| `sdks/dotnet/` | .NET Framework 4.8 client SDK for legacy system integration |
 
 ---
 
@@ -249,13 +433,13 @@ Day 3: Process 10 DDA/4S/Fulfillment documents
 ### Context Management
 
 ```bash
-# Create a context
+# Create a context for a new observation point
 POST /catalog/contexts
 {
-  "contextId": "deposits",
-  "displayName": "Deposits",
-  "requiredMetadata": ["productCode", "productSubCode", "action"],
-  "optionalMetadata": ["channel"],
+  "contextId": "renderdata",
+  "displayName": "Document Rendering Data",
+  "requiredMetadata": ["documentCode"],
+  "optionalMetadata": ["productCode", "productSubCode"],
   "active": true
 }
 
@@ -263,17 +447,17 @@ POST /catalog/contexts
 GET /catalog/contexts
 
 # Get specific context
-GET /catalog/contexts/deposits
+GET /catalog/contexts/renderdata
 ```
 
 ### Field Observations
 
 ```bash
-# Submit observations
-POST /catalog/contexts/deposits/observations
+# Submit observations from document rendering
+POST /catalog/contexts/renderdata/observations
 [{
-  "metadata": {"productCode": "DDA", "productSubCode": "4S", "action": "Fulfillment"},
-  "fieldPath": "/Ceremony/Accounts/Account/FeeCode/Amount",
+  "metadata": {"documentCode": "STMT001", "productCode": "DDA"},
+  "fieldPath": "/Document/TaxWithholding/Amount",
   "count": 1,
   "hasNull": false,
   "hasEmpty": false
@@ -283,16 +467,16 @@ POST /catalog/contexts/deposits/observations
 ### Search
 
 ```bash
-# Search by context
-GET /catalog/fields?contextId=deposits
+# Search by context (all fields for a pathway)
+GET /catalog/fields?contextId=renderdata
 
-# Search by any metadata (dynamic)
-GET /catalog/fields?productCode=DDA&productSubCode=4S
+# Search by document code
+GET /catalog/fields?contextId=renderdata&documentCode=STMT001
 
 # Search by field path pattern
-GET /catalog/fields?fieldPathContains=Account
+GET /catalog/fields?fieldPathContains=TaxWithholding
 
-# Cross-context search
+# Cross-context search (find all uses of a product code)
 GET /catalog/fields?productCode=DDA
 ```
 
@@ -300,8 +484,17 @@ GET /catalog/fields?productCode=DDA
 
 ## Summary
 
-This system essentially builds an empirical XSD from observed usage. Over time, as you feed it more observations from production traffic, it builds a complete picture of:
+This system is a **field indexing engine** that builds an empirical understanding of XML field usage across all pathways of the legacy ceremony system. By capturing observations from:
 
-> "For product X, subcode Y, action Z → these XML fields appear with these occurrence patterns."
+- **Ceremony XML** as it enters the system
+- **BMIC XML** fetched from Systems of Record
+- **Document-specific XML** sent to LiveCycle
+- **OnDemand XML** passed through without transformation
 
-The catalog becomes the authoritative source for understanding what the legacy XML generation system actually produces across all its variants, enabling schema creation and modernization efforts.
+...the catalog becomes the authoritative source for understanding what data flows through the legacy system, enabling:
+
+- Schema generation for modernization
+- Field-level documentation for business analysts
+- Impact analysis for changes
+- Discovery of which documents use which fields
+- Understanding of product-specific field variations
