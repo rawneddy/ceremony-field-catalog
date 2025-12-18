@@ -20,8 +20,7 @@ A fire-and-forget C# SDK for submitting XML field observations to the Ceremony F
 This SDK is designed for legacy systems where field catalog submission is non-critical telemetry that should never impact the main business flow.
 
 #### Features
-- **Multiple XML Input Formats**: Supports `byte[]`, `string`, `XDocument`, and `XElement`
-- **Streaming Performance**: Uses `XmlReader` for optimal memory usage with large XML files
+- **Multiple XML Input Formats**: Supports `byte[]`, `string`, and `XElement`
 - **Automatic Field Analysis**: Extracts field paths, occurrence counts, and null/empty patterns
 - **Batched API Calls**: Configurable batch sizes for optimal network performance
 - **Silent Failure**: Network errors, bad XML, API errors - all handled silently
@@ -90,12 +89,7 @@ var xmlString = "<Ceremony><Amount>100.00</Amount></Ceremony>";
 CeremonyFieldCatalogSdk.SubmitObservations(xmlString, "deposits", metadata);
 
 
-// Example 3: XDocument input (if you already have parsed XML)
-var xdoc = XDocument.Parse(xmlString);
-CeremonyFieldCatalogSdk.SubmitObservations(xdoc, "deposits", metadata);
-
-
-// Example 4: XElement input
+// Example 3: XElement input (if you already have parsed XML)
 var element = XElement.Parse(xmlString);
 CeremonyFieldCatalogSdk.SubmitObservations(element, "deposits", metadata);
 
@@ -141,7 +135,82 @@ SubmitObservations() ──►           │ (GetConsumingEnum)  │
 - XML extraction happens on the calling thread (to avoid holding references)
 - HTTP requests happen on a single background thread (controlled throughput)
 - Queue capacity of 10,000 ≈ 1-2 MB memory overhead
-- For large XML files (>10MB), use `byte[]` or `string` inputs for streaming
+
+---
+
+### Python SDK (Test Implementation)
+**Location**: `python/ceremony_catalog_sdk.py`
+
+#### Purpose
+
+The Python SDK is a **functionally identical implementation** of the .NET SDK, created specifically to enable comprehensive testing and validation. Since .NET Framework 4.8 testing infrastructure can be challenging to set up, this Python mirror allows us to:
+
+1. **Verify all SDK logic** with 54 comprehensive unit tests
+2. **Run integration tests** against the real API and MongoDB
+3. **Validate the exact behavior** that the .NET SDK will exhibit in production
+
+#### Test Coverage
+
+The Python test suite (`test_ceremony_catalog_sdk.py`) includes **54 tests** covering:
+
+| Category | Tests | What's Verified |
+|----------|-------|-----------------|
+| XML Extraction | 15 | Field paths, attributes, namespaces, empty elements, nested structures |
+| Field Path Building | 3 | Path format `/parent/child`, attribute format `/@attr` |
+| Queue Behavior | 3 | Item flow, queue full (drops), ordering |
+| Batching | 3 | Batch size boundaries, correct splitting |
+| Fire-and-Forget | 4 | Immediate return, never throws on bad input |
+| Initialization | 5 | Idempotent, defaults, validation |
+| Shutdown | 5 | Queue drain, timeout, idempotent |
+| Error Handling | 5 | Network errors, API errors, callback invocation |
+| API Contract | 4 | JSON field names match Java API exactly |
+| Integration | 2 | Full flow with realistic XML, concurrency |
+| Edge Cases | 5 | Large XML, deep nesting, unicode, special chars |
+
+#### Integration Testing
+
+The SDK was also validated against the **real running API**:
+
+```bash
+# Run unit tests
+cd sdks/python
+python -m pytest test_ceremony_catalog_sdk.py -v
+
+# Run integration test against real API (requires docker-compose up)
+python test_integration_real_api.py
+```
+
+Integration test results confirmed:
+- All field observations land correctly in MongoDB
+- Field paths match expected format
+- Empty element detection works (`allowsEmpty: true`)
+- Multiple occurrence counting works (`maxOccurs` values)
+- Attribute extraction works (`/@attrName` paths)
+- Batching and queue processing work end-to-end
+
+#### Behavioral Parity
+
+The Python and .NET implementations are **verified identical** in:
+
+| Aspect | Behavior |
+|--------|----------|
+| Constants | Batch size 500, queue capacity 10000 |
+| Initialization | Idempotent, trims trailing slash, validates batch size |
+| Queue | Bounded, drops when full, dedicated daemon worker thread |
+| XML Parsing | Only leaf elements counted, attributes with `/@` prefix |
+| Empty Detection | Whitespace-only and empty strings both set `hasEmpty: true` |
+| JSON Output | Field names: `metadata`, `fieldPath`, `count`, `hasNull`, `hasEmpty` |
+| Error Handling | Never throws, invokes callback, swallows callback errors |
+| Shutdown | Graceful drain with timeout, returns drain status |
+
+#### For Developers
+
+**The Python SDK is not intended for production use.** It exists solely to provide confidence that the .NET SDK logic is correct and thoroughly tested. The .NET SDK is the production artifact.
+
+If you need to modify SDK behavior:
+1. Make changes to both implementations
+2. Run the Python test suite to verify correctness
+3. Optionally run integration tests against the real API
 
 ## API Compatibility
 

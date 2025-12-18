@@ -52,6 +52,7 @@ namespace Ceremony.Catalog.Sdk
         // State tracking
         private static volatile bool _initialized;
         private static volatile bool _shutdownRequested;
+        private static readonly object _initLock = new object();
 
         #region Initialization and Shutdown
 
@@ -70,35 +71,38 @@ namespace Ceremony.Catalog.Sdk
             int queueCapacity = DefaultQueueCapacity,
             Action<Exception> onError = null)
         {
-            if (_initialized)
+            lock (_initLock)
             {
-                return; // Already initialized - ignore subsequent calls
-            }
-
-            try
-            {
-                _httpClient = httpClient;
-                _baseUrl = baseUrl != null ? baseUrl.TrimEnd('/') : "";
-                _batchSize = batchSize > 0 ? batchSize : DefaultBatchSize;
-                _globalErrorHandler = onError;
-                _shutdownRequested = false;
-
-                // Create bounded queue - TryAdd will return false when full
-                _queue = new BlockingCollection<ObservationWorkItem>(boundedCapacity: queueCapacity);
-
-                // Start dedicated background worker thread
-                _workerThread = new Thread(ProcessQueue)
+                if (_initialized)
                 {
-                    IsBackground = true, // Won't prevent application shutdown
-                    Name = "CeremonyFieldCatalog-Worker"
-                };
-                _workerThread.Start();
+                    return; // Already initialized - ignore subsequent calls
+                }
 
-                _initialized = true;
-            }
-            catch (Exception ex)
-            {
-                SafeInvokeErrorCallback(onError, ex);
+                try
+                {
+                    _httpClient = httpClient;
+                    _baseUrl = baseUrl != null ? baseUrl.TrimEnd('/') : "";
+                    _batchSize = batchSize > 0 ? batchSize : DefaultBatchSize;
+                    _globalErrorHandler = onError;
+                    _shutdownRequested = false;
+
+                    // Create bounded queue - TryAdd will return false when full
+                    _queue = new BlockingCollection<ObservationWorkItem>(boundedCapacity: queueCapacity);
+
+                    // Start dedicated background worker thread
+                    _workerThread = new Thread(ProcessQueue)
+                    {
+                        IsBackground = true, // Won't prevent application shutdown
+                        Name = "CeremonyFieldCatalog-Worker"
+                    };
+                    _workerThread.Start();
+
+                    _initialized = true;
+                }
+                catch (Exception ex)
+                {
+                    SafeInvokeErrorCallback(onError, ex);
+                }
             }
         }
 
@@ -110,15 +114,18 @@ namespace Ceremony.Catalog.Sdk
         /// <returns>True if queue was fully drained, false if timeout occurred</returns>
         public static bool Shutdown(TimeSpan timeout)
         {
-            if (!_initialized || _shutdownRequested)
+            lock (_initLock)
             {
-                return true;
+                if (!_initialized || _shutdownRequested)
+                {
+                    return true;
+                }
+
+                _shutdownRequested = true;
             }
 
             try
             {
-                _shutdownRequested = true;
-
                 // Signal no more items will be added
                 _queue.CompleteAdding();
 
