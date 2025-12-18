@@ -85,7 +85,6 @@ public abstract class UnitTestBase {
         when(performance.isEnableMetrics()).thenReturn(true);
         
         // Setup sensible defaults for search
-        when(search.getMaxResults()).thenReturn(10000);
         when(search.getDefaultPageSize()).thenReturn(20);
         when(search.getMaxPageSize()).thenReturn(1000);
         when(search.getTimeout()).thenReturn(Duration.ofSeconds(30));

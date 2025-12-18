@@ -27,6 +27,7 @@ public class InputValidationService {
     /**
      * Validates and cleans field path expressions.
      * Accepts both full XPath-style paths (starting with /) and plain text for contains searches.
+     * Returns lowercase for case-insensitive matching.
      */
     public String validateAndCleanFieldPath(String fieldPath) {
         if (!StringUtils.hasText(fieldPath)) {
@@ -48,33 +49,34 @@ public class InputValidationService {
             throw new IllegalArgumentException("Invalid field path format: " + cleaned);
         }
 
-        return cleaned;
+        return cleaned.toLowerCase();
     }
     
     /**
-     * Validates and cleans context ID
+     * Validates and cleans context ID.
+     * Returns lowercase for case-insensitive matching.
      */
     public String validateAndCleanContextId(String contextId) {
         if (!StringUtils.hasText(contextId)) {
             return contextId;
         }
-        
+
         String cleaned = contextId.trim();
-        
+
         int maxLength = catalogProperties.getValidation().getMaxContextIdLength();
         if (cleaned.length() > maxLength) {
             throw new IllegalArgumentException("Context ID too long (max " + maxLength + " characters)");
         }
-        
+
         // Remove control characters only
         cleaned = CONTROL_CHARS.matcher(cleaned).replaceAll("");
-        
+
         // Validate format
         if (!VALID_CONTEXT_ID.matcher(cleaned).matches()) {
             throw new IllegalArgumentException("Invalid context ID format. Only alphanumeric, dots, underscores, and hyphens allowed: " + contextId);
         }
-        
-        return cleaned;
+
+        return cleaned.toLowerCase();
     }
     
     /**
@@ -103,45 +105,45 @@ public class InputValidationService {
         if (!StringUtils.hasText(key)) {
             throw new IllegalArgumentException("Metadata key cannot be empty");
         }
-        
+
         String cleaned = key.trim();
-        
+
         int maxLength = catalogProperties.getValidation().getMaxMetadataKeyLength();
         if (cleaned.length() > maxLength) {
             throw new IllegalArgumentException("Metadata key too long (max " + maxLength + " characters): " + key);
         }
-        
+
         // Remove control characters only
         cleaned = CONTROL_CHARS.matcher(cleaned).replaceAll("");
-        
+
         // Validate format
         if (!VALID_METADATA_KEY.matcher(cleaned).matches()) {
             throw new IllegalArgumentException("Invalid metadata key format. Only alphanumeric, dots, underscores, and hyphens allowed: " + key);
         }
-        
-        return cleaned;
+
+        return cleaned.toLowerCase();
     }
-    
+
     private String validateAndCleanMetadataValue(String value) {
         if (value == null) {
             return null;
         }
-        
+
         if (value.trim().isEmpty()) {
             return value;
         }
-        
+
         String cleaned = value.trim();
-        
+
         int maxLength = catalogProperties.getValidation().getMaxMetadataValueLength();
         if (cleaned.length() > maxLength) {
             throw new IllegalArgumentException("Metadata value too long (max " + maxLength + " characters)");
         }
-        
+
         // Remove control characters only - preserve everything else including spaces, special chars
         cleaned = CONTROL_CHARS.matcher(cleaned).replaceAll("");
-        
-        return cleaned;
+
+        return cleaned.toLowerCase();
     }
     
     private boolean isValidFieldPathFormat(String fieldPath) {

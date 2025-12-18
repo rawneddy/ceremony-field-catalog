@@ -20,16 +20,20 @@ import java.util.Set;
 public class ContextService {
     private final ContextRepository repository;
     private final CatalogRepository catalogRepository;
-    
+    private final InputValidationService validationService;
+
     public Context createContext(ContextDefinitionDTO dto) {
+        // Validate and lowercase contextId
+        String cleanedContextId = validationService.validateAndCleanContextId(dto.contextId());
+
         // Normalize metadata field names to lowercase for case-insensitive handling
-        List<String> normalizedRequired = dto.requiredMetadata() != null ? 
+        List<String> normalizedRequired = dto.requiredMetadata() != null ?
             dto.requiredMetadata().stream().map(String::toLowerCase).toList() : null;
         List<String> normalizedOptional = dto.optionalMetadata() != null ?
             dto.optionalMetadata().stream().map(String::toLowerCase).toList() : null;
-            
+
         Context context = Context.builder()
-            .contextId(dto.contextId())
+            .contextId(cleanedContextId)
             .displayName(dto.displayName())
             .description(dto.description())
             .requiredMetadata(normalizedRequired)
@@ -37,7 +41,7 @@ public class ContextService {
             .active(dto.active())
             .createdAt(Instant.now())
             .build();
-            
+
         return repository.save(context);
     }
     

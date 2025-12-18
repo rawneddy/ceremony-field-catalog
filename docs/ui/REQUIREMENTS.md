@@ -65,24 +65,37 @@ The backend normalizes all metadata keys and values to **lowercase** for case-in
 | REQ-1.4 | Delete context | Confirmation dialog showing context name and field count that will be deleted. Requires explicit confirmation. |
 | REQ-1.5 | Visual distinction for inactive contexts | Inactive contexts displayed with muted/greyed styling to indicate they are not accepting observations |
 
-### REQ-2: Field Search
+### REQ-2: Field Search (Two-View Model)
+
+The UI provides two distinct search views optimized for different use cases:
+
+#### Quick Search View (Home Page)
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
-| REQ-2.1 | Context-based search | Dropdown to select context. When selected, search is scoped to that context only. |
-| REQ-2.2 | Dynamic metadata filtering | When context is selected, show filter inputs for all required and optional metadata fields defined by that context. Filters combine with AND logic. |
-| REQ-2.3 | Field path pattern search | Text input for case-insensitive contains matching on fieldPath. Works with or without context selection. |
-| REQ-2.4 | Cross-context search | When no context selected, search across all contexts. Results show context column for identification. |
-| REQ-2.5 | Field path autocomplete | When user types a path starting with `/`, show autocomplete suggestions. Suggestions scoped to selected context and metadata filters if present. |
-| REQ-2.6 | Metadata value autocomplete | Metadata filter inputs show autocomplete suggestions based on existing values in the catalog, scoped to selected context. |
+| REQ-2.1 | Global search input | Single search box with placeholder "Search fields, metadata, or contexts...". Searches across fieldPath, metadata values, and contextId using OR logic. |
+| REQ-2.2 | Single query parameter | Uses `?q=` parameter for global search. Example: `/catalog/fields?q=Amount` matches fields where fieldPath, any metadata value, or contextId contains "Amount". |
+| REQ-2.3 | Cross-context results | Results always show context column (contextId). No metadata columns since they vary by context. |
+| REQ-2.4 | Link to Advanced Search | Prominent link/button to switch to Advanced Search view for more precise filtering. |
+
+#### Advanced Search View
+
+| ID | Requirement | Acceptance Criteria |
+|----|-------------|---------------------|
+| REQ-2.5 | Context selector | Single-select dropdown to filter by context. When no context is selected, search returns results from all contexts. |
+| REQ-2.6 | Dynamic metadata filtering | When a context is selected, show filter inputs for all required and optional metadata fields defined by that context. Filters combine with AND logic. When no context selected, metadata filters are hidden. |
+| REQ-2.7 | Field path pattern filter | Text input for case-insensitive regex matching on fieldPath. Works with or without context selection. |
+| REQ-2.8 | Scoped fieldPath autocomplete | When user types a path starting with `/`, show autocomplete suggestions. Suggestions scoped to selected context and metadata filters if present. |
+| REQ-2.9 | Metadata value autocomplete | Metadata filter inputs show autocomplete suggestions based on existing values, scoped to selected context. |
+| REQ-2.10 | AND filter logic | All filters combine with AND logic. Example: `contextId=deposits AND productCode=DDA AND fieldPathContains=/Account` |
 
 ### REQ-3: Results Display
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
 | REQ-3.1 | Results table | Display results in table with columns: fieldPath, context (when cross-context), metadata values (when context selected), minOccurs, maxOccurs, allowsNull, allowsEmpty. All columns sortable. |
-| REQ-3.2 | Single-page results | Display max 250 results per search. If more exist, show message: "Showing 250 of X results - refine your search for more specific results." |
-| REQ-3.3 | Client-side filtering | After results load, provide instant client-side filters: text filter on path, text filter on metadata, checkboxes for has-null, has-empty, optional (min=0), repeating (max>1). |
+| REQ-3.2 | Single-page results | Display max 250 results per search. If more exist, show a prominent warning banner (not subtle text) indicating results are truncated and the user should refine their search. Example: "Showing 250 of X results - please refine your search to see all matches." |
+| REQ-3.3 | Client-side filtering | After results load, provide instant client-side filters: text filter on path, text filter on metadata, context multi-select (to show/hide results by context), checkboxes for has-null, has-empty, optional (min=0), repeating (max>1). |
 | REQ-3.4 | Field detail panel | Clicking a row opens slide-out panel showing: full fieldPath with copy button, context, all metadata key-value pairs, occurrence range, null/empty flags. |
 | REQ-3.5 | Keyboard navigation | Arrow keys (up/down) navigate between result rows. Selected row highlighted, detail panel updates. |
 | REQ-3.6 | Export results | Export current results to CSV or JSON format. Option to export all results or only client-side filtered results. |
@@ -99,11 +112,13 @@ The backend normalizes all metadata keys and values to **lowercase** for case-in
 
 #### XML Parsing Semantics (REQ-4.2 Detail)
 
-The UI XML parser must match the behavior of the existing SDKs:
-
 **What constitutes "null" vs "empty":**
-- **hasNull = false**: XML does not have a concept of "null" in standard parsing. The `hasNull` flag is effectively always `false` for XML sources unless `xsi:nil="true"` is explicitly present on an element.
-- **hasEmpty = true**: When an element contains only whitespace or is self-closing with no content (e.g., `<Amount/>` or `<Amount>   </Amount>`).
+- **hasNull = true**: When `xsi:nil="true"` is explicitly present on an element. This indicates the element is explicitly null.
+- **hasEmpty = true**: When an element contains only whitespace or is self-closing with no content (e.g., `<Amount/>`, `<Amount></Amount>`, or `<Amount>   </Amount>`).
+
+**Note:** A `hasNull` observation also implies `minOccurs = 0` for the field, since a null value indicates the field may be absent/optional.
+
+**Note:** The existing Python and C# SDKs do not currently implement `xsi:nil` detection (this is a known bug). The UI parser should implement correct behavior.
 
 **Parsing rules:**
 - Only **leaf elements** (elements with no child elements) are counted as fields
@@ -111,6 +126,7 @@ The UI XML parser must match the behavior of the existing SDKs:
 - Namespaces are stripped (use `localName` only)
 - Field paths are built hierarchically (e.g., `/Root/Parent/Child`)
 - Count represents occurrences within a single document
+- Check for `xsi:nil="true"` attribute to set `hasNull`
 
 ### REQ-5: User Experience
 

@@ -105,18 +105,18 @@ class QueryPerformanceTest extends PerformanceTestBase {
 
     @Test
     void findFieldPathsByContextAndMetadata_Accuracy() {
-        // Setup: Create specific test data using builders
+        // Setup: Create specific test data using builders - mixed case inputs
         List<CatalogObservationDTO> observations = List.of(
             TestDataBuilder.depositsObservation()
-                .withFieldPath("/Ceremony/Account/Amount")
+                .withFieldPath("/Ceremony/Account/Amount")  // Mixed case
                 .build(),
             TestDataBuilder.depositsObservation()
-                .withFieldPath("/Ceremony/Account/FeeCode")
+                .withFieldPath("/Ceremony/Account/FeeCode")  // Mixed case
                 .build(),
             TestDataBuilder.depositsObservation()
                 .withProductCode("SAV")
                 .withProductSubCode("REG")
-                .withFieldPath("/Ceremony/Account/InterestRate")
+                .withFieldPath("/Ceremony/Account/InterestRate")  // Mixed case
                 .build()
         );
         catalogService.merge("deposits", observations);
@@ -127,14 +127,14 @@ class QueryPerformanceTest extends PerformanceTestBase {
             "productsubcode", "4s",
             "action", "fulfillment"
         );
-        
+
         List<String> fieldPaths = catalogRepository.findFieldPathsByContextAndMetadata("deposits", targetMetadata);
 
-        // Assertions
+        // Assertions - expect lowercase (API normalizes on input)
         assertThat(fieldPaths).hasSize(2);
         assertThat(fieldPaths).containsExactlyInAnyOrder(
-            "/Ceremony/Account/Amount",
-            "/Ceremony/Account/FeeCode"
+            "/ceremony/account/amount",
+            "/ceremony/account/feecode"
         );
     }
 
@@ -171,7 +171,7 @@ class QueryPerformanceTest extends PerformanceTestBase {
         for (int i = 0; i < count; i++) {
             observations.add(
                 TestDataBuilder.depositsObservation()
-                    .withFieldPath(String.format("/Ceremony/Field%d", i))
+                    .withFieldPath(String.format("/ceremony/field%d", i))
                     .build()
             );
         }
@@ -191,7 +191,7 @@ class QueryPerformanceTest extends PerformanceTestBase {
                     .withProductCode(productCodes[i % productCodes.length])
                     .withProductSubCode(productSubCodes[i % productSubCodes.length])
                     .withAction(actions[i % actions.length])
-                    .withFieldPath(String.format("/Ceremony/Field%d", i))
+                    .withFieldPath(String.format("/ceremony/field%d", i))
                     .build()
             );
         }

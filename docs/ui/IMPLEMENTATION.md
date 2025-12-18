@@ -35,18 +35,20 @@ ui/
 │   │   │   ├── ContextCard.tsx
 │   │   │   ├── ContextForm.tsx
 │   │   │   └── ContextDeleteDialog.tsx
-│   │   ├── fields/                # Field search components
-│   │   │   ├── SearchForm.tsx       # Container managing Mode A/B state
-│   │   │   ├── QuickFindInput.tsx   # Smart input (suggests when starts with /)
-│   │   │   ├── ContextSelector.tsx
-│   │   │   ├── MetadataFilters.tsx  # Dynamic filters with autocomplete
-│   │   │   ├── ResultsFilter.tsx    # Client-side filter (path + metadata)
-│   │   │   ├── FieldResults.tsx     # Wrapper with view toggle (Table/Tree)
-│   │   │   ├── FieldTable.tsx       # Dynamic columns, sortable, keyboard nav
-│   │   │   ├── FieldRow.tsx         # Clickable with highlight state + copy btn
-│   │   │   ├── FieldDetailPanel.tsx # Slide-out detail panel
-│   │   │   ├── HighlightText.tsx    # Highlights search matches in text
-│   │   │   └── ExportButton.tsx     # CSV/JSON export (all or filtered)
+│   │   ├── search/                # Field search components
+│   │   │   ├── QuickSearchForm.tsx   # Simple global search input
+│   │   │   ├── AdvancedSearchForm.tsx # Context selector + metadata filters
+│   │   │   ├── ContextSelector.tsx    # Single-select context dropdown
+│   │   │   ├── MetadataFilters.tsx   # Dynamic filters with autocomplete
+│   │   │   ├── FieldPathInput.tsx    # Input with autocomplete (when starts with /)
+│   │   │   ├── ResultsFilter.tsx     # Client-side filter (path, metadata, context)
+│   │   │   ├── TruncationWarning.tsx # Warning banner when results exceed 250
+│   │   │   ├── FieldResults.tsx      # Wrapper with view toggle (Table/Tree)
+│   │   │   ├── FieldTable.tsx        # Dynamic columns, sortable, keyboard nav
+│   │   │   ├── FieldRow.tsx          # Clickable with highlight state + copy btn
+│   │   │   ├── FieldDetailPanel.tsx  # Slide-out detail panel
+│   │   │   ├── HighlightText.tsx     # Highlights search matches in text
+│   │   │   └── ExportButton.tsx      # CSV/JSON export (all or filtered)
 │   │   └── upload/                # XML upload components
 │   │       ├── FileDropZone.tsx   # Drag-and-drop multi-file zone
 │   │       ├── MetadataForm.tsx   # Dynamic metadata inputs with autocomplete
@@ -66,7 +68,8 @@ ui/
 │   ├── types/
 │   │   └── index.ts               # TypeScript interfaces
 │   ├── pages/
-│   │   ├── FieldSearchPage.tsx    # Home page
+│   │   ├── QuickSearchPage.tsx    # Home page - global OR search
+│   │   ├── AdvancedSearchPage.tsx # Filter-based AND search
 │   │   ├── ContextsPage.tsx       # Context management
 │   │   └── UploadPage.tsx         # XML upload page
 │   ├── App.tsx
@@ -88,52 +91,56 @@ ui/
 
 | Path | Page | Description |
 |------|------|-------------|
-| `/` | FieldSearchPage | Search form + results table (home) |
+| `/` | QuickSearchPage | Quick Search - global OR-based search (home) |
+| `/search` | AdvancedSearchPage | Advanced Search - filter-based AND search |
 | `/contexts` | ContextsPage | Context list with CRUD |
 | `/upload` | UploadPage | XML file upload with parsing |
 
 ---
 
-## Search Page Design (Two Modes)
+## Search Design (Two Separate Views)
 
-The search page has two distinct modes based on whether a context is selected:
+The UI provides two distinct search views optimized for different use cases:
 
-### Mode A: Quick Find (No Context Selected)
+### Quick Search View (Home Page: `/`)
+
+Simple global search across all fields, metadata, and contexts using OR logic.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Quick Find: [/Ceremony/Acc_____] [🔍]                      │
-│              ┌─────────────────────────┐                    │
-│              │ /Ceremony/Account       │  ← suggestions     │
-│              │ /Ceremony/Account/Fee   │    (only when      │
-│              │ /Ceremony/AcctNumber    │    starts with /)  │
-│              └─────────────────────────┘                    │
+│  🔍 Search fields, metadata, or contexts...                 │
+│  [Amount_______________________________] [Search]           │
 │                                                             │
-│  Select a context for metadata filtering:                   │
-│  Context: [Select...▼]                                      │
+│  Need more precise filtering? [Advanced Search →]           │
 └─────────────────────────────────────────────────────────────┘
 
-Results (23 matches across 5 contexts):
-┌────────────────────────────────┬───────────┬─────┬─────┬───────┐
-│ Field Path                     │ Context   │ Min │ Max │ Null? │
-└────────────────────────────────┴───────────┴─────┴─────┴───────┘
+Results (23 matches):
+┌────────────────────────────────┬───────────┬─────┬─────┬───────┬───────┐
+│ Field Path                     │ Context   │ Min │ Max │ Null? │Empty? │
+└────────────────────────────────┴───────────┴─────┴─────┴───────┴───────┘
 ```
 
 **Behavior:**
-- Input starts with `/` → Show autocomplete suggestions (cross-context)
-- Input is plain text (e.g., "LoanAmount") → Contains search, no suggestions
-- Results table shows minimal columns (no metadata - it varies by context)
-- Click row → Side panel shows full details including metadata
+- Single search input with placeholder "Search fields, metadata, or contexts..."
+- Uses `?q=` parameter for global OR search
+- Searches across: fieldPath, all metadata values, contextId
+- Example: `?q=Amount` matches fields where fieldPath contains "Amount" OR any metadata value contains "Amount" OR contextId contains "Amount"
+- Results always show context column (contextId)
+- No metadata columns (they vary by context)
+- No autocomplete suggestions (simple contains search)
+- Link to Advanced Search for more precise filtering
+- Click row → Side panel shows full details including context displayName and metadata
 
-### Mode B: Context Search (Context Selected)
+### Advanced Search View (`/search`)
+
+Filter-based search with AND logic for precise queries.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Quick Find: [____________]                                 │
+│  Context: [Select context...        ▼]                      │
+│           ↑ single-select dropdown (no selection = all)     │
 │                                                             │
-│  Context: [deposits ▼]                                      │
-│                                                             │
-│  ┌─ Metadata Filters ────────────────────────────────────┐  │
+│  ┌─ Metadata Filters (shown when context selected) ──────┐  │
 │  │ productCode: [DDA____▼]  productSubCode: [____]       │  │
 │  │ action: [Fulfillment▼]                                │  │
 │  │              ↑ autocomplete (scoped to context)       │  │
@@ -144,22 +151,39 @@ Results (23 matches across 5 contexts):
 │                      selected metadata filters)             │
 └─────────────────────────────────────────────────────────────┘
 
-Results (156 matches in deposits):
-┌─────────────────────────────┬─────────────┬────────────┬─────┬─────┬───────┬───────┐
-│ Field Path ↕                │ productCode↕│ action   ↕ │ Min↕│ Max↕│ Null?↕│Empty?↕│
-└─────────────────────────────┴─────────────┴────────────┴─────┴─────┴───────┴───────┘
+Results (156 matches):
+┌─────────────────────────────┬───────────┬─────────────┬─────┬─────┬───────┬───────┐
+│ Field Path ↕                │ Context ↕ │ productCode↕│ Min↕│ Max↕│ Null?↕│Empty?↕│
+└─────────────────────────────┴───────────┴─────────────┴─────┴─────┴───────┴───────┘
 ```
 
 **Behavior:**
-- Selecting context reveals metadata filter fields (required + optional for that context)
-- All filters have autocomplete (scoped to context + other selected filters)
-- Results table shows: metadata columns + all 4 tracked properties
-- All columns sortable (click header)
+- Context single-select dropdown (no selection = search all contexts)
+- When context selected: show metadata filter inputs for that context
+- When no context selected: hide metadata filters, show results from all contexts
+- All filters combine with AND logic
+- FieldPath filter supports case-insensitive regex matching
+- FieldPath autocomplete when input starts with `/` (scoped to context + metadata if selected)
+- Metadata value autocomplete (scoped to selected context)
+- Results table always shows context column
+- When context selected: also show metadata columns for that context
 - Click row → Side panel shows full details
 
 ### Results Interaction Features
 
-**Single Page Results (POC Simplification)** - The UI requests `size=250` for all searches. The backend supports up to 1000 per page, but 250 is chosen for UI simplicity. If more results exist, UI displays "Showing 250 of X results - refine your search for more specific results." No pagination controls or fetching additional pages. This keeps the POC simple while still being useful.
+**Single Page Results (POC Simplification)** - The UI requests `size=250` for all searches (backend max is also 250). No pagination controls. This keeps the POC simple while still being useful.
+
+**Truncation Warning Banner** - When results are truncated (total > 250), display a prominent warning banner above the results table:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ ⚠️  Showing 250 of 1,847 results.                           │
+│     Please refine your search to see all matches.           │
+└─────────────────────────────────────────────────────────────┘
+```
+- Use warning colors (yellow/amber background) to ensure visibility
+- Display total count from API response (`page.totalElements`)
+- Position above results table, below search form
+- Should be impossible to miss - this prevents user frustration in Phase 1
 
 **Keyboard Navigation:**
 - Click row → highlight it, show detail panel on right
@@ -364,30 +388,35 @@ The "shareable searches" feature (Phase 3, step 11) encodes search parameters in
 5. Set up React Router with pages
 6. Configure React Query provider
 
-### Phase 3: Field Search Feature (Two-Mode Design)
-1. Build `useContexts` hook (fetch contexts for dropdown)
-2. Build `useFieldSearch` hook with debounce (single page, max 250 results)
-3. Build `useSuggest` hook for autocomplete (handles both cross-context and scoped)
-4. Build search components:
-   - `QuickFindInput` - smart input that shows suggestions only when starts with `/`
-   - `ContextSelector` - dropdown of contexts (selecting triggers Mode B)
-   - `MetadataFilters` - dynamic inputs based on selected context with autocomplete
-   - `SearchForm` - container managing Mode A vs Mode B state
-   - `ResultsFilter` - client-side filter inputs (path filter + metadata filter)
-   - `FieldTable` with dynamic columns, sortable headers
-   - `FieldRow` - clickable row with highlight state, text highlighting for matches
-   - `FieldDetailPanel` - slide-out panel showing full field details
-   - `HighlightText` - utility component to highlight search matches in fieldPath
-5. Add keyboard navigation (↑/↓ arrows to navigate rows)
-6. Add client-side filtering:
-   - Text filters (path, metadata)
-   - Statistics checkboxes (has null, has empty, optional, repeating)
-   - Clear Filters button
-7. Add column sorting (click header: asc → desc → original)
-8. Add copy fieldPath button (row icon + detail panel)
-9. Add export functionality (CSV/JSON, all/filtered)
-10. Wrap results in `FieldResults` with view toggle placeholder (Table active, Tree disabled)
-11. Wire up URL state for shareable searches
+### Phase 3: Field Search Feature (Two-View Design)
+
+**Quick Search Page (Home):**
+1. Build `QuickSearchPage` - simple global search form + results
+2. Build `QuickSearchForm` - single input with "Search fields, metadata, or contexts..." placeholder
+3. Integrate with `useFieldSearch` hook using `q=` parameter for OR-based search
+4. Link to Advanced Search page
+
+**Advanced Search Page:**
+5. Build `AdvancedSearchPage` - filter-based search form + results
+6. Build `AdvancedSearchForm` container component
+7. Build `ContextSelector` - single-select dropdown (no selection = all contexts)
+8. Build `MetadataFilters` - dynamic inputs based on selected context with autocomplete
+9. Build `FieldPathInput` - input with autocomplete when starts with `/`
+10. Integrate with `useFieldSearch` hook using AND-based filter parameters
+
+**Shared Components:**
+11. Build `TruncationWarning` - prominent warning banner when results exceed page size
+12. Build `FieldTable` with dynamic columns, sortable headers
+13. Build `FieldRow` - clickable row with highlight state, text highlighting for matches
+14. Build `FieldDetailPanel` - slide-out panel showing full field details (including context displayName)
+15. Build `HighlightText` - utility component to highlight search matches in fieldPath
+16. Build `ResultsFilter` - client-side filter inputs (path, metadata, context multi-select)
+17. Add keyboard navigation (↑/↓ arrows to navigate rows)
+18. Add client-side filtering (text filters, statistics checkboxes, Clear Filters button)
+19. Add column sorting (click header: asc → desc → original)
+20. Add copy fieldPath button (row icon + detail panel)
+21. Add export functionality (CSV/JSON, all/filtered)
+22. Wrap results in `FieldResults` with view toggle placeholder (Table active, Tree disabled)
 
 ### Phase 4: Context Management
 1. Build `useContextMutations` hook (create/update/delete)
@@ -401,13 +430,17 @@ The "shareable searches" feature (Phase 3, step 11) encodes search parameters in
 5. Style inactive contexts with muted/greyed appearance
 
 ### Phase 5: XML Upload Feature
-1. Create `xmlParser.ts` service (match C# SDK logic in `CeremonyFieldCatalogSdk.cs`):
+1. Create `xmlParser.ts` service:
    - Recursive XML tree traversal using DOMParser
    - Strip namespaces (use localName only)
    - Extract field paths: `/Root/Parent/Child` and `/Root/@attr`
-   - Track statistics: count, hasNull (`value === null`), hasEmpty (`value is whitespace-only or empty`)
+   - Track statistics:
+     - `count`: number of occurrences
+     - `hasNull`: true if element has `xsi:nil="true"` attribute (fix SDK bug)
+     - `hasEmpty`: true if element content is whitespace-only or empty
    - Only count leaf elements (elements without children)
    - Return array of `CatalogObservation` objects
+   - **Note:** Existing SDKs don't implement xsi:nil detection - this is correct behavior
 2. Build `useXmlUpload` hook (parse files, batch submit to API)
 3. Build upload components:
    - `FileDropZone` - drag-and-drop with multi-file support
@@ -415,7 +448,11 @@ The "shareable searches" feature (Phase 3, step 11) encodes search parameters in
    - `UploadProgress` - progress bar per file
    - `UploadResults` - summary (X observations from Y files)
 4. Create `UploadPage` assembling all components
-5. Write tests for `xmlParser.ts` (critical - must match Python behavior)
+5. Write tests for `xmlParser.ts`:
+   - Test xsi:nil="true" detection sets hasNull=true
+   - Test empty elements set hasEmpty=true
+   - Test namespace stripping
+   - Use `jsdom` environment in Vitest config for DOMParser support
 
 ### Phase 6: Integrate Autocomplete
 The `/catalog/suggest` endpoint is already implemented in the backend. This phase integrates it:
@@ -463,6 +500,24 @@ The `fieldPathContains` parameter now accepts both:
 - Plain text for contains searches (e.g., `Amount`, `FeeCode`)
 
 See `docs/api/API_SPECIFICATION.md` for full API documentation.
+
+---
+
+## Backend Changes Required
+
+### Global Search Parameter (`q=`) - TODO
+Add support for `?q=` parameter to `/catalog/fields` endpoint for Quick Search:
+
+```java
+// GET /catalog/fields?q=Amount
+// Searches: fieldPath OR any metadata value OR contextId (OR logic)
+@RequestParam(required = false) String q
+```
+
+**Implementation notes:**
+- When `q` is present, search uses OR logic across all searchable fields
+- When traditional filters are present (contextId, metadata.*, fieldPathContains), use AND logic
+- The two modes should be mutually exclusive (use q OR use filters, not both)
 
 ---
 
@@ -599,6 +654,7 @@ This section maps implementation components to requirements defined in `REQUIREM
 | `MetadataFilters.tsx` | REQ-2.2 (dynamic metadata), REQ-2.6 (autocomplete) |
 | `QuickFindInput.tsx` | REQ-2.3 (path search), REQ-2.5 (autocomplete) |
 | **Results Components** | |
+| `TruncationWarning.tsx` | REQ-3.2 (truncation warning banner) |
 | `FieldTable.tsx` | REQ-3.1 (sortable table), REQ-3.5 (keyboard nav) |
 | `FieldRow.tsx` | REQ-3.1 (display), REQ-3.7 (highlight matches) |
 | `FieldDetailPanel.tsx` | REQ-3.4 (detail panel with copy) |

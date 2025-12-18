@@ -30,25 +30,21 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
     @PostConstruct
     private void createIndexes() {
         var indexOps = mongoTemplate.indexOps(CatalogEntry.class);
-        
+
         // Primary index for context-based queries
         indexOps.ensureIndex(new Index()
-            .on("contextId", Sort.Direction.ASC)
-            .on("fieldPath", Sort.Direction.ASC));
-            
+            .on("contextid", Sort.Direction.ASC)
+            .on("fieldpath", Sort.Direction.ASC));
+
         // Index for field path pattern searches
         indexOps.ensureIndex(new Index()
-            .on("fieldPath", Sort.Direction.ASC));
-            
+            .on("fieldpath", Sort.Direction.ASC));
+
         // Optimized compound index for findFieldPathsByContextAndMetadata queries
-        // This supports efficient queries on contextId + metadata combinations
         indexOps.ensureIndex(new Index()
-            .on("contextId", Sort.Direction.ASC)
+            .on("contextid", Sort.Direction.ASC)
             .on("metadata", Sort.Direction.ASC)
             .named("idx_context_metadata_fieldpath_optimized"));
-            
-        // Text index for field path search if needed (commented out as text indexes require special setup)
-        // indexOps.ensureIndex(new Index().on("fieldPath", "text"));
     }
 
     @Override
@@ -59,11 +55,11 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
     @Override
     public Page<CatalogEntry> searchByCriteria(CatalogSearchCriteria criteriaDto, Pageable pageable) {
         List<Criteria> filters = new ArrayList<>();
-        
+
         // Filter by context if specified
         Optional.ofNullable(criteriaDto.contextId())
-            .ifPresent(v -> filters.add(Criteria.where("contextId").is(v)));
-        
+            .ifPresent(v -> filters.add(Criteria.where("contextid").is(v)));
+
         // Filter by metadata fields if specified
         Optional.ofNullable(criteriaDto.metadata())
             .ifPresent(metadata -> {
@@ -75,24 +71,24 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
                     }
                 }
             });
-        
+
         // Filter by field path pattern if specified
         Optional.ofNullable(criteriaDto.fieldPathContains())
-            .ifPresent(v -> filters.add(Criteria.where("fieldPath").regex(v, "i")));
-        
+            .ifPresent(v -> filters.add(Criteria.where("fieldpath").regex(v, "i")));
+
         Query query = new Query();
         if (!filters.isEmpty()) {
             query.addCriteria(new Criteria().andOperator(filters.toArray(new Criteria[0])));
         }
-        
+
         // Apply sorting by field path by default
         if (pageable.getSort().isUnsorted()) {
-            query.with(Sort.by(Sort.Direction.ASC, "fieldPath"));
+            query.with(Sort.by(Sort.Direction.ASC, "fieldpath"));
         }
-        
+
         long total = mongoTemplate.count(query, CatalogEntry.class);
         List<CatalogEntry> entries = mongoTemplate.find(query.with(pageable), CatalogEntry.class);
-        
+
         return new PageImpl<>(entries, pageable, total);
     }
 
@@ -102,7 +98,7 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
 
         // Add context filter
         if (contextId != null && !contextId.trim().isEmpty()) {
-            query.addCriteria(Criteria.where("contextId").is(contextId));
+            query.addCriteria(Criteria.where("contextid").is(contextId));
         }
 
         // Add metadata criteria dynamically
@@ -116,8 +112,8 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
             }
         }
 
-        // Project only fieldPath field for minimal data transfer
-        query.fields().include("fieldPath");
+        // Project only fieldpath field for minimal data transfer
+        query.fields().include("fieldpath");
 
         // Execute query and extract distinct field path values
         return mongoTemplate.find(query, CatalogEntry.class)
@@ -134,7 +130,7 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
 
         // Add context filter if provided
         if (contextId != null && !contextId.trim().isEmpty()) {
-            query.addCriteria(Criteria.where("contextId").is(contextId));
+            query.addCriteria(Criteria.where("contextid").is(contextId));
         }
 
         // Add metadata filters if provided
@@ -148,21 +144,24 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
             }
         }
 
+        // Normalize field name to lowercase for MongoDB query
+        String normalizedField = field.toLowerCase();
+
         // Add prefix filter - case-insensitive regex matching
         if (prefix != null && !prefix.trim().isEmpty()) {
             // Escape regex special characters in prefix
             String escapedPrefix = prefix.replaceAll("([\\\\\\[\\](){}.*+?^$|])", "\\\\$1");
-            query.addCriteria(Criteria.where(field).regex("^" + escapedPrefix, "i"));
+            query.addCriteria(Criteria.where(normalizedField).regex("^" + escapedPrefix, "i"));
         }
 
         // Project only the field we need
-        query.fields().include(field);
+        query.fields().include(normalizedField);
 
         // Execute query and extract distinct values
         List<CatalogEntry> results = mongoTemplate.find(query, CatalogEntry.class);
 
         return results.stream()
-            .map(entry -> extractFieldValue(entry, field))
+            .map(entry -> extractFieldValue(entry, normalizedField))
             .filter(value -> value != null && !value.trim().isEmpty())
             .distinct()
             .sorted()
@@ -171,9 +170,10 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
     }
 
     private String extractFieldValue(CatalogEntry entry, String field) {
-        if ("fieldPath".equals(field)) {
+        if ("fieldpath".equals(field)) {
             return entry.getFieldPath();
         } else if (field.startsWith("metadata.")) {
+            // All keys are lowercase
             String metadataKey = field.substring("metadata.".length());
             Map<String, String> metadata = entry.getMetadata();
             return metadata != null ? metadata.get(metadataKey) : null;
@@ -187,7 +187,7 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
             return 0;
         }
         Query query = new Query();
-        query.addCriteria(Criteria.where("contextId").is(contextId));
+        query.addCriteria(Criteria.where("contextid").is(contextId));
         return mongoTemplate.count(query, CatalogEntry.class);
     }
 }

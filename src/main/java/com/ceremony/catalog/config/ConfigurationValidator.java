@@ -73,23 +73,19 @@ public class ConfigurationValidator implements CommandLineRunner {
 
     private void validateSearchConfiguration() {
         CatalogProperties.Search search = catalogProperties.getSearch();
-        
-        if (search.getMaxResults() < 1 || search.getMaxResults() > 100000) {
-            throw new IllegalStateException("Search max results must be between 1 and 100000");
-        }
-        
+
         if (search.getDefaultPageSize() < 1 || search.getDefaultPageSize() > search.getMaxPageSize()) {
             throw new IllegalStateException("Search default page size must be between 1 and max page size");
         }
-        
+
         if (search.getMaxPageSize() < 1 || search.getMaxPageSize() > 5000) {
             throw new IllegalStateException("Search max page size must be between 1 and 5000");
         }
-        
+
         if (search.getTimeout() == null || search.getTimeout().isNegative() || search.getTimeout().isZero()) {
             throw new IllegalStateException("Search timeout must be positive");
         }
-        
+
         log.debug("Search configuration validated successfully");
     }
 
@@ -141,8 +137,8 @@ public class ConfigurationValidator implements CommandLineRunner {
         log.info("  Active Profiles: {}", activeProfiles);
         log.info("  Database: {}", maskSensitiveInfo(catalogProperties.getDatabase().getMongoUri()));
         log.info("  Batch Max Size: {}", catalogProperties.getBatch().getMaxSize());
-        log.info("  Search Max Results: {}", catalogProperties.getSearch().getMaxResults());
         log.info("  Search Default Page Size: {}", catalogProperties.getSearch().getDefaultPageSize());
+        log.info("  Search Max Page Size: {}", catalogProperties.getSearch().getMaxPageSize());
         log.info("  Cache Enabled: {}", catalogProperties.getCache().isEnabled());
         
         if (catalogProperties.getCache().isEnabled()) {

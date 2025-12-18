@@ -197,20 +197,27 @@ public class CatalogService {
         if (field == null || field.trim().isEmpty()) {
             throw new IllegalArgumentException("Field parameter is required");
         }
-        if (!field.equals("fieldPath") && !field.startsWith("metadata.")) {
+
+        // Normalize to lowercase - all MongoDB field names are lowercase
+        String normalizedField = field.toLowerCase();
+
+        if (!normalizedField.equals("fieldpath") && !normalizedField.startsWith("metadata.")) {
             throw new IllegalArgumentException("Field must be 'fieldPath' or 'metadata.{name}'");
         }
 
-        // Sanitize inputs
+        // Sanitize inputs - InputValidationService handles lowercasing
         String cleanedContextId = contextId != null ?
             validationService.validateAndCleanContextId(contextId) : null;
         Map<String, String> cleanedMetadata = metadata != null ?
             validationService.validateAndCleanMetadata(metadata) : null;
 
+        // Lowercase prefix for case-insensitive matching
+        String cleanedPrefix = prefix != null ? prefix.toLowerCase() : null;
+
         // Ensure limit is reasonable
         int safeLimit = Math.max(1, Math.min(limit, 100));
 
-        return repository.suggestValues(field, prefix, cleanedContextId, cleanedMetadata, safeLimit);
+        return repository.suggestValues(normalizedField, cleanedPrefix, cleanedContextId, cleanedMetadata, safeLimit);
     }
 
     public long countFieldsByContextId(String contextId) {
@@ -233,53 +240,39 @@ public class CatalogService {
     }
     
     private Map<String, String> filterToRequiredMetadata(Context context, Map<String, String> metadata) {
+        // Metadata is already lowercase from InputValidationService
         Map<String, String> filteredMetadata = new TreeMap<>();
-        
-        // Create case-insensitive lookup map
-        Map<String, String> metadataLower = metadata.entrySet().stream()
-            .collect(HashMap::new, 
-                (map, entry) -> map.put(entry.getKey().toLowerCase(), entry.getValue().toLowerCase()),
-                HashMap::putAll);
-        
         for (String requiredField : context.getRequiredMetadata()) {
-            String value = metadataLower.get(requiredField.toLowerCase());
+            String value = metadata.get(requiredField);
             if (value != null) {
-                // Store with normalized lowercase key and value
-                filteredMetadata.put(requiredField.toLowerCase(), value);
+                filteredMetadata.put(requiredField, value);
             }
         }
         return filteredMetadata;
     }
-    
+
     private Map<String, String> filterToAllowedMetadata(Context context, Map<String, String> metadata) {
+        // Metadata is already lowercase from InputValidationService
         Map<String, String> filteredMetadata = new TreeMap<>();
-        
-        // Create case-insensitive lookup map
-        Map<String, String> metadataLower = metadata.entrySet().stream()
-            .collect(HashMap::new, 
-                (map, entry) -> map.put(entry.getKey().toLowerCase(), entry.getValue().toLowerCase()),
-                HashMap::putAll);
-        
+
         // Include required metadata
         for (String requiredField : context.getRequiredMetadata()) {
-            String value = metadataLower.get(requiredField.toLowerCase());
+            String value = metadata.get(requiredField);
             if (value != null) {
-                // Store with normalized lowercase key and value
-                filteredMetadata.put(requiredField.toLowerCase(), value);
+                filteredMetadata.put(requiredField, value);
             }
         }
-        
+
         // Include optional metadata if present
         if (context.getOptionalMetadata() != null) {
             for (String optionalField : context.getOptionalMetadata()) {
-                String value = metadataLower.get(optionalField.toLowerCase());
+                String value = metadata.get(optionalField);
                 if (value != null) {
-                    // Store with normalized lowercase key and value
-                    filteredMetadata.put(optionalField.toLowerCase(), value);
+                    filteredMetadata.put(optionalField, value);
                 }
             }
         }
-        
+
         return filteredMetadata;
     }
 }
