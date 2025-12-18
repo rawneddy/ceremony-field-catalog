@@ -9,7 +9,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
 using System.Xml.Linq;
 
 namespace Ceremony.Catalog.Sdk
@@ -164,21 +163,6 @@ namespace Ceremony.Catalog.Sdk
             Dictionary<string, string> metadata)
         {
             EnqueueWork(() => ExtractObservationsFromString(xmlData, metadata), contextId);
-        }
-
-        /// <summary>
-        /// Submits XML field observations from XDocument. Fire-and-forget - returns immediately.
-        /// Never throws exceptions. Processing happens in background worker thread.
-        /// </summary>
-        /// <param name="xmlDocument">XDocument containing the XML data (null-safe)</param>
-        /// <param name="contextId">Context identifier for the observations</param>
-        /// <param name="metadata">Metadata key-value pairs for the context</param>
-        public static void SubmitObservations(
-            XDocument xmlDocument,
-            string contextId,
-            Dictionary<string, string> metadata)
-        {
-            EnqueueWork(() => ExtractObservationsFromXDocument(xmlDocument, metadata), contextId);
         }
 
         /// <summary>
@@ -345,9 +329,9 @@ namespace Ceremony.Catalog.Sdk
             try
             {
                 using (var stream = new MemoryStream(xmlData))
-                using (var reader = XmlReader.Create(stream, CreateXmlReaderSettings()))
                 {
-                    return ExtractObservationsFromReader(reader, metadata ?? new Dictionary<string, string>());
+                    var xdoc = XDocument.Load(stream);
+                    return ExtractObservationsFromElement(xdoc.Root, metadata ?? new Dictionary<string, string>());
                 }
             }
             catch
@@ -366,29 +350,8 @@ namespace Ceremony.Catalog.Sdk
 
             try
             {
-                using (var stringReader = new StringReader(xmlData))
-                using (var reader = XmlReader.Create(stringReader, CreateXmlReaderSettings()))
-                {
-                    return ExtractObservationsFromReader(reader, metadata ?? new Dictionary<string, string>());
-                }
-            }
-            catch
-            {
-                return new List<CatalogObservationDto>();
-            }
-        }
-
-        /// <summary>
-        /// Extracts observations from XDocument. Returns empty list on any error.
-        /// </summary>
-        private static List<CatalogObservationDto> ExtractObservationsFromXDocument(XDocument xmlDocument, Dictionary<string, string> metadata)
-        {
-            if (xmlDocument == null || xmlDocument.Root == null)
-                return new List<CatalogObservationDto>();
-
-            try
-            {
-                return ExtractObservationsFromElement(xmlDocument.Root, metadata ?? new Dictionary<string, string>());
+                var xdoc = XDocument.Parse(xmlData);
+                return ExtractObservationsFromElement(xdoc.Root, metadata ?? new Dictionary<string, string>());
             }
             catch
             {
@@ -412,85 +375,6 @@ namespace Ceremony.Catalog.Sdk
             {
                 return new List<CatalogObservationDto>();
             }
-        }
-
-        /// <summary>
-        /// Extracts field observations from XML using streaming XmlReader.
-        /// </summary>
-        private static List<CatalogObservationDto> ExtractObservationsFromReader(XmlReader reader, Dictionary<string, string> metadata)
-        {
-            var fieldStats = new Dictionary<string, FieldStatistics>();
-            var pathStack = new Stack<string>();
-
-            while (reader.Read())
-            {
-                switch (reader.NodeType)
-                {
-                    case XmlNodeType.Element:
-                        var elementName = reader.LocalName;
-                        pathStack.Push(elementName);
-                        var currentPath = BuildFieldPathFromStack(pathStack);
-                        ProcessElementWithReader(reader, currentPath, fieldStats, metadata);
-
-                        if (reader.IsEmptyElement)
-                        {
-                            pathStack.Pop();
-                        }
-                        break;
-
-                    case XmlNodeType.EndElement:
-                        if (pathStack.Count > 0)
-                        {
-                            pathStack.Pop();
-                        }
-                        break;
-
-                    case XmlNodeType.Text:
-                    case XmlNodeType.CDATA:
-                        if (pathStack.Count > 0)
-                        {
-                            var textPath = BuildFieldPathFromStack(pathStack);
-                            var textValue = reader.Value;
-                            UpdateFieldStatistics(fieldStats, textPath, metadata, textValue);
-                        }
-                        break;
-                }
-            }
-
-            return ConvertStatisticsToObservations(fieldStats);
-        }
-
-        /// <summary>
-        /// Processes an XML element and its attributes.
-        /// </summary>
-        private static void ProcessElementWithReader(XmlReader reader, string fieldPath, Dictionary<string, FieldStatistics> fieldStats, Dictionary<string, string> metadata)
-        {
-            if (!fieldStats.ContainsKey(fieldPath))
-            {
-                fieldStats[fieldPath] = new FieldStatistics { FieldPath = fieldPath, Metadata = new Dictionary<string, string>(metadata) };
-            }
-            fieldStats[fieldPath].TotalOccurrences++;
-
-            if (reader.HasAttributes)
-            {
-                while (reader.MoveToNextAttribute())
-                {
-                    var attributePath = fieldPath + "/@" + reader.LocalName;
-                    var attributeValue = reader.Value;
-                    UpdateFieldStatistics(fieldStats, attributePath, metadata, attributeValue);
-                }
-                reader.MoveToElement();
-            }
-        }
-
-        /// <summary>
-        /// Builds field path from stack.
-        /// </summary>
-        private static string BuildFieldPathFromStack(Stack<string> pathStack)
-        {
-            if (pathStack.Count == 0) return "/";
-            var pathElements = pathStack.ToArray().Reverse();
-            return "/" + string.Join("/", pathElements);
         }
 
         /// <summary>
@@ -588,21 +472,6 @@ namespace Ceremony.Catalog.Sdk
         #endregion
 
         #region Helper Methods
-
-        /// <summary>
-        /// Creates XmlReader settings.
-        /// </summary>
-        private static XmlReaderSettings CreateXmlReaderSettings()
-        {
-            return new XmlReaderSettings
-            {
-                IgnoreComments = true,
-                IgnoreProcessingInstructions = true,
-                IgnoreWhitespace = true,
-                DtdProcessing = DtdProcessing.Ignore,
-                XmlResolver = null
-            };
-        }
 
         /// <summary>
         /// Safely invokes error callback without throwing.
