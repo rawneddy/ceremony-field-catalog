@@ -6,9 +6,10 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
+    command: ["mongod", "--quiet", "--logpath", "/dev/null"]
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
+      test: mongosh --quiet --eval "db.adminCommand('ping')" || exit 1
+      interval: 30s
       timeout: 5s
       retries: 5
       start_period: 10s
