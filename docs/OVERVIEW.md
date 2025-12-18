@@ -405,7 +405,7 @@ Day 3: Process 10 ceremonies for documentCode=STMT001
 | Component | Technology |
 |-----------|------------|
 | Framework | Spring Boot 3.2.5 |
-| Language | Java 17 |
+| Language | Java 21 |
 | Database | MongoDB |
 | API Docs | OpenAPI/Swagger (springdoc) |
 | Testing | JUnit 5 + Testcontainers (real MongoDB in tests) |
@@ -423,7 +423,7 @@ Day 3: Process 10 ceremonies for documentCode=STMT001
 | `Context.java` | Metadata schema definition |
 | `CatalogController.java` | REST endpoints for observations & search |
 | `ContextController.java` | REST endpoints for context management |
-| `CatalogSmokeTests.http` | Example API calls for manual testing |
+| `tests/CatalogSmokeTests.http` | Example API calls for manual testing |
 | `sdks/dotnet/` | .NET Framework 4.8 client SDK for legacy system integration |
 
 ---

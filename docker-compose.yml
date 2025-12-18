@@ -1,19 +1,4 @@
 services:
-  mongodb:
-    image: mongo:7
-    container_name: ceremony-mongo
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongo-data:/data/db
-    command: ["mongod", "--quiet", "--logpath", "/dev/null"]
-    healthcheck:
-      test: mongosh --quiet --eval "db.adminCommand('ping')" || exit 1
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
   app:
     build: .
     container_name: ceremony-catalog-api
@@ -25,5 +10,20 @@ services:
       mongodb:
         condition: service_healthy
 
+  mongodb:
+    image: mongo:7
+    container_name: ceremony-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    command: ["mongod", "--quiet", "--logpath", "/dev/null"]
+
 volumes:
-  mongo-data:
+  mongodb-data:

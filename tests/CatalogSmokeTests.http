@@ -66,8 +66,7 @@ Content-Type: application/json
     "productCode": "DDA",
     "productSubCode": "4S"
   },
-  "xpath": "/Ceremony/Accounts/Account/FeeCode/Amount",
-  "dataType": "data",
+  "fieldPath": "/Ceremony/Accounts/Account/FeeCode/Amount",
   "count": 1,
   "hasNull": false,
   "hasEmpty": false
@@ -77,8 +76,7 @@ Content-Type: application/json
     "productCode": "DDA",
     "productSubCode": "4S"
   },
-  "xpath": "/Ceremony/Accounts/Account/WithholdingCode",
-  "dataType": "data",
+  "fieldPath": "/Ceremony/Accounts/Account/WithholdingCode",
   "count": 1,
   "hasNull": true,
   "hasEmpty": false
@@ -92,8 +90,7 @@ Content-Type: application/json
   "metadata": {
     "loanProductCode": "HEQF"
   },
-  "xpath": "/BMIC/Application/FICO",
-  "dataType": "data",
+  "fieldPath": "/BMIC/Application/FICO",
   "count": 1,
   "hasNull": false,
   "hasEmpty": false
@@ -108,8 +105,7 @@ Content-Type: application/json
     "formCode": "ACK123",
     "formVersion": "1.0"
   },
-  "xpath": "/eDocument/PrimaryCustomer/Name/First",
-  "dataType": "data",
+  "fieldPath": "/eDocument/PrimaryCustomer/Name/First",
   "count": 1,
   "hasNull": false,
   "hasEmpty": false
@@ -125,8 +121,7 @@ Content-Type: application/json
     "productCode": "DDA",
     "productSubCode": "4S"
   },
-  "xpath": "/Document/TaxWithholding",
-  "dataType": "data", 
+  "fieldPath": "/Document/TaxWithholding",
   "count": 1,
   "hasNull": true,
   "hasEmpty": false
@@ -138,8 +133,8 @@ GET http://localhost:8080/catalog/fields?contextId=deposits&page=0&size=10
 ### 12. Search Fields by Metadata (cross-context search for productCode=DDA)
 GET http://localhost:8080/catalog/fields?productCode=DDA&page=0&size=10
 
-### 13. Search Fields with XPath Pattern
-GET http://localhost:8080/catalog/fields?xpathContains=WithholdingCode&page=0&size=10
+### 13. Search Fields with Field Path Pattern
+GET http://localhost:8080/catalog/fields?fieldPathContains=/Ceremony/Accounts&page=0&size=10
 
 ### 14. Search Fields with Multiple Dynamic Metadata Filters
 GET http://localhost:8080/catalog/fields?contextId=deposits&productCode=DDA&productSubCode=4S&page=0&size=10
@@ -186,8 +181,7 @@ Content-Type: application/json
   "metadata": {
     "someField": "someValue"
   },
-  "xpath": "/Test/Path",
-  "dataType": "data",
+  "fieldPath": "/Test/Path",
   "count": 1,
   "hasNull": false,
   "hasEmpty": false
@@ -202,8 +196,7 @@ Content-Type: application/json
     "action": "Fulfillment"
     // Missing productCode and productSubCode
   },
-  "xpath": "/Test/Path",
-  "dataType": "data",
+  "fieldPath": "/Test/Path",
   "count": 1,
   "hasNull": false,
   "hasEmpty": false
@@ -220,8 +213,7 @@ Content-Type: application/json
     "productSubCode": "4S",
     "unexpectedField": "shouldFail"
   },
-  "xpath": "/Test/Path",
-  "dataType": "data",
+  "fieldPath": "/Test/Path",
   "count": 1,
   "hasNull": false,
   "hasEmpty": false

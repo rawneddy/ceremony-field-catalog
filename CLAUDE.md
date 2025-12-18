@@ -47,7 +47,7 @@ docker exec -it ceremony-mongo mongosh
 ```
 
 ### API Testing
-Use `CatalogSmokeTests.http` with VS Code REST Client extension for manual API testing.
+Use `tests/CatalogSmokeTests.http` with VS Code REST Client extension for manual API testing.
 
 ## Architecture Overview
 
@@ -115,20 +115,20 @@ This is a **dynamic field observation catalog system** that tracks XML field usa
 
 **Context Management**:
 ```bash
-# Create context
+# Create context (active flag is REQUIRED)
 POST /catalog/contexts
-{"contextId": "deposits", "requiredMetadata": ["productCode"], "optionalMetadata": ["channel"]}
+{"contextId": "deposits", "displayName": "Deposits", "description": "Deposit processing", "requiredMetadata": ["productCode"], "optionalMetadata": ["channel"], "active": true}
 
 # Update context (optional metadata only)
 PUT /catalog/contexts/deposits
-{"requiredMetadata": ["productCode"], "optionalMetadata": ["channel", "region"]}
+{"displayName": "Deposits", "description": "Deposit processing", "requiredMetadata": ["productCode"], "optionalMetadata": ["channel", "region"], "active": true}
 ```
 
 **Field Observations**:
 ```bash
 # Submit observations to specific context
 POST /catalog/contexts/deposits/observations
-[{"metadata": {"productCode": "DDA", "channel": "Online"}, "xpath": "/Ceremony/Amount", "count": 1, "hasNull": false, "hasEmpty": false}]
+[{"metadata": {"productCode": "DDA", "channel": "Online"}, "fieldPath": "/Ceremony/Amount", "count": 1, "hasNull": false, "hasEmpty": false}]
 ```
 
 **Dynamic Search**:
@@ -139,8 +139,8 @@ GET /catalog/fields?contextId=deposits&page=0&size=10
 # Cross-context search by any metadata
 GET /catalog/fields?productCode=DDA&page=0&size=10
 
-# XPath pattern search
-GET /catalog/fields?xpath=/Ceremony/Amount
+# Field path pattern search
+GET /catalog/fields?fieldPathContains=/Ceremony/Amount
 ```
 
 ## Development Guidelines
@@ -170,4 +170,4 @@ Required extensions:
 - REST Client (for .http testing)
 - Test Explorer UI
 
-The codebase uses Java 17, Spring Boot 3.2.5, and follows modern Spring Data MongoDB patterns with Testcontainers for reliable integration testing.
+The codebase uses Java 21, Spring Boot 3.2.5, and follows modern Spring Data MongoDB patterns with Testcontainers for reliable integration testing.

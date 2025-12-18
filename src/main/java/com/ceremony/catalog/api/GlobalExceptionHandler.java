@@ -10,6 +10,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
@@ -44,6 +45,35 @@ public class GlobalExceptionHandler {
             .map(error -> error.getField() + ": " + error.getDefaultMessage())
             .collect(Collectors.toList());
         
+        Map<String, Object> errorResponse = Map.of(
+            "message", "Validation failed",
+            "errors", errors,
+            "status", 400,
+            "timestamp", Instant.now(),
+            "error", "Validation Error"
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleHandlerMethodValidation(HandlerMethodValidationException e) {
+        log.warn("Handler method validation error: {}", e.getMessage());
+
+        List<String> errors = new ArrayList<>();
+        e.getAllValidationResults().forEach(result -> {
+            result.getResolvableErrors().forEach(error -> {
+                String field = "";
+                if (error.getCodes() != null && error.getCodes().length > 0) {
+                    // Extract field name from the code (e.g., "fieldPath" from "NotBlank.fieldPath")
+                    String code = error.getCodes()[0];
+                    if (code.contains(".")) {
+                        field = code.substring(code.lastIndexOf('.') + 1) + ": ";
+                    }
+                }
+                errors.add(field + error.getDefaultMessage());
+            });
+        });
+
         Map<String, Object> errorResponse = Map.of(
             "message", "Validation failed",
             "errors", errors,
