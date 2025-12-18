@@ -84,9 +84,9 @@ public abstract class UnitTestBase {
         when(performance.getMaxBatchSize()).thenReturn(1000);
         when(performance.isEnableMetrics()).thenReturn(true);
         
-        // Setup sensible defaults for search
-        when(search.getDefaultPageSize()).thenReturn(20);
-        when(search.getMaxPageSize()).thenReturn(1000);
+        // Setup sensible defaults for search (maxPageSize matches application.yml default)
+        when(search.getDefaultPageSize()).thenReturn(50);
+        when(search.getMaxPageSize()).thenReturn(250);
         when(search.getTimeout()).thenReturn(Duration.ofSeconds(30));
         
         // Setup sensible defaults for batch

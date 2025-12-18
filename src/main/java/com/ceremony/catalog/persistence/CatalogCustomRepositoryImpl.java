@@ -72,9 +72,9 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
                 }
             });
 
-        // Filter by field path pattern if specified
+        // Filter by field path pattern if specified (no "i" flag needed - data is lowercase)
         Optional.ofNullable(criteriaDto.fieldPathContains())
-            .ifPresent(v -> filters.add(Criteria.where("fieldpath").regex(v, "i")));
+            .ifPresent(v -> filters.add(Criteria.where("fieldpath").regex(v)));
 
         Query query = new Query();
         if (!filters.isEmpty()) {
@@ -147,11 +147,11 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         // Normalize field name to lowercase for MongoDB query
         String normalizedField = field.toLowerCase();
 
-        // Add prefix filter - case-insensitive regex matching
+        // Add prefix filter (no "i" flag needed - data and prefix are lowercase)
         if (prefix != null && !prefix.trim().isEmpty()) {
             // Escape regex special characters in prefix
             String escapedPrefix = prefix.replaceAll("([\\\\\\[\\](){}.*+?^$|])", "\\\\$1");
-            query.addCriteria(Criteria.where(normalizedField).regex("^" + escapedPrefix, "i"));
+            query.addCriteria(Criteria.where(normalizedField).regex("^" + escapedPrefix));
         }
 
         // Project only the field we need
