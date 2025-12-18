@@ -60,7 +60,7 @@ public class GlobalExceptionHandler {
         log.warn("Handler method validation error: {}", e.getMessage());
 
         List<String> errors = new ArrayList<>();
-        e.getAllValidationResults().forEach(result -> {
+        e.getParameterValidationResults().forEach(result -> {
             result.getResolvableErrors().forEach(error -> {
                 String field = "";
                 if (error.getCodes() != null && error.getCodes().length > 0) {
