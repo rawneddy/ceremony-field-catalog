@@ -115,13 +115,13 @@ This is a **dynamic field observation catalog system** that tracks XML field usa
 
 **Context Management**:
 ```bash
-# Create context
+# Create context (active flag is REQUIRED)
 POST /catalog/contexts
-{"contextId": "deposits", "requiredMetadata": ["productCode"], "optionalMetadata": ["channel"]}
+{"contextId": "deposits", "displayName": "Deposits", "description": "Deposit processing", "requiredMetadata": ["productCode"], "optionalMetadata": ["channel"], "active": true}
 
 # Update context (optional metadata only)
 PUT /catalog/contexts/deposits
-{"requiredMetadata": ["productCode"], "optionalMetadata": ["channel", "region"]}
+{"displayName": "Deposits", "description": "Deposit processing", "requiredMetadata": ["productCode"], "optionalMetadata": ["channel", "region"], "active": true}
 ```
 
 **Field Observations**:

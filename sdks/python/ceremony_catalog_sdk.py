@@ -101,8 +101,8 @@ _state_lock = threading.Lock()  # Protects _initialized and _shutdown_requested
 
 
 def initialize(
-    session: requests.Session,
-    base_url: str,
+    session: Optional[requests.Session],
+    base_url: Optional[str],
     batch_size: int = DEFAULT_BATCH_SIZE,
     queue_capacity: int = DEFAULT_QUEUE_CAPACITY,
     on_error: Optional[Callable[[Exception], None]] = None
@@ -213,9 +213,9 @@ def reset() -> None:
 # region Public Fire-and-Forget API
 
 def submit_observations_bytes(
-    xml_data: bytes,
-    context_id: str,
-    metadata: Dict[str, str]
+    xml_data: Optional[bytes],
+    context_id: Optional[str],
+    metadata: Optional[Dict[str, str]]
 ) -> None:
     """
     Submits XML field observations from bytes. Fire-and-forget - returns immediately.
@@ -230,9 +230,9 @@ def submit_observations_bytes(
 
 
 def submit_observations_string(
-    xml_data: str,
-    context_id: str,
-    metadata: Dict[str, str]
+    xml_data: Optional[str],
+    context_id: Optional[str],
+    metadata: Optional[Dict[str, str]]
 ) -> None:
     """
     Submits XML field observations from string. Fire-and-forget - returns immediately.
@@ -247,9 +247,9 @@ def submit_observations_string(
 
 
 def submit_observations_element(
-    xml_element: ET.Element,
-    context_id: str,
-    metadata: Dict[str, str]
+    xml_element: Optional[ET.Element],
+    context_id: Optional[str],
+    metadata: Optional[Dict[str, str]]
 ) -> None:
     """
     Submits XML field observations from ElementTree Element. Fire-and-forget - returns immediately.
@@ -270,7 +270,7 @@ def submit_observations_element(
 
 def _enqueue_work(
     extraction_func: Callable[[], List[CatalogObservationDto]],
-    context_id: str
+    context_id: Optional[str]
 ) -> None:
     """
     Enqueues work for background processing. Never blocks, never throws.
@@ -312,6 +312,9 @@ def _process_queue() -> None:
     Background worker thread that processes the queue.
     Blocks when empty and exits when shutdown sentinel is received.
     """
+    if _queue is None:
+        return
+
     try:
         while True:
             try:
@@ -358,6 +361,9 @@ def _send_batch(batch: List[CatalogObservationDto], url: str) -> None:
     """
     Sends a single batch to the API synchronously.
     """
+    if _session is None:
+        return
+
     try:
         # Convert observations to JSON
         json_data = [obs.to_dict() for obs in batch]
@@ -399,8 +405,8 @@ def _send_batch(batch: List[CatalogObservationDto], url: str) -> None:
 # region XML Extraction (Safe)
 
 def _extract_observations_from_bytes(
-    xml_data: bytes,
-    metadata: Dict[str, str]
+    xml_data: Optional[bytes],
+    metadata: Optional[Dict[str, str]]
 ) -> List[CatalogObservationDto]:
     """
     Extracts observations from bytes. Returns empty list on any error.
@@ -416,8 +422,8 @@ def _extract_observations_from_bytes(
 
 
 def _extract_observations_from_string(
-    xml_data: str,
-    metadata: Dict[str, str]
+    xml_data: Optional[str],
+    metadata: Optional[Dict[str, str]]
 ) -> List[CatalogObservationDto]:
     """
     Extracts observations from string. Returns empty list on any error.
@@ -433,8 +439,8 @@ def _extract_observations_from_string(
 
 
 def _extract_observations_from_element(
-    xml_element: ET.Element,
-    metadata: Dict[str, str]
+    xml_element: Optional[ET.Element],
+    metadata: Optional[Dict[str, str]]
 ) -> List[CatalogObservationDto]:
     """
     Extracts observations from ElementTree Element. Returns empty list on any error.
