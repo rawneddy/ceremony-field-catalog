@@ -16,41 +16,50 @@ import { FieldTable } from '@/components/catalog/FieldTable';
 import { Pagination } from '@/components/common/Pagination';
 import { ResultsSummary } from '@/components/catalog/ResultsSummary';
 import { useCatalogSearch } from '@/hooks/useCatalogSearch';
+import { useContexts } from '@/hooks/useContexts';
 import { SearchParams } from '@/types';
 
 export const CatalogSearch: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  
+  const { data: contexts, isLoading: contextsLoading } = useContexts();
+
+  // Build search state from URL params
   const searchState: SearchParams = {
-    pathType: searchParams.get('pathType') || undefined,
-    formCode: searchParams.get('formCode') || undefined,
-    formVersion: searchParams.get('formVersion') || undefined,
-    action: searchParams.get('action') || undefined,
-    productCode: searchParams.get('productCode') || undefined,
-    productSubCode: searchParams.get('productSubCode') || undefined,
-    loanProductCode: searchParams.get('loanProductCode') || undefined,
-    xpathContains: searchParams.get('xpathContains') || undefined,
+    contextId: searchParams.get('contextId') || undefined,
+    fieldPathContains: searchParams.get('fieldPathContains') || undefined,
     page: parseInt(searchParams.get('page') || '0'),
     size: parseInt(searchParams.get('size') || '50'),
   };
 
-  const { data, isLoading, error } = useCatalogSearch(searchState);
+  // Extract dynamic metadata filters from URL
+  const metadataFilters: Record<string, string> = {};
+  const reservedParams = ['contextId', 'fieldPathContains', 'page', 'size'];
+  searchParams.forEach((value, key) => {
+    if (!reservedParams.includes(key) && value) {
+      metadataFilters[key] = value;
+    }
+  });
 
-  const updateSearchParams = (newParams: Partial<SearchParams>) => {
+  const { data, isLoading, error } = useCatalogSearch({
+    ...searchState,
+    ...metadataFilters,
+  });
+
+  const updateSearchParams = (newParams: Record<string, string | number | undefined>) => {
     const current = Object.fromEntries(searchParams.entries());
     const updated = { ...current, ...newParams };
-    
+
     // Remove empty values
     Object.keys(updated).forEach(key => {
       if (!updated[key] || updated[key] === '') {
         delete updated[key];
       }
     });
-    
-    setSearchParams(updated);
+
+    setSearchParams(updated as Record<string, string>);
   };
 
-  const handleSearch = (params: SearchParams) => {
+  const handleSearch = (params: SearchParams & Record<string, string>) => {
     updateSearchParams({ ...params, page: 0 }); // Reset to first page
   };
 
@@ -62,30 +71,35 @@ export const CatalogSearch: React.FC = () => {
     updateSearchParams({ size, page: 0 }); // Reset to first page
   };
 
+  // Find selected context for dynamic filters
+  const selectedContext = contexts?.find(c => c.contextId === searchState.contextId);
+
   return (
     <Layout>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Field Catalog</h1>
           <p className="mt-2 text-gray-600">
-            Search and explore XML fields across different business processes
+            Search and explore XML fields across different business contexts
           </p>
         </div>
 
-        <SearchForm 
-          initialParams={searchState}
+        <SearchForm
+          contexts={contexts || []}
+          selectedContext={selectedContext}
+          initialParams={{ ...searchState, ...metadataFilters }}
           onSearch={handleSearch}
-          loading={isLoading}
+          loading={isLoading || contextsLoading}
         />
 
-        <ResultsSummary 
+        <ResultsSummary
           totalElements={data?.totalElements || 0}
           currentPage={data?.number || 0}
           pageSize={data?.size || 50}
           loading={isLoading}
         />
 
-        <FieldTable 
+        <FieldTable
           data={data?.content || []}
           loading={isLoading}
           error={error}
@@ -109,7 +123,7 @@ export const CatalogSearch: React.FC = () => {
 export default CatalogSearch;
 ```
 
-### 2. Search Form Component
+### 2. Search Form Component with Dynamic Metadata Filters
 
 **src/components/catalog/SearchForm.tsx:**
 ```typescript
@@ -119,155 +133,156 @@ import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { Select } from '@/components/common/Select';
-import { SearchParams, PathType } from '@/types';
-import { PATH_TYPES } from '@/utils/constants';
+import { Context, SearchParams } from '@/types';
 
 interface SearchFormProps {
-  initialParams: SearchParams;
-  onSearch: (params: SearchParams) => void;
+  contexts: Context[];
+  selectedContext?: Context;
+  initialParams: SearchParams & Record<string, string>;
+  onSearch: (params: SearchParams & Record<string, string>) => void;
   loading?: boolean;
 }
 
-export const SearchForm: React.FC<SearchFormProps> = ({ 
-  initialParams, 
-  onSearch, 
-  loading = false 
+export const SearchForm: React.FC<SearchFormProps> = ({
+  contexts,
+  selectedContext,
+  initialParams,
+  onSearch,
+  loading = false
 }) => {
-  const { register, handleSubmit, watch, reset, setValue } = useForm<SearchParams>({
+  const { register, handleSubmit, watch, reset, setValue, getValues } = useForm({
     defaultValues: initialParams,
   });
 
-  const pathType = watch('pathType') as PathType;
+  const contextId = watch('contextId');
 
   // Update form when initialParams change (e.g., from URL)
   useEffect(() => {
     Object.entries(initialParams).forEach(([key, value]) => {
       if (value !== undefined) {
-        setValue(key as keyof SearchParams, value);
+        setValue(key, value);
       }
     });
   }, [initialParams, setValue]);
 
-  const onSubmit = (data: SearchParams) => {
-    // Remove empty strings
+  // Build context options from API data
+  const contextOptions = [
+    { value: '', label: 'All Contexts' },
+    ...contexts.map(c => ({
+      value: c.contextId,
+      label: c.displayName || c.contextId
+    }))
+  ];
+
+  // Get metadata fields for selected context
+  const getMetadataFields = (): string[] => {
+    if (!selectedContext) return [];
+    return [
+      ...selectedContext.requiredMetadata,
+      ...(selectedContext.optionalMetadata || [])
+    ];
+  };
+
+  const metadataFields = getMetadataFields();
+
+  const onSubmit = (data: Record<string, string>) => {
+    // Remove empty strings and undefined values
     const cleanData = Object.fromEntries(
       Object.entries(data).filter(([_, value]) => value !== '' && value !== undefined)
-    );
+    ) as SearchParams & Record<string, string>;
     onSearch(cleanData);
   };
 
   const handleClear = () => {
     reset({
-      pathType: '',
-      formCode: '',
-      formVersion: '',
-      action: '',
-      productCode: '',
-      productSubCode: '',
-      loanProductCode: '',
-      xpathContains: '',
+      contextId: '',
+      fieldPathContains: '',
     });
-    onSearch({});
+    onSearch({} as SearchParams);
+  };
+
+  const handleContextChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newContextId = e.target.value;
+    setValue('contextId', newContextId);
+
+    // Clear metadata filters when context changes
+    const currentValues = getValues();
+    const newContext = contexts.find(c => c.contextId === newContextId);
+    const oldMetadataFields = selectedContext
+      ? [...selectedContext.requiredMetadata, ...(selectedContext.optionalMetadata || [])]
+      : [];
+
+    // Clear old metadata field values
+    oldMetadataFields.forEach(field => {
+      setValue(field, '');
+    });
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="bg-white p-6 rounded-lg shadow-sm border">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-        {/* Path Type */}
+      {/* Primary Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+        {/* Context Selector */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Path Type
+            Context
           </label>
           <Select
-            {...register('pathType')}
-            options={PATH_TYPES}
-            placeholder="All types"
+            {...register('contextId')}
+            options={contextOptions}
+            placeholder="All Contexts"
+            onChange={handleContextChange}
           />
         </div>
 
-        {/* XPath Search */}
+        {/* Field Path Search */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            XPath Contains
+            Field Path Contains
           </label>
           <Input
-            {...register('xpathContains')}
-            placeholder="e.g., FeeCode, Account"
+            {...register('fieldPathContains')}
+            placeholder="e.g., Account, Balance"
             icon={MagnifyingGlassIcon}
           />
         </div>
-
-        {/* Conditional Fields based on Path Type */}
-        {pathType === 'deposits' && (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Action
-              </label>
-              <Input
-                {...register('action')}
-                placeholder="e.g., Fulfillment"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Code
-              </label>
-              <Input
-                {...register('productCode')}
-                placeholder="e.g., DDA"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Sub Code
-              </label>
-              <Input
-                {...register('productSubCode')}
-                placeholder="e.g., 4S"
-              />
-            </div>
-          </>
-        )}
-
-        {pathType === 'loans' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Loan Product Code
-            </label>
-            <Input
-              {...register('loanProductCode')}
-              placeholder="e.g., HEQF"
-            />
-          </div>
-        )}
-
-        {pathType === 'ondemand' && (
-          <>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Form Code
-              </label>
-              <Input
-                {...register('formCode')}
-                placeholder="e.g., ACK123"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Form Version
-              </label>
-              <Input
-                {...register('formVersion')}
-                placeholder="e.g., v1.0"
-              />
-            </div>
-          </>
-        )}
       </div>
 
+      {/* Dynamic Metadata Filters - shown when a context is selected */}
+      {contextId && metadataFields.length > 0 && (
+        <div className="border-t pt-4 mt-4">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">
+            Metadata Filters ({selectedContext?.displayName || contextId})
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {metadataFields.map((field) => {
+              const isRequired = selectedContext?.requiredMetadata.includes(field);
+              return (
+                <div key={field}>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {field}
+                    {isRequired && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                  <Input
+                    {...register(field)}
+                    placeholder={`Filter by ${field}`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Cross-Context Metadata Hint */}
+      {!contextId && (
+        <p className="text-sm text-gray-500 mt-2">
+          Select a context to see available metadata filters, or search across all contexts.
+        </p>
+      )}
+
       {/* Action Buttons */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 mt-6">
         <Button
           type="submit"
           variant="primary"
@@ -300,10 +315,10 @@ import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
-import { CatalogField } from '@/types';
+import { CatalogEntry } from '@/types';
 
 interface FieldTableProps {
-  data: CatalogField[];
+  data: CatalogEntry[];
   loading?: boolean;
   error?: Error | null;
 }
@@ -351,35 +366,18 @@ export const FieldTable: React.FC<FieldTableProps> = ({ data, loading, error }) 
     }
   };
 
-  const getPathTypeBadge = (pathType: string) => {
-    const variants = {
-      deposits: 'blue',
-      loans: 'green',
-      ondemand: 'purple',
-    } as const;
-    
-    return (
-      <Badge variant={variants[pathType as keyof typeof variants] || 'gray'}>
-        {pathType}
-      </Badge>
-    );
+  // Format metadata as condensed string for table display
+  const formatMetadata = (metadata: Record<string, string>): string => {
+    return Object.entries(metadata)
+      .map(([key, value]) => `${key}=${value}`)
+      .join(', ');
   };
 
-  const getBusinessContext = (field: CatalogField) => {
-    switch (field.pathType) {
-      case 'deposits':
-        return [field.action, field.productCode, field.productSubCode]
-          .filter(Boolean)
-          .join(' / ');
-      case 'loans':
-        return field.loanProductCode || '';
-      case 'ondemand':
-        return [field.formCode, field.formVersion]
-          .filter(Boolean)
-          .join(' / ');
-      default:
-        return '';
-    }
+  // Get a color for the context badge based on contextId
+  const getContextBadgeVariant = (contextId: string): 'blue' | 'green' | 'purple' | 'gray' => {
+    const variants = ['blue', 'green', 'purple'] as const;
+    const hash = contextId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return variants[hash % variants.length];
   };
 
   return (
@@ -390,13 +388,13 @@ export const FieldTable: React.FC<FieldTableProps> = ({ data, loading, error }) 
             <tr>
               <th className="w-8 px-3 py-3"></th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                XPath
+                Field Path
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Type
+                Context
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Business Context
+                Metadata
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Occurrences
@@ -409,8 +407,8 @@ export const FieldTable: React.FC<FieldTableProps> = ({ data, loading, error }) 
           <tbody className="bg-white divide-y divide-gray-200">
             {data.map((field) => (
               <React.Fragment key={field.id}>
-                <tr 
-                  className="hover:bg-gray-50 cursor-pointer transition-colors"
+                <tr
+                  className="hover:bg-gray-50 cursor-pointer transition-colors group"
                   onClick={() => toggleRow(field.id)}
                 >
                   <td className="px-3 py-4 text-center">
@@ -423,7 +421,7 @@ export const FieldTable: React.FC<FieldTableProps> = ({ data, loading, error }) 
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <code className="text-sm font-mono text-gray-900 break-all">
-                        {field.xpath}
+                        {field.fieldPath}
                       </code>
                       <Button
                         variant="ghost"
@@ -431,22 +429,24 @@ export const FieldTable: React.FC<FieldTableProps> = ({ data, loading, error }) 
                         className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={(e) => {
                           e.stopPropagation();
-                          copyToClipboard(field.xpath);
+                          copyToClipboard(field.fieldPath);
                         }}
                         icon={DocumentDuplicateIcon}
-                        aria-label="Copy XPath"
+                        aria-label="Copy Field Path"
                       />
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    {getPathTypeBadge(field.pathType)}
+                    <Badge variant={getContextBadgeVariant(field.contextId)}>
+                      {field.contextId}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate" title={formatMetadata(field.metadata)}>
+                    {formatMetadata(field.metadata)}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-900">
-                    {getBusinessContext(field)}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {field.minOccurs === field.maxOccurs 
-                      ? field.minOccurs 
+                    {field.minOccurs === field.maxOccurs
+                      ? field.minOccurs
                       : `${field.minOccurs}-${field.maxOccurs}`}
                   </td>
                   <td className="px-6 py-4">
@@ -460,83 +460,51 @@ export const FieldTable: React.FC<FieldTableProps> = ({ data, loading, error }) 
                     </div>
                   </td>
                 </tr>
-                
+
                 {/* Expanded Row Details */}
                 {expandedRows.has(field.id) && (
                   <tr>
                     <td colSpan={6} className="px-6 py-4 bg-gray-50">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                         <div>
-                          <h4 className="font-medium text-gray-900 mb-2">Field Details</h4>
-                          <dl className="space-y-1">
+                          <h4 className="font-medium text-gray-900 mb-3">Field Details</h4>
+                          <dl className="space-y-2">
                             <div className="flex">
-                              <dt className="w-24 text-gray-500">ID:</dt>
+                              <dt className="w-28 text-gray-500">ID:</dt>
                               <dd className="font-mono text-xs text-gray-900 break-all">{field.id}</dd>
                             </div>
                             <div className="flex">
-                              <dt className="w-24 text-gray-500">Data Type:</dt>
-                              <dd className="text-gray-900">{field.dataType}</dd>
+                              <dt className="w-28 text-gray-500">Context:</dt>
+                              <dd className="text-gray-900">{field.contextId}</dd>
                             </div>
                             <div className="flex">
-                              <dt className="w-24 text-gray-500">Min Occurs:</dt>
+                              <dt className="w-28 text-gray-500">Min Occurs:</dt>
                               <dd className="text-gray-900">{field.minOccurs}</dd>
                             </div>
                             <div className="flex">
-                              <dt className="w-24 text-gray-500">Max Occurs:</dt>
+                              <dt className="w-28 text-gray-500">Max Occurs:</dt>
                               <dd className="text-gray-900">{field.maxOccurs}</dd>
+                            </div>
+                            <div className="flex">
+                              <dt className="w-28 text-gray-500">Allows Null:</dt>
+                              <dd className="text-gray-900">{field.allowsNull ? 'Yes' : 'No'}</dd>
+                            </div>
+                            <div className="flex">
+                              <dt className="w-28 text-gray-500">Allows Empty:</dt>
+                              <dd className="text-gray-900">{field.allowsEmpty ? 'Yes' : 'No'}</dd>
                             </div>
                           </dl>
                         </div>
-                        
+
                         <div>
-                          <h4 className="font-medium text-gray-900 mb-2">Business Context</h4>
-                          <dl className="space-y-1">
-                            {field.pathType === 'deposits' && (
-                              <>
-                                {field.action && (
-                                  <div className="flex">
-                                    <dt className="w-24 text-gray-500">Action:</dt>
-                                    <dd className="text-gray-900">{field.action}</dd>
-                                  </div>
-                                )}
-                                {field.productCode && (
-                                  <div className="flex">
-                                    <dt className="w-24 text-gray-500">Product:</dt>
-                                    <dd className="text-gray-900">{field.productCode}</dd>
-                                  </div>
-                                )}
-                                {field.productSubCode && (
-                                  <div className="flex">
-                                    <dt className="w-24 text-gray-500">Sub Code:</dt>
-                                    <dd className="text-gray-900">{field.productSubCode}</dd>
-                                  </div>
-                                )}
-                              </>
-                            )}
-                            
-                            {field.pathType === 'loans' && field.loanProductCode && (
-                              <div className="flex">
-                                <dt className="w-24 text-gray-500">Loan Product:</dt>
-                                <dd className="text-gray-900">{field.loanProductCode}</dd>
+                          <h4 className="font-medium text-gray-900 mb-3">Metadata</h4>
+                          <dl className="space-y-2">
+                            {Object.entries(field.metadata).map(([key, value]) => (
+                              <div key={key} className="flex">
+                                <dt className="w-28 text-gray-500">{key}:</dt>
+                                <dd className="text-gray-900">{value}</dd>
                               </div>
-                            )}
-                            
-                            {field.pathType === 'ondemand' && (
-                              <>
-                                {field.formCode && (
-                                  <div className="flex">
-                                    <dt className="w-24 text-gray-500">Form Code:</dt>
-                                    <dd className="text-gray-900">{field.formCode}</dd>
-                                  </div>
-                                )}
-                                {field.formVersion && (
-                                  <div className="flex">
-                                    <dt className="w-24 text-gray-500">Form Version:</dt>
-                                    <dd className="text-gray-900">{field.formVersion}</dd>
-                                  </div>
-                                )}
-                              </>
-                            )}
+                            ))}
                           </dl>
                         </div>
                       </div>
@@ -553,7 +521,88 @@ export const FieldTable: React.FC<FieldTableProps> = ({ data, loading, error }) 
 };
 ```
 
-### 4. Custom Hooks
+### 4. Context List Component
+
+**src/components/catalog/ContextList.tsx:**
+```typescript
+import React from 'react';
+import { Badge } from '@/components/common/Badge';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { Context } from '@/types';
+
+interface ContextListProps {
+  contexts: Context[];
+  loading?: boolean;
+  onSelectContext?: (contextId: string) => void;
+}
+
+export const ContextList: React.FC<ContextListProps> = ({
+  contexts,
+  loading,
+  onSelectContext
+}) => {
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8">
+        <LoadingSpinner size="md" />
+      </div>
+    );
+  }
+
+  if (!contexts || contexts.length === 0) {
+    return (
+      <div className="text-center py-8 bg-white rounded-lg border">
+        <p className="text-gray-500">No contexts available</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg border divide-y">
+      {contexts.map((context) => (
+        <div
+          key={context.contextId}
+          className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+          onClick={() => onSelectContext?.(context.contextId)}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-medium text-gray-900">
+              {context.displayName || context.contextId}
+            </h3>
+            <Badge variant={context.active ? 'green' : 'gray'} size="sm">
+              {context.active ? 'Active' : 'Inactive'}
+            </Badge>
+          </div>
+
+          {context.description && (
+            <p className="text-sm text-gray-600 mb-3">{context.description}</p>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <span className="text-xs text-gray-500">Required:</span>
+            {context.requiredMetadata.map((field) => (
+              <Badge key={field} variant="blue" size="sm">{field}</Badge>
+            ))}
+
+            {context.optionalMetadata && context.optionalMetadata.length > 0 && (
+              <>
+                <span className="text-xs text-gray-500 ml-2">Optional:</span>
+                {context.optionalMetadata.map((field) => (
+                  <Badge key={field} variant="gray" size="sm">{field}</Badge>
+                ))}
+              </>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+## Custom Hooks
+
+### 1. useCatalogSearch Hook
 
 **src/hooks/useCatalogSearch.ts:**
 ```typescript
@@ -562,10 +611,10 @@ import { catalogApi } from '@/services/catalogApi';
 import { SearchParams } from '@/types';
 import { useDebounce } from './useDebounce';
 
-export const useCatalogSearch = (params: SearchParams) => {
+export const useCatalogSearch = (params: SearchParams & Record<string, string>) => {
   // Debounce search parameters to avoid excessive API calls
   const debouncedParams = useDebounce(params, 500);
-  
+
   return useQuery({
     queryKey: ['catalog-fields', debouncedParams],
     queryFn: () => catalogApi.searchFields(debouncedParams),
@@ -575,6 +624,33 @@ export const useCatalogSearch = (params: SearchParams) => {
   });
 };
 ```
+
+### 2. useContexts Hook
+
+**src/hooks/useContexts.ts:**
+```typescript
+import { useQuery } from '@tanstack/react-query';
+import { catalogApi } from '@/services/catalogApi';
+
+export const useContexts = () => {
+  return useQuery({
+    queryKey: ['contexts'],
+    queryFn: () => catalogApi.getContexts(),
+    staleTime: 10 * 60 * 1000, // 10 minutes - contexts don't change often
+  });
+};
+
+export const useContext = (contextId: string) => {
+  return useQuery({
+    queryKey: ['context', contextId],
+    queryFn: () => catalogApi.getContext(contextId),
+    enabled: !!contextId,
+    staleTime: 10 * 60 * 1000,
+  });
+};
+```
+
+### 3. useDebounce Hook
 
 **src/hooks/useDebounce.ts:**
 ```typescript
@@ -625,14 +701,14 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseClasses = 'inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
-  
+
   const variantClasses = {
     primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500',
     secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500',
     ghost: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:ring-gray-500',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
   };
-  
+
   const sizeClasses = {
     sm: 'px-3 py-1.5 text-sm',
     md: 'px-4 py-2 text-sm',
@@ -784,13 +860,13 @@ interface BadgeProps {
   size?: 'sm' | 'md';
 }
 
-export const Badge: React.FC<BadgeProps> = ({ 
-  children, 
-  variant = 'gray', 
-  size = 'md' 
+export const Badge: React.FC<BadgeProps> = ({
+  children,
+  variant = 'gray',
+  size = 'md'
 }) => {
   const baseClasses = 'inline-flex items-center font-medium rounded-full';
-  
+
   const variantClasses = {
     gray: 'bg-gray-100 text-gray-800',
     blue: 'bg-blue-100 text-blue-800',
@@ -799,7 +875,7 @@ export const Badge: React.FC<BadgeProps> = ({
     red: 'bg-red-100 text-red-800',
     purple: 'bg-purple-100 text-purple-800',
   };
-  
+
   const sizeClasses = {
     sm: 'px-2 py-0.5 text-xs',
     md: 'px-2.5 py-0.5 text-sm',
@@ -822,27 +898,104 @@ export const Badge: React.FC<BadgeProps> = ({
 **src/services/catalogApi.ts:**
 ```typescript
 import { apiClient } from './api';
-import { CatalogField, PagedResponse, SearchParams, CatalogObservation } from '@/types';
+import {
+  Context,
+  CatalogEntry,
+  PagedResponse,
+  SearchParams,
+  CatalogObservation
+} from '@/types';
 
 export const catalogApi = {
-  searchFields: async (params: SearchParams): Promise<PagedResponse<CatalogField>> => {
+  // Context Management
+  getContexts: async (): Promise<Context[]> => {
+    const response = await apiClient.get<Context[]>('/catalog/contexts');
+    return response.data;
+  },
+
+  getContext: async (contextId: string): Promise<Context> => {
+    const response = await apiClient.get<Context>(`/catalog/contexts/${contextId}`);
+    return response.data;
+  },
+
+  createContext: async (context: Omit<Context, 'createdAt' | 'updatedAt'>): Promise<Context> => {
+    const response = await apiClient.post<Context>('/catalog/contexts', context);
+    return response.data;
+  },
+
+  updateContext: async (contextId: string, context: Partial<Context>): Promise<Context> => {
+    const response = await apiClient.put<Context>(`/catalog/contexts/${contextId}`, context);
+    return response.data;
+  },
+
+  deleteContext: async (contextId: string): Promise<void> => {
+    await apiClient.delete(`/catalog/contexts/${contextId}`);
+  },
+
+  // Field Search
+  searchFields: async (params: SearchParams & Record<string, string>): Promise<PagedResponse<CatalogEntry>> => {
     // Remove undefined and empty string values
     const cleanParams = Object.fromEntries(
-      Object.entries(params).filter(([_, value]) => 
+      Object.entries(params).filter(([_, value]) =>
         value !== undefined && value !== '' && value !== null
       )
     );
-    
-    const response = await apiClient.get<PagedResponse<CatalogField>>('/catalog/fields', { 
-      params: cleanParams 
+
+    const response = await apiClient.get<PagedResponse<CatalogEntry>>('/catalog/fields', {
+      params: cleanParams
     });
     return response.data;
   },
 
-  submitObservations: async (observations: CatalogObservation[]): Promise<void> => {
-    await apiClient.post('/catalog/observed-fields', observations);
+  // Field Observations
+  submitObservations: async (contextId: string, observations: CatalogObservation[]): Promise<void> => {
+    await apiClient.post(`/catalog/contexts/${contextId}/observations`, observations);
   },
 };
+```
+
+**src/services/api.ts:**
+```typescript
+import axios from 'axios';
+
+export const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor for auth tokens (future use)
+apiClient.interceptors.request.use(
+  (config) => {
+    // Add auth token if available
+    // const token = localStorage.getItem('authToken');
+    // if (token) {
+    //   config.headers.Authorization = `Bearer ${token}`;
+    // }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor for error handling
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      // Server responded with error status
+      const message = error.response.data?.message || 'An error occurred';
+      console.error(`API Error: ${error.response.status} - ${message}`);
+    } else if (error.request) {
+      // Request made but no response
+      console.error('API Error: No response received');
+    } else {
+      // Something else happened
+      console.error('API Error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
 ```
 
 ## Layout Components
@@ -883,11 +1036,14 @@ export const Header: React.FC = () => {
               Ceremony Field Catalog
             </Link>
           </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-500">
-              v{import.meta.env.VITE_APP_VERSION || '1.0.0'}
-            </span>
-          </div>
+          <nav className="flex items-center space-x-4">
+            <Link to="/" className="text-sm text-gray-600 hover:text-gray-900">
+              Search
+            </Link>
+            <Link to="/contexts" className="text-sm text-gray-600 hover:text-gray-900">
+              Contexts
+            </Link>
+          </nav>
         </div>
       </div>
     </header>
@@ -895,4 +1051,96 @@ export const Header: React.FC = () => {
 };
 ```
 
-These sample components provide a solid foundation that a new Claude Code session can build upon, demonstrating the architecture patterns, TypeScript usage, and integration with your Spring Boot API.
+## TypeScript Type Definitions
+
+**src/types/index.ts:**
+```typescript
+// Context - defines an observation point with metadata schema
+export interface Context {
+  contextId: string;
+  displayName: string;
+  description?: string;
+  requiredMetadata: string[];
+  optionalMetadata?: string[];
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// CatalogEntry - an observed field within a context
+export interface CatalogEntry {
+  id: string;
+  contextId: string;
+  metadata: Record<string, string>;
+  fieldPath: string;
+  maxOccurs: number;
+  minOccurs: number;
+  allowsNull: boolean;
+  allowsEmpty: boolean;
+}
+
+// Observation input for submitting field data
+export interface CatalogObservation {
+  metadata: Record<string, string>;
+  fieldPath: string;
+  count: number;
+  hasNull: boolean;
+  hasEmpty: boolean;
+}
+
+// Search parameters
+export interface SearchParams {
+  contextId?: string;
+  fieldPathContains?: string;
+  page?: number;
+  size?: number;
+  // Additional metadata filters are added dynamically
+}
+
+// Spring Boot pageable response
+export interface PagedResponse<T> {
+  content: T[];
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    sort: {
+      empty: boolean;
+      sorted: boolean;
+      unsorted: boolean;
+    };
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+  };
+  last: boolean;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  size: number;
+  number: number;
+  sort: {
+    empty: boolean;
+    sorted: boolean;
+    unsorted: boolean;
+  };
+  numberOfElements: number;
+  empty: boolean;
+}
+
+// API error response
+export interface ErrorResponse {
+  message: string;
+  status: number;
+  timestamp: string;
+  error: string;
+  validationErrors?: Record<string, string>;
+}
+```
+
+These sample components provide a solid foundation that demonstrates:
+
+1. **Dynamic Context System**: Components fetch contexts from API and render metadata filters dynamically
+2. **Context-Aware Search**: Search form adapts to show relevant filters based on selected context
+3. **Cross-Context Search**: Supports searching across all contexts when no context is selected
+4. **Flexible Metadata Display**: Table and detail views handle arbitrary metadata key-value pairs
+5. **Type-Safe Integration**: Full TypeScript support with proper API response types
