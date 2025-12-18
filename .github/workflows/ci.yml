@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+    name: Java API
     runs-on: ubuntu-latest
 
     steps:
@@ -31,3 +32,31 @@ jobs:
           name: test-results
           path: target/surefire-reports/
           retention-days: 7
+
+  python-sdk:
+    name: Python SDK Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        working-directory: sdks/python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest mypy types-requests
+
+      - name: Run type checks
+        working-directory: sdks/python
+        run: mypy ceremony_catalog_sdk.py test_ceremony_catalog_sdk.py
+
+      - name: Run tests
+        working-directory: sdks/python
+        run: pytest test_ceremony_catalog_sdk.py -v
