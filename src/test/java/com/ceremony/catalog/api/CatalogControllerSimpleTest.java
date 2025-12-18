@@ -1,7 +1,6 @@
 package com.ceremony.catalog.api;
 
 import com.ceremony.catalog.annotation.TestProfile;
-import com.ceremony.catalog.api.dto.CatalogObservationDTO;
 import com.ceremony.catalog.api.dto.ContextDefinitionDTO;
 import com.ceremony.catalog.base.IntegrationTestBase;
 import com.ceremony.catalog.util.TestDataBuilder;

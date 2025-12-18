@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
+@SuppressWarnings("null") // Spring Data MongoDB Criteria API null safety
 public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
 
     private final MongoTemplate mongoTemplate;

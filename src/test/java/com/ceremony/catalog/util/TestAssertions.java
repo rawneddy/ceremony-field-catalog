@@ -121,6 +121,7 @@ public class TestAssertions {
             Map<String, String> metadata = actual.getMetadata();
             if (metadata == null) {
                 failWithMessage("Expected entry to have metadata but metadata was null");
+                return this;
             }
             if (!metadata.containsKey(key)) {
                 failWithMessage("Expected metadata to contain key <%s> but keys were <%s>", key, metadata.keySet());
@@ -137,6 +138,7 @@ public class TestAssertions {
             Map<String, String> metadata = actual.getMetadata();
             if (metadata == null) {
                 failWithMessage("Expected entry to have metadata but metadata was null");
+                return this;
             }
             if (!metadata.containsKey(key)) {
                 failWithMessage("Expected metadata to contain key <%s> but keys were <%s>", key, metadata.keySet());

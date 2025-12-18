@@ -36,6 +36,7 @@ import java.util.Map;
 })
 public abstract class IntegrationTestBase {
     
+    @SuppressWarnings("resource") // Container lifecycle managed by Testcontainers JUnit extension
     @Container
     static MongoDBContainer mongoContainer = new MongoDBContainer("mongo:7")
             .withReuse(true);  // Reuse across test classes for performance

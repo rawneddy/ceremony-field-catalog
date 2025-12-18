@@ -16,6 +16,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null") // Spring Data repository null safety warnings
 public class CatalogService {
     private final CatalogRepository repository;
     private final ContextService contextService;

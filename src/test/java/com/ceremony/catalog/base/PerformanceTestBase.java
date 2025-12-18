@@ -78,17 +78,17 @@ public abstract class PerformanceTestBase extends IntegrationTestBase {
     /**
      * Measures the performance of an operation and returns detailed timing information.
      * Does not assert on timing - useful for benchmarking and collecting metrics.
-     * 
+     *
      * @param operationName descriptive name for the operation being measured
      * @param task the operation to measure
      * @return PerformanceResult containing timing details
      */
-    protected PerformanceResult benchmarkPerformance(String operationName, Runnable task) {
+    protected PerformanceResult<Void> benchmarkPerformance(String operationName, Runnable task) {
         long start = System.currentTimeMillis();
         task.run();
         long duration = System.currentTimeMillis() - start;
-        
-        PerformanceResult result = new PerformanceResult(operationName, duration);
+
+        PerformanceResult<Void> result = new PerformanceResult<>(operationName, duration);
         System.out.printf("📊 %s: %dms%n", operationName, duration);
         return result;
     }

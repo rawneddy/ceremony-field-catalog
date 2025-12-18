@@ -2,6 +2,8 @@ package com.ceremony.catalog.config;
 
 import com.ceremony.catalog.api.dto.CatalogSearchRequest;
 import org.springframework.core.MethodParameter;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -13,19 +15,19 @@ import java.util.Map;
 import java.util.Set;
 
 public class DynamicSearchParameterResolver implements HandlerMethodArgumentResolver {
-    
+
     private static final Set<String> KNOWN_PARAMETERS = Set.of(
         "contextId", "fieldPathContains", "page", "size"
     );
 
     @Override
-    public boolean supportsParameter(MethodParameter parameter) {
+    public boolean supportsParameter(@NonNull MethodParameter parameter) {
         return parameter.getParameterType().equals(CatalogSearchRequest.class);
     }
 
     @Override
-    public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
-                                NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
+    public Object resolveArgument(@NonNull MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
+                                @NonNull NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) {
         
         Map<String, String> metadata = new HashMap<>();
         
@@ -62,7 +64,7 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
         Iterator<String> paramNames = webRequest.getParameterNames();
         while (paramNames.hasNext()) {
             String paramName = paramNames.next();
-            if (!KNOWN_PARAMETERS.contains(paramName)) {
+            if (paramName != null && !KNOWN_PARAMETERS.contains(paramName)) {
                 String value = webRequest.getParameter(paramName);
                 if (value != null && !value.trim().isEmpty()) {
                     // Normalize metadata keys and values to lowercase for case-insensitive handling

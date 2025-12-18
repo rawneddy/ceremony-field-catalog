@@ -39,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 })
 public abstract class ServiceTestBase {
     
+    @SuppressWarnings("resource") // Container lifecycle managed by Testcontainers JUnit extension
     @Container
     static MongoDBContainer mongoContainer = new MongoDBContainer("mongo:7")
             .withReuse(true);  // Reuse across test classes for performance
