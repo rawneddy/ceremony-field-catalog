@@ -98,12 +98,12 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
     @Override
     public List<String> findFieldPathsByContextAndMetadata(String contextId, Map<String, String> metadata) {
         Query query = new Query();
-        
+
         // Add context filter
         if (contextId != null && !contextId.trim().isEmpty()) {
             query.addCriteria(Criteria.where("contextId").is(contextId));
         }
-        
+
         // Add metadata criteria dynamically
         if (metadata != null && !metadata.isEmpty()) {
             for (Map.Entry<String, String> entry : metadata.entrySet()) {
@@ -114,10 +114,10 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
                 }
             }
         }
-        
+
         // Project only fieldPath field for minimal data transfer
         query.fields().include("fieldPath");
-        
+
         // Execute query and extract distinct field path values
         return mongoTemplate.find(query, CatalogEntry.class)
             .stream()
@@ -125,5 +125,68 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
             .filter(fieldPath -> fieldPath != null && !fieldPath.trim().isEmpty())
             .distinct()
             .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> suggestValues(String field, String prefix, String contextId, Map<String, String> metadata, int limit) {
+        Query query = new Query();
+
+        // Add context filter if provided
+        if (contextId != null && !contextId.trim().isEmpty()) {
+            query.addCriteria(Criteria.where("contextId").is(contextId));
+        }
+
+        // Add metadata filters if provided
+        if (metadata != null && !metadata.isEmpty()) {
+            for (Map.Entry<String, String> entry : metadata.entrySet()) {
+                String key = entry.getKey();
+                String value = entry.getValue();
+                if (key != null && !key.trim().isEmpty() && value != null && !value.trim().isEmpty()) {
+                    query.addCriteria(Criteria.where("metadata." + key).is(value));
+                }
+            }
+        }
+
+        // Add prefix filter - case-insensitive regex matching
+        if (prefix != null && !prefix.trim().isEmpty()) {
+            // Escape regex special characters in prefix
+            String escapedPrefix = prefix.replaceAll("([\\\\\\[\\](){}.*+?^$|])", "\\\\$1");
+            query.addCriteria(Criteria.where(field).regex("^" + escapedPrefix, "i"));
+        }
+
+        // Project only the field we need
+        query.fields().include(field);
+
+        // Execute query and extract distinct values
+        List<CatalogEntry> results = mongoTemplate.find(query, CatalogEntry.class);
+
+        return results.stream()
+            .map(entry -> extractFieldValue(entry, field))
+            .filter(value -> value != null && !value.trim().isEmpty())
+            .distinct()
+            .sorted()
+            .limit(limit)
+            .collect(Collectors.toList());
+    }
+
+    private String extractFieldValue(CatalogEntry entry, String field) {
+        if ("fieldPath".equals(field)) {
+            return entry.getFieldPath();
+        } else if (field.startsWith("metadata.")) {
+            String metadataKey = field.substring("metadata.".length());
+            Map<String, String> metadata = entry.getMetadata();
+            return metadata != null ? metadata.get(metadataKey) : null;
+        }
+        return null;
+    }
+
+    @Override
+    public long countByContextId(String contextId) {
+        if (contextId == null || contextId.trim().isEmpty()) {
+            return 0;
+        }
+        Query query = new Query();
+        query.addCriteria(Criteria.where("contextId").is(contextId));
+        return mongoTemplate.count(query, CatalogEntry.class);
     }
 }

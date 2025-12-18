@@ -1,7 +1,9 @@
 package com.ceremony.catalog.service;
 
 import com.ceremony.catalog.api.dto.ContextDefinitionDTO;
+import com.ceremony.catalog.api.dto.ContextWithCountDTO;
 import com.ceremony.catalog.domain.Context;
+import com.ceremony.catalog.persistence.CatalogRepository;
 import com.ceremony.catalog.persistence.ContextRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ContextService {
     private final ContextRepository repository;
+    private final CatalogRepository catalogRepository;
     
     public Context createContext(ContextDefinitionDTO dto) {
         // Normalize metadata field names to lowercase for case-insensitive handling
@@ -60,7 +63,16 @@ public class ContextService {
     public List<Context> getAllContexts() {
         return repository.findAll();
     }
-    
+
+    public List<ContextWithCountDTO> getAllContextsWithCounts() {
+        return repository.findAll().stream()
+            .map(context -> {
+                long count = catalogRepository.countByContextId(context.getContextId());
+                return ContextWithCountDTO.from(context, count);
+            })
+            .toList();
+    }
+
     public List<Context> getActiveContexts() {
         return repository.findByActiveTrue();
     }

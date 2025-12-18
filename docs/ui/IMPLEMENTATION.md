@@ -386,13 +386,10 @@ On Upload page, if user selects an inactive context:
 4. Create `UploadPage` assembling all components
 5. Write tests for `xmlParser.ts` (critical - must match Python behavior)
 
-### Phase 6: Autocomplete Backend Endpoint
-1. Add `GET /catalog/suggest` endpoint to Spring Boot
-   - Supports: `field`, `prefix`, `contextId` (optional), `metadata.*` (optional), `limit`
-   - Uses MongoDB `distinct()` with regex prefix matching
-   - Add index on `fieldPath` for performance
-2. Test endpoint with various scoping combinations
-3. Wire `useSuggest` hook to the new endpoint (used by both Search and Upload pages)
+### Phase 6: Wire Autocomplete Hook
+1. Wire `useSuggest` hook to the existing `/catalog/suggest` endpoint
+2. Test autocomplete with various scoping combinations (cross-context, context-scoped, metadata-scoped)
+3. Integrate autocomplete into Search and Upload pages
 
 ### Phase 7: Polish & Testing
 1. Add ErrorBoundary component
@@ -404,90 +401,36 @@ On Upload page, if user selects an inactive context:
 
 ---
 
-## Backend Changes Required
+## Backend Support (Implemented)
 
-### 0. Configure Max Page Size
-Set max page size to 250 in `application.yml`:
+The following backend features are already implemented and ready for UI integration:
 
-```yaml
-catalog:
-  search:
-    default-page-size: 250
-    max-page-size: 250
-```
+### CORS Configuration ✅
+CORS is configured in `WebConfig.java` to allow requests from:
+- `http://localhost:5173` (Vite dev server)
+- `http://localhost:3000` (alternative React port)
 
-### 1. CORS Configuration
-Add to `WebConfig.java`:
+Configurable via `catalog.cors.allowed-origins` property.
 
-```java
-@Override
-public void addCorsMappings(CorsRegistry registry) {
-    registry.addMapping("/catalog/**")
-        .allowedOrigins("http://localhost:5173", "http://localhost:3000")
-        .allowedMethods("GET", "POST", "PUT", "DELETE")
-        .allowedHeaders("*");
-}
-```
+### Autocomplete Suggest Endpoint ✅
+**Endpoint:** `GET /catalog/suggest`
 
-**File**: `src/main/java/com/ceremony/catalog/config/WebConfig.java`
-
-### 2. Autocomplete Suggest Endpoint
-Add generic endpoint for all autocomplete needs:
-
-```java
-// GET /catalog/suggest?field=fieldPath&prefix=/Cere&contextId=deposits&limit=10
-// GET /catalog/suggest?field=metadata.productCode&prefix=DD&contextId=deposits&limit=10
-@GetMapping("/suggest")
-public List<String> suggest(
-    @RequestParam String field,           // "fieldPath" or "metadata.{name}"
-    @RequestParam String prefix,          // What user has typed
-    @RequestParam(required = false) String contextId,  // Optional scope
-    @RequestParam(required = false) Map<String, String> metadata,  // Additional scope
-    @RequestParam(defaultValue = "10") int limit) {
-    return catalogService.suggestValues(field, prefix, contextId, metadata, limit);
-}
-```
-
-**Use cases:**
+Supports all autocomplete use cases:
 - Cross-context fieldPath: `?field=fieldPath&prefix=/Cere&limit=15`
 - Scoped fieldPath: `?field=fieldPath&prefix=/Cere&contextId=deposits&metadata.productCode=DDA`
 - Metadata values: `?field=metadata.productCode&prefix=DD&contextId=deposits`
 
-**Files to modify**:
-- `src/main/java/com/ceremony/catalog/api/CatalogController.java`
-- `src/main/java/com/ceremony/catalog/service/CatalogService.java`
-- `src/main/java/com/ceremony/catalog/persistence/CatalogCustomRepository.java`
-- `src/main/java/com/ceremony/catalog/persistence/CatalogCustomRepositoryImpl.java`
+### Context Field Counts ✅
+**Endpoint:** `GET /catalog/contexts?includeCounts=true`
 
-**MongoDB query pattern:**
-```javascript
-db.catalog_fields.distinct("fieldPath", {
-  fieldPath: { $regex: "^/Cere", $options: "i" },
-  contextId: "deposits",  // if provided
-  "metadata.productCode": "DDA"  // if provided
-}).slice(0, limit)
-```
+Returns contexts with optional `fieldCount` property for displaying field counts in context cards.
 
-### 3. Include Field Counts in Contexts Endpoint
-Modify existing GET /contexts to optionally include field counts:
+### Plain Text Search ✅
+The `fieldPathContains` parameter now accepts both:
+- Full XPath patterns starting with `/` (e.g., `/Ceremony/Account`)
+- Plain text for contains searches (e.g., `Amount`, `FeeCode`)
 
-```java
-// GET /catalog/contexts?includeCounts=true
-@GetMapping
-public List<ContextWithCount> getAllContexts(
-    @RequestParam(defaultValue = "false") boolean includeCounts) {
-    if (includeCounts) {
-        return contextService.getAllContextsWithCounts();
-    }
-    return contextService.getAllContexts();
-}
-```
-
-Returns each context with optional `fieldCount` property when `includeCounts=true`.
-
-**Files to modify**:
-- `src/main/java/com/ceremony/catalog/api/ContextController.java`
-- `src/main/java/com/ceremony/catalog/service/ContextService.java`
+See `docs/api/API_SPECIFICATION.md` for full API documentation.
 
 ---
 
@@ -499,7 +442,8 @@ Returns each context with optional `fieldCount` property when `includeCounts=tru
 | API contract | `docs/api/API_SPECIFICATION.md` |
 | Context domain | `src/main/java/com/ceremony/catalog/domain/Context.java` |
 | CatalogEntry domain | `src/main/java/com/ceremony/catalog/domain/CatalogEntry.java` |
-| CORS config (to modify) | `src/main/java/com/ceremony/catalog/config/WebConfig.java` |
+| CORS config | `src/main/java/com/ceremony/catalog/config/WebConfig.java` |
+| Suggest endpoint | `src/main/java/com/ceremony/catalog/api/CatalogController.java` |
 | C# SDK XML parser (primary reference) | `sdks/dotnet/net48/CeremonyFieldCatalogSdk.cs` |
 | Python XML parser (reference) | `sdks/python/ceremony_catalog_sdk.py` |
 | Python parser tests (reference) | `sdks/python/test_ceremony_catalog_sdk.py` |
@@ -518,6 +462,11 @@ interface Context {
   active: boolean;
   createdAt: string;
   updatedAt?: string;
+}
+
+// Extended context with field count (from GET /contexts?includeCounts=true)
+interface ContextWithCount extends Context {
+  fieldCount: number;
 }
 
 interface CatalogEntry {

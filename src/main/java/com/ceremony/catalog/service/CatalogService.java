@@ -190,6 +190,35 @@ public class CatalogService {
         CatalogSearchCriteria sanitizedCriteria = sanitizeSearchCriteria(criteria);
         return repository.searchByCriteria(sanitizedCriteria, pageable);
     }
+
+    public List<String> suggestValues(String field, String prefix, String contextId, Map<String, String> metadata, int limit) {
+        // Validate field parameter
+        if (field == null || field.trim().isEmpty()) {
+            throw new IllegalArgumentException("Field parameter is required");
+        }
+        if (!field.equals("fieldPath") && !field.startsWith("metadata.")) {
+            throw new IllegalArgumentException("Field must be 'fieldPath' or 'metadata.{name}'");
+        }
+
+        // Sanitize inputs
+        String cleanedContextId = contextId != null ?
+            validationService.validateAndCleanContextId(contextId) : null;
+        Map<String, String> cleanedMetadata = metadata != null ?
+            validationService.validateAndCleanMetadata(metadata) : null;
+
+        // Ensure limit is reasonable
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+
+        return repository.suggestValues(field, prefix, cleanedContextId, cleanedMetadata, safeLimit);
+    }
+
+    public long countFieldsByContextId(String contextId) {
+        if (contextId == null || contextId.trim().isEmpty()) {
+            return 0;
+        }
+        String cleanedContextId = validationService.validateAndCleanContextId(contextId);
+        return repository.countByContextId(cleanedContextId);
+    }
     
     private CatalogSearchCriteria sanitizeSearchCriteria(CatalogSearchCriteria criteria) {
         String cleanedContextId = criteria.contextId() != null ? 

@@ -1,11 +1,13 @@
 package com.ceremony.catalog.api;
 
 import com.ceremony.catalog.api.dto.ContextDefinitionDTO;
+import com.ceremony.catalog.api.dto.ContextWithCountDTO;
 import com.ceremony.catalog.api.dto.ErrorResponse;
-import com.ceremony.catalog.domain.Context;  
+import com.ceremony.catalog.domain.Context;
 import com.ceremony.catalog.service.ContextService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -62,7 +64,7 @@ public class ContextController {
     
     @Operation(
         summary = "Get all contexts",
-        description = "Retrieve a list of all available catalog contexts."
+        description = "Retrieve a list of all available catalog contexts. Use includeCounts=true to include field counts for each context."
     )
     @ApiResponses({
         @ApiResponse(
@@ -70,12 +72,20 @@ public class ContextController {
             description = "List of contexts returned successfully",
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = Context.class)
+                array = @ArraySchema(schema = @Schema(oneOf = {Context.class, ContextWithCountDTO.class}))
             )
         )
     })
     @GetMapping
-    public List<Context> getAllContexts() {
+    public List<?> getAllContexts(
+            @Parameter(
+                description = "Include field count for each context",
+                example = "true"
+            )
+            @RequestParam(defaultValue = "false") boolean includeCounts) {
+        if (includeCounts) {
+            return contextService.getAllContextsWithCounts();
+        }
         return contextService.getAllContexts();
     }
     

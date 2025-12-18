@@ -21,7 +21,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/catalog")
@@ -151,5 +153,73 @@ public class CatalogController {
         
         Pageable pageable = PageRequest.of(request.page(), pageSize);
         return catalogService.find(request.toCriteria(), pageable);
+    }
+
+    @Operation(
+        summary = "Suggest values for autocomplete",
+        description = "Get autocomplete suggestions for fieldPath or metadata values. Supports optional scoping by context and metadata filters."
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "Suggestions returned successfully",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    value = """
+                    [
+                      "/Ceremony/Account/Amount",
+                      "/Ceremony/Account/Balance",
+                      "/Ceremony/Account/FeeCode"
+                    ]
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid field parameter",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)
+            )
+        )
+    })
+    @GetMapping("/suggest")
+    public List<String> suggest(
+            @Parameter(
+                description = "Field to suggest values for: 'fieldPath' or 'metadata.{name}' (e.g., 'metadata.productCode')",
+                example = "fieldPath",
+                required = true
+            )
+            @RequestParam String field,
+            @Parameter(
+                description = "Prefix to match (case-insensitive)",
+                example = "/Ceremony/Acc"
+            )
+            @RequestParam(required = false) String prefix,
+            @Parameter(
+                description = "Optional context ID to scope the search",
+                example = "deposits"
+            )
+            @RequestParam(required = false) String contextId,
+            @Parameter(
+                description = "Maximum number of suggestions to return (default: 10, max: 100)",
+                example = "10"
+            )
+            @RequestParam(defaultValue = "10") int limit,
+            @Parameter(hidden = true)
+            @RequestParam Map<String, String> allParams) {
+
+        // Extract metadata filters from query params (any param starting with "metadata.")
+        Map<String, String> metadata = new HashMap<>();
+        for (Map.Entry<String, String> entry : allParams.entrySet()) {
+            if (entry.getKey().startsWith("metadata.")) {
+                String metadataKey = entry.getKey().substring("metadata.".length());
+                metadata.put(metadataKey, entry.getValue());
+            }
+        }
+
+        return catalogService.suggestValues(field, prefix, contextId, metadata.isEmpty() ? null : metadata, limit);
     }
 }

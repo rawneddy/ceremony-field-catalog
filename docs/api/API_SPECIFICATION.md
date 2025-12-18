@@ -97,7 +97,13 @@ Field identity is computed as: `hash(contextId + requiredMetadata + fieldPath)`
 
 **Purpose:** Retrieve all available contexts
 
-**Response:** `200 OK`
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `includeCounts` | boolean | No | Include field count for each context (default: false) |
+
+**Response (without includeCounts):** `200 OK`
 ```json
 [
   {
@@ -119,6 +125,23 @@ Field identity is computed as: `hash(contextId + requiredMetadata + fieldPath)`
     "active": true,
     "createdAt": "2024-01-16T08:00:00Z",
     "updatedAt": null
+  }
+]
+```
+
+**Response (with includeCounts=true):** `200 OK`
+```json
+[
+  {
+    "contextId": "deposits",
+    "displayName": "Deposits",
+    "description": "Ceremony XML processing for account deposits",
+    "requiredMetadata": ["productCode", "productSubCode", "action"],
+    "optionalMetadata": ["channel"],
+    "active": true,
+    "createdAt": "2024-01-15T10:30:00Z",
+    "updatedAt": null,
+    "fieldCount": 1247
   }
 ]
 ```
@@ -245,7 +268,7 @@ Field identity is computed as: `hash(contextId + requiredMetadata + fieldPath)`
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `contextId` | string | No | Filter by context (omit for cross-context search) |
-| `fieldPathContains` | string | No | Case-insensitive pattern match on fieldPath |
+| `fieldPathContains` | string | No | Case-insensitive pattern match on fieldPath. Accepts full paths (e.g., `/Ceremony/Account`) or plain text (e.g., `Amount`) |
 | `page` | integer | No | Page number (0-based, default: 0) |
 | `size` | integer | No | Page size (1-250, default: 50) |
 | `*` | string | No | Any other parameter treated as metadata filter |
@@ -338,6 +361,52 @@ GET /catalog/fields?contextId=deposits&productCode=DDA&fieldPathContains=Account
 ```
 
 **Note:** Metadata keys and values are normalized to lowercase for case-insensitive matching.
+
+---
+
+#### 8. Suggest Values (Autocomplete)
+
+**Endpoint:** `GET /catalog/suggest`
+
+**Purpose:** Get autocomplete suggestions for fieldPath or metadata values
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `field` | string | Yes | Field to suggest for: `fieldPath` or `metadata.{name}` |
+| `prefix` | string | No | Prefix to match (case-insensitive) |
+| `contextId` | string | No | Scope suggestions to a specific context |
+| `limit` | integer | No | Maximum suggestions to return (default: 10, max: 100) |
+| `metadata.*` | string | No | Additional metadata filters to scope suggestions |
+
+**Example Requests:**
+
+```bash
+# Cross-context fieldPath suggestions
+GET /catalog/suggest?field=fieldPath&prefix=/Ceremony/Acc&limit=15
+
+# Scoped fieldPath suggestions (within context and metadata)
+GET /catalog/suggest?field=fieldPath&prefix=/Ceremony/Acc&contextId=deposits&metadata.productCode=DDA
+
+# Metadata value suggestions
+GET /catalog/suggest?field=metadata.productCode&prefix=DD&contextId=deposits
+```
+
+**Response:** `200 OK`
+```json
+[
+  "/Ceremony/Account/Amount",
+  "/Ceremony/Account/Balance",
+  "/Ceremony/Account/FeeCode"
+]
+```
+
+**Notes:**
+- Suggestions are case-insensitive prefix matches
+- Results are sorted alphabetically and limited to the specified max
+- For `fieldPath`, prefix should start with `/` for path suggestions
+- For metadata values, prefix can be any partial match
 
 ---
 

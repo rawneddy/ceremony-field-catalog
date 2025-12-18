@@ -25,28 +25,29 @@ public class InputValidationService {
     private static final Pattern VALID_METADATA_KEY = Pattern.compile("^[a-zA-Z0-9._-]+$");
     
     /**
-     * Validates and cleans field path expressions
+     * Validates and cleans field path expressions.
+     * Accepts both full XPath-style paths (starting with /) and plain text for contains searches.
      */
     public String validateAndCleanFieldPath(String fieldPath) {
         if (!StringUtils.hasText(fieldPath)) {
             return fieldPath;
         }
-        
+
         String cleaned = fieldPath.trim();
-        
+
         int maxLength = catalogProperties.getValidation().getMaxFieldPathLength();
         if (cleaned.length() > maxLength) {
             throw new IllegalArgumentException("Field path too long (max " + maxLength + " characters)");
         }
-        
+
         // Remove control characters only
         cleaned = CONTROL_CHARS.matcher(cleaned).replaceAll("");
-        
-        // Basic field path format validation
+
+        // Basic field path format validation - allow both full paths and plain text search terms
         if (!isValidFieldPathFormat(cleaned)) {
             throw new IllegalArgumentException("Invalid field path format: " + cleaned);
         }
-        
+
         return cleaned;
     }
     
@@ -147,9 +148,16 @@ public class InputValidationService {
         if (fieldPath.isEmpty()) {
             return false;
         }
-        
-        // Basic field path validation - should start with / and contain element names
-        return fieldPath.startsWith("/") && 
-               fieldPath.matches(".*[a-zA-Z_][a-zA-Z0-9_-]*.*"); // Contains element names
+
+        // If it starts with /, validate as XPath-style path
+        if (fieldPath.startsWith("/")) {
+            // Should contain valid element names (letters, numbers, underscores, hyphens)
+            return fieldPath.matches(".*[a-zA-Z_][a-zA-Z0-9_-]*.*");
+        }
+
+        // Otherwise, treat as plain text search term
+        // Allow alphanumeric chars, underscores, hyphens, dots, and slashes
+        // This supports searches like "Amount", "FeeCode", "Account.Amount", etc.
+        return fieldPath.matches("^[a-zA-Z0-9_./@ -]+$");
     }
 }

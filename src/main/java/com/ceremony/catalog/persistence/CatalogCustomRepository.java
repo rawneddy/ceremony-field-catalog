@@ -10,14 +10,35 @@ import java.util.Map;
 public interface CatalogCustomRepository {
     List<CatalogEntry> searchByCriteria(CatalogSearchCriteria criteria);
     Page<CatalogEntry> searchByCriteria(CatalogSearchCriteria criteria, Pageable pageable);
-    
+
     /**
      * Optimized query to find field paths by context and metadata.
      * Returns only the field path values for minimal data transfer and memory usage.
-     * 
+     *
      * @param contextId the context ID to filter by
      * @param metadata the metadata key-value pairs to filter by
      * @return list of distinct field path strings matching the criteria
      */
     List<String> findFieldPathsByContextAndMetadata(String contextId, Map<String, String> metadata);
+
+    /**
+     * Suggest values for autocomplete based on field and prefix.
+     * Supports both fieldPath and metadata value suggestions.
+     *
+     * @param field the field to suggest for ("fieldPath" or "metadata.{name}")
+     * @param prefix the prefix to match (case-insensitive)
+     * @param contextId optional context to scope the search
+     * @param metadata optional metadata filters to scope the search
+     * @param limit maximum number of suggestions to return
+     * @return list of distinct values matching the prefix
+     */
+    List<String> suggestValues(String field, String prefix, String contextId, Map<String, String> metadata, int limit);
+
+    /**
+     * Count total fields by context ID.
+     *
+     * @param contextId the context ID to count fields for
+     * @return the number of fields in the context
+     */
+    long countByContextId(String contextId);
 }
