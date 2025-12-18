@@ -1,6 +1,11 @@
 # UI First Release Implementation Plan
 
+## Document Purpose
+
+This document provides the technical implementation plan for the Ceremony Field Catalog UI. It implements the requirements defined in `REQUIREMENTS.md`. See the "Requirements Traceability" section at the end for mapping between components and requirements.
+
 ## Summary
+
 Build a React UI for the Ceremony Field Catalog, living in `ui/` folder alongside the Spring Boot API.
 
 ## Decisions Made
@@ -490,8 +495,8 @@ Returns each context with optional `fieldCount` property when `includeCounts=tru
 
 | Purpose | File |
 |---------|------|
-| API contract | `docs/ui-docs/API_SPECIFICATION.md` |
-| Sample components | `docs/ui-docs/SAMPLE_COMPONENTS.md` |
+| Requirements (traceability source) | `docs/ui/REQUIREMENTS.md` |
+| API contract | `docs/api/API_SPECIFICATION.md` |
 | Context domain | `src/main/java/com/ceremony/catalog/domain/Context.java` |
 | CatalogEntry domain | `src/main/java/com/ceremony/catalog/domain/CatalogEntry.java` |
 | CORS config (to modify) | `src/main/java/com/ceremony/catalog/config/WebConfig.java` |
@@ -582,3 +587,63 @@ interface UploadStatus {
   }
 }
 ```
+
+---
+
+## Requirements Traceability
+
+This section maps implementation components to requirements defined in `REQUIREMENTS.md`.
+
+### Component to Requirements Matrix
+
+| Component | Implements Requirements |
+|-----------|------------------------|
+| **Context Components** | |
+| `ContextList.tsx` | REQ-1.1 (view contexts) |
+| `ContextCard.tsx` | REQ-1.1 (display info), REQ-1.5 (inactive styling) |
+| `ContextForm.tsx` | REQ-1.2 (create), REQ-1.3 (edit) |
+| `ContextDeleteDialog.tsx` | REQ-1.4 (delete confirmation) |
+| **Search Components** | |
+| `SearchForm.tsx` | REQ-2.1 (context search), REQ-2.4 (cross-context) |
+| `ContextSelector.tsx` | REQ-2.1 (context dropdown) |
+| `MetadataFilters.tsx` | REQ-2.2 (dynamic metadata), REQ-2.6 (autocomplete) |
+| `QuickFindInput.tsx` | REQ-2.3 (path search), REQ-2.5 (autocomplete) |
+| **Results Components** | |
+| `FieldTable.tsx` | REQ-3.1 (sortable table), REQ-3.5 (keyboard nav) |
+| `FieldRow.tsx` | REQ-3.1 (display), REQ-3.7 (highlight matches) |
+| `FieldDetailPanel.tsx` | REQ-3.4 (detail panel with copy) |
+| `ResultsFilter.tsx` | REQ-3.3 (client-side filtering) |
+| `HighlightText.tsx` | REQ-3.7 (highlight matching text) |
+| `ExportButton.tsx` | REQ-3.6 (CSV/JSON export) |
+| **Upload Components** | |
+| `FileDropZone.tsx` | REQ-4.1 (drag-drop upload) |
+| `MetadataForm.tsx` | REQ-4.3 (metadata input with autocomplete) |
+| `UploadProgress.tsx` | REQ-4.4 (progress indication) |
+| `UploadResults.tsx` | REQ-4.4 (results summary) |
+| **Services** | |
+| `xmlParser.ts` | REQ-4.2 (XML parsing logic) |
+| `catalogApi.ts` | REQ-5.1 (API integration) |
+| **Infrastructure** | |
+| `ErrorBoundary.tsx` | REQ-5.3 (error handling) |
+| `Layout.tsx` | REQ-5.2 (responsive design) |
+
+### Phase to Requirements Matrix
+
+| Phase | Requirements Addressed |
+|-------|----------------------|
+| Phase 1: Project Foundation | REQ-5.5 (bundle size), Design Specs |
+| Phase 2: Core Infrastructure | REQ-5.1 (API), REQ-5.3 (error handling) |
+| Phase 3: Field Search | REQ-2.1 through REQ-2.6, REQ-3.1 through REQ-3.7 |
+| Phase 4: Context Management | REQ-1.1 through REQ-1.5 |
+| Phase 5: XML Upload | REQ-4.1 through REQ-4.4 |
+| Phase 6: Autocomplete Backend | REQ-2.5, REQ-2.6 (backend support) |
+| Phase 7: Polish & Testing | REQ-5.2 (responsive), REQ-5.3 (error states), REQ-5.4 (accessibility) |
+
+### Design Specifications
+
+Colors, typography, and layout principles are defined in `REQUIREMENTS.md` under "Design Specifications". This plan implements those specifications using:
+
+- **Tailwind CSS** with custom theme configuration matching the color scheme
+- **Inter font** via Google Fonts or local installation
+- **Monaco/Consolas** for monospace code display
+- **shadcn/ui** components styled to match the design system
