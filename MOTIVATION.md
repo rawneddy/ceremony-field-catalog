@@ -24,7 +24,7 @@ The legacy ceremony system operates in two stages:
 **Stage 2: Data Transformation**
 - For each selected document code, transforms the Ceremony XML into document-specific XML
 - Each document template (managed by a separate team) has its own schema requirements
-- The transformed XML is sent to Adobe LiveCycle for PDF rendering
+- The transformed XML is sent to the PDF Generation API for rendering
 
 ### The Passthrough Problem
 
@@ -67,15 +67,15 @@ The XSLT transforms that convert Ceremony XML to document-specific XML are thems
 ## The Three Pathways Make It Worse
 
 ### Pathway 1: Ceremony Path
-- Ceremony XML → Business Rules → Per-Document Transforms → LiveCycle
+- Ceremony XML → Business Rules → Per-Document Transforms → PDF Generation API
 - **The problem**: Transforms know what they need, but we'd have to reverse-engineer hundreds of XSLTs to extract field requirements
 
 ### Pathway 2: OnDemand Path
-- Pre-formed Document XML → Passthrough → LiveCycle
+- Pre-formed Document XML → Passthrough → PDF Generation API
 - **The problem**: The legacy system has zero knowledge of these fields. It just forwards whatever it receives.
 
 ### Pathway 3: BMIC Path
-- Reference ID → Fetch BMIC XML from SOR → Light Transform → LiveCycle
+- Reference ID → Fetch BMIC XML from SOR → Light Transform → PDF Generation API
 - **The problem**: BMIC XML comes from an external system. ~90% of fields are shared across documents with no documentation of which fields each document actually uses.
 
 ---
@@ -92,7 +92,7 @@ Several approaches have been considered and rejected:
 - Would take months of manual analysis with high error risk
 
 ### "Ask the template team for schemas"
-- The template team defines what their LiveCycle templates expect
+- The template team defines what their document templates expect
 - But they don't know all the variants of data the legacy system might send
 - Their schemas define structure, not "which fields are used for which product codes"
 

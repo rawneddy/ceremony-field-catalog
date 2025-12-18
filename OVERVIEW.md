@@ -6,7 +6,7 @@ This system was built for a legacy PDF rendering pipeline that processes XML thr
 
 ```
 ┌─────────────────┐     ┌─────────────────────────┐     ┌─────────────┐     ┌──────┐
-│ Calling Systems │ ──► │ Legacy Ceremony System  │ ──► │  LiveCycle  │ ──► │ PDFs │
+│ Calling Systems │ ──► │ Legacy Ceremony System  │ ──► │ PDF Gen API │ ──► │ PDFs │
 └─────────────────┘     │  (XML Transformation)   │     │  Rendering  │     └──────┘
                         └─────────────────────────┘     └─────────────┘
 ```
@@ -31,7 +31,7 @@ The legacy system isn't a single pipeline - it supports multiple distinct pathwa
 ┌──────────────┐    ┌─────────────────────────────────────────────────────────────┐
 │   Calling    │    │              Legacy Ceremony System                          │
 │   System     │───►│  ┌─────────────┐   ┌──────────────┐   ┌──────────────────┐  │
-│              │    │  │ Ceremony    │──►│ Business     │──►│ Per-Document     │──┼──► LiveCycle
+│              │    │  │ Ceremony    │──►│ Business     │──►│ Per-Document     │──┼──► PDF Gen API
 │ Ceremony XML │    │  │ XML (IN)    │   │ Rules Engine │   │ Transforms (OUT) │  │
 └──────────────┘    │  └─────────────┘   │ (which docs?)│   └──────────────────┘  │
                     │                     └──────────────┘                         │
@@ -42,7 +42,7 @@ The legacy system isn't a single pipeline - it supports multiple distinct pathwa
 1. Calling system sends **Ceremony XML** - a consistent but non-schema'd structure (customers, accounts, products, etc.)
 2. Legacy system runs **business rules** to determine which document codes are needed
 3. For each document code, **transforms** Ceremony XML into document-specific XML conforming to template team's schema
-4. Sends transformed XML to LiveCycle for PDF rendering
+4. Sends transformed XML to PDF Generation API for rendering
 
 **Key characteristics:**
 - Input XML is abstracted from documents (no "this field is for doc XYZ")
@@ -56,7 +56,7 @@ The legacy system isn't a single pipeline - it supports multiple distinct pathwa
 ┌──────────────┐    ┌─────────────────────────────────────────────────────────────┐
 │   Calling    │    │              Legacy Ceremony System                          │
 │   System     │───►│                                                              │
-│              │    │  Document XML + Workflow Instructions ─────────────────────┼──► LiveCycle
+│              │    │  Document XML + Workflow Instructions ─────────────────────┼──► PDF Gen API
 │ Pre-formed   │    │  (passthrough - no transforms, no business rules)           │
 │ Document XML │    │                                                              │
 └──────────────┘    └─────────────────────────────────────────────────────────────┘
@@ -65,7 +65,7 @@ The legacy system isn't a single pipeline - it supports multiple distinct pathwa
 **Flow:**
 1. Calling system sends **exact XML per document** plus workflow instructions
 2. Legacy system acts as a **passthrough** - no business rules, no transforms
-3. XML forwarded directly to LiveCycle
+3. XML forwarded directly to PDF Generation API
 
 **Key characteristics:**
 - Used when data isn't related to broader Ceremony XML (banking products, applications)
@@ -79,7 +79,7 @@ The legacy system isn't a single pipeline - it supports multiple distinct pathwa
 ┌──────────────┐    ┌─────────────────────────────────────────────────────────────┐
 │   Calling    │    │              Legacy Ceremony System                          │
 │   System     │───►│  ┌───────┐   ┌─────────────┐   ┌──────────────────────────┐ │
-│              │    │  │ ID    │──►│ Fetch BMIC  │──►│ Light Transform          │─┼─► LiveCycle
+│              │    │  │ ID    │──►│ Fetch BMIC  │──►│ Light Transform          │─┼─► PDF Gen API
 │ Reference ID │    │  │       │   │ XML from SOR│   │ (mostly adds new tags)   │ │
 └──────────────┘    │  └───────┘   └─────────────┘   └──────────────────────────┘ │
                     └─────────────────────────────────────────────────────────────┘
@@ -89,7 +89,7 @@ The legacy system isn't a single pipeline - it supports multiple distinct pathwa
 1. Calling system sends an **ID** referencing data in a System of Record (SOR)
 2. Legacy system **fetches BMIC XML** from the SOR
 3. Runs **light transforms** - mostly adding new tags, not restructuring
-4. Entire XML (original + added tags) sent to LiveCycle
+4. Entire XML (original + added tags) sent to PDF Generation API
 
 **Key characteristics:**
 - Used for older loan-related templates
@@ -115,7 +115,7 @@ The Field Catalog captures observations at multiple points in these pipelines:
 
 | Observation Point | Context | Required Metadata | What It Captures |
 |-------------------|---------|-------------------|------------------|
-| Per-document rendering XML | `renderdata` | documentCode | Final fields sent to LiveCycle per document template |
+| Per-document rendering XML | `renderdata` | documentCode | Final fields sent to PDF Generation API per document template |
 | OnDemand passthrough | `ondemand` | formCode, formVersion | Fields in pre-formed document XML |
 
 ### Future Observation Points (Extensible)
@@ -488,7 +488,7 @@ This system is a **field indexing engine** that builds an empirical understandin
 
 - **Ceremony XML** as it enters the system
 - **BMIC XML** fetched from Systems of Record
-- **Document-specific XML** sent to LiveCycle
+- **Document-specific XML** sent to PDF Generation API
 - **OnDemand XML** passed through without transformation
 
 ...the catalog becomes the authoritative source for understanding what data flows through the legacy system, enabling:

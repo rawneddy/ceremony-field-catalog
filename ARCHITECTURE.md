@@ -7,7 +7,7 @@
 │                              PRODUCTION ENVIRONMENT                                  │
 │                                                                                      │
 │  ┌─────────────────┐     ┌──────────────────────────┐     ┌───────────────────────┐ │
-│  │  Upstream       │     │  Legacy Ceremony System  │     │  Adobe LiveCycle      │ │
+│  │  Upstream       │     │  Legacy Ceremony System  │     │  PDF Generation API   │ │
 │  │  Systems        │────►│  (.NET Framework)        │────►│  (PDF Rendering)      │ │
 │  │                 │     │                          │     │                       │ │
 │  └─────────────────┘     └────────────┬─────────────┘     └───────────────────────┘ │
@@ -166,7 +166,7 @@ MongoDB document store with two collections:
 {
   "_id": "renderdata",                              // contextId
   "displayName": "Document Rendering Data",
-  "description": "Fields sent to LiveCycle per document",
+  "description": "Fields sent to PDF Generation API per document",
   "requiredMetadata": ["documentCode"],             // Determines field identity
   "optionalMetadata": ["productCode", "productSubCode"],
   "active": true,
@@ -284,7 +284,7 @@ Content-Type: application/json
 {
   "contextId": "renderdata",
   "displayName": "Document Rendering Data",
-  "description": "Fields sent to LiveCycle per document",
+  "description": "Fields sent to PDF Generation API per document",
   "requiredMetadata": ["documentCode"],
   "optionalMetadata": ["productCode", "productSubCode"],
   "active": true
@@ -296,7 +296,7 @@ Content-Type: application/json
 {
   "contextId": "renderdata",
   "displayName": "Document Rendering Data",
-  "description": "Fields sent to LiveCycle per document",
+  "description": "Fields sent to PDF Generation API per document",
   "requiredMetadata": ["documentCode"],
   "optionalMetadata": ["productCode", "productSubCode"],
   "active": true,
@@ -459,7 +459,7 @@ GET /catalog/fields?fieldPathContains=TaxWithholding
 │                                                                                      │
 │  ┌─────────────────────────────────────────────────────────────────────────────┐    │
 │  │                          Normal Processing Flow                               │    │
-│  │  Ceremony XML ──► Business Rules ──► Transforms ──► LiveCycle                 │    │
+│  │  Ceremony XML ──► Business Rules ──► Transforms ──► PDF Gen API               │    │
 │  └──────┬────────────────────┬───────────────────────────┬──────────────────────┘    │
 │         │                    │                           │                           │
 │         │ Observation        │ Observation               │ Observation               │
@@ -502,8 +502,8 @@ The .NET SDK (in `sdks/dotnet/`) provides:
 |-------|---------|--------------|--------------|
 | Ceremony XML Receipt | `ceremony-inbound` | After receiving from upstream | All fields in Ceremony XML |
 | BMIC XML Fetch | `bmic-inbound` | After fetching from SOR | All fields in BMIC XML |
-| Pre-Render XML | `renderdata` | Before sending to LiveCycle | All fields in document-specific XML |
-| OnDemand Passthrough | `ondemand` | Before forwarding to LiveCycle | All fields in passthrough XML |
+| Pre-Render XML | `renderdata` | Before sending to PDF Generation API | All fields in document-specific XML |
+| OnDemand Passthrough | `ondemand` | Before forwarding to PDF Generation API | All fields in passthrough XML |
 
 ---
 
