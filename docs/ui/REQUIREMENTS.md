@@ -22,6 +22,13 @@ The UI must support the **dynamic Context system**:
 - Field identity is determined by: `contextId + requiredMetadata + fieldPath`
 - Searches can filter by context, metadata fields, or field path patterns
 
+### Metadata Normalization
+
+The backend normalizes all metadata keys and values to **lowercase** for case-insensitive matching. The UI should:
+- Display metadata values as stored (lowercase)
+- Accept any case in filter inputs (will be normalized by API)
+- Show autocomplete suggestions in lowercase (as stored)
+
 ---
 
 ## User Personas
@@ -86,9 +93,24 @@ The UI must support the **dynamic Context system**:
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
 | REQ-4.1 | File upload interface | Drag-and-drop zone accepting multiple XML files. Also supports click-to-browse. |
-| REQ-4.2 | XML parsing | Parse uploaded XML files to extract field observations. Logic matches existing SDK implementations (strip namespaces, extract leaf elements and attributes, track count/null/empty). |
+| REQ-4.2 | XML parsing | Parse uploaded XML files to extract field observations. Logic matches existing SDK implementations (strip namespaces, extract leaf elements and attributes, track count/null/empty). See "XML Parsing Semantics" below. |
 | REQ-4.3 | Metadata input | Before upload, user selects context and provides required metadata values. Inputs have autocomplete. Show warning if context is inactive. |
 | REQ-4.4 | Upload progress | Show progress indicator per file. Display final summary: X observations extracted from Y files, submission status. |
+
+#### XML Parsing Semantics (REQ-4.2 Detail)
+
+The UI XML parser must match the behavior of the existing SDKs:
+
+**What constitutes "null" vs "empty":**
+- **hasNull = false**: XML does not have a concept of "null" in standard parsing. The `hasNull` flag is effectively always `false` for XML sources unless `xsi:nil="true"` is explicitly present on an element.
+- **hasEmpty = true**: When an element contains only whitespace or is self-closing with no content (e.g., `<Amount/>` or `<Amount>   </Amount>`).
+
+**Parsing rules:**
+- Only **leaf elements** (elements with no child elements) are counted as fields
+- Attributes are extracted as separate field paths (e.g., `/Root/@attr`)
+- Namespaces are stripped (use `localName` only)
+- Field paths are built hierarchically (e.g., `/Root/Parent/Child`)
+- Count represents occurrences within a single document
 
 ### REQ-5: User Experience
 
@@ -97,8 +119,20 @@ The UI must support the **dynamic Context system**:
 | REQ-5.1 | Search performance | Search results display within 2 seconds for typical queries |
 | REQ-5.2 | Responsive design | UI usable on screens from 768px width and up. Tables scroll horizontally on smaller screens. |
 | REQ-5.3 | Error handling | Clear error messages for API failures. Loading indicators during API calls. Empty state messaging when no results found. |
-| REQ-5.4 | Accessibility | WCAG 2.1 AA compliance. Keyboard navigable. Sufficient color contrast. |
-| REQ-5.5 | Initial load performance | Application loads within 3 seconds. Bundle size < 500KB gzipped. |
+| REQ-5.4 | ~~Accessibility~~ | *Removed - not a priority for initial release* |
+| REQ-5.5 | Initial load performance | Application loads within 3 seconds. See "Performance Testing" below. |
+
+#### Performance Testing (REQ-5.5 Detail)
+
+**Verification approach:**
+- Bundle size measured via `vite build` output
+- Lighthouse performance audit targeting score > 90
+- Initial load measured on throttled 3G connection in DevTools
+
+**Bundle size budget:**
+- Total JavaScript: < 500KB gzipped
+- Main chunk: < 200KB gzipped
+- Lazy-loaded routes allowed for large components
 
 ---
 

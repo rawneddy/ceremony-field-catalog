@@ -483,11 +483,11 @@ interface PagedResponse<T> {
 
 ```typescript
 interface ErrorResponse {
-  message: string;
-  status: number;
-  timestamp: string;
-  error: string;
-  validationErrors?: Record<string, string>;
+  message: string;           // Human-readable error message
+  status: number;            // HTTP status code
+  timestamp: string;         // ISO 8601 timestamp
+  error: string;             // Error type (e.g., "Bad Request", "Validation Error")
+  errors?: string[];         // Optional array of validation error messages
 }
 ```
 

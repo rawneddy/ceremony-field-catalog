@@ -159,7 +159,7 @@ Results (156 matches in deposits):
 
 ### Results Interaction Features
 
-**Single Page Results (POC Simplification)** - API returns max 250 results per request. If more results exist, UI displays "Showing 250 of X results - refine your search for more specific results." No pagination controls or fetching additional pages. This keeps the POC simple while still being useful.
+**Single Page Results (POC Simplification)** - The UI requests `size=250` for all searches. The backend supports up to 1000 per page, but 250 is chosen for UI simplicity. If more results exist, UI displays "Showing 250 of X results - refine your search for more specific results." No pagination controls or fetching additional pages. This keeps the POC simple while still being useful.
 
 **Keyboard Navigation:**
 - Click row → highlight it, show detail panel on right
@@ -315,6 +315,37 @@ On Upload page, if user selects an inactive context:
 
 ---
 
+## Implementation Notes
+
+### Context Update Payloads
+
+When updating a context via `PUT /catalog/contexts/{contextId}`, the **requiredMetadata array must be included** in the payload even though it cannot be changed. The backend validates that requiredMetadata matches the existing values and rejects the request if they differ.
+
+The `ContextForm` component should:
+1. Fetch the existing context to get current requiredMetadata
+2. Display requiredMetadata as read-only (disabled inputs or plain text)
+3. Include the original requiredMetadata values in the PUT payload
+4. Allow editing of: displayName, description, optionalMetadata, active
+
+### Shareable URL State
+
+The "shareable searches" feature (Phase 3, step 11) encodes search parameters in the URL query string:
+
+**Parameters encoded in URL:**
+- `contextId` - selected context
+- `fieldPathContains` - search pattern
+- Metadata filter values (e.g., `productCode=dda`)
+
+**Parameters NOT encoded in URL:**
+- Client-side filter text (path filter, metadata filter)
+- Client-side checkbox states (has null, has empty, etc.)
+- Sort column and direction
+- Selected row for detail panel
+
+**Important:** The backend's dynamic parameter resolver treats unknown query parameters as metadata filters. The UI must use only the known parameter names (`contextId`, `fieldPathContains`, `page`, `size`) plus valid metadata keys for the selected context to avoid unintended filtering.
+
+---
+
 ## Implementation Phases
 
 ### Phase 1: Project Foundation
@@ -386,8 +417,9 @@ On Upload page, if user selects an inactive context:
 4. Create `UploadPage` assembling all components
 5. Write tests for `xmlParser.ts` (critical - must match Python behavior)
 
-### Phase 6: Wire Autocomplete Hook
-1. Wire `useSuggest` hook to the existing `/catalog/suggest` endpoint
+### Phase 6: Integrate Autocomplete
+The `/catalog/suggest` endpoint is already implemented in the backend. This phase integrates it:
+1. Wire `useSuggest` hook to the `/catalog/suggest` endpoint
 2. Test autocomplete with various scoping combinations (cross-context, context-scoped, metadata-scoped)
 3. Integrate autocomplete into Search and Upload pages
 
@@ -506,6 +538,15 @@ interface UploadStatus {
   observationCount?: number;
   error?: string;
 }
+
+// API error response (matches GlobalExceptionHandler output)
+interface ErrorResponse {
+  message: string;           // Human-readable error message
+  status: number;            // HTTP status code
+  timestamp: string;         // ISO 8601 timestamp
+  error: string;             // Error type (e.g., "Bad Request", "Validation Error")
+  errors?: string[];         // Optional array of validation error messages
+}
 ```
 
 ---
@@ -586,7 +627,7 @@ This section maps implementation components to requirements defined in `REQUIREM
 | Phase 4: Context Management | REQ-1.1 through REQ-1.5 |
 | Phase 5: XML Upload | REQ-4.1 through REQ-4.4 |
 | Phase 6: Autocomplete Backend | REQ-2.5, REQ-2.6 (backend support) |
-| Phase 7: Polish & Testing | REQ-5.2 (responsive), REQ-5.3 (error states), REQ-5.4 (accessibility) |
+| Phase 7: Polish & Testing | REQ-5.2 (responsive), REQ-5.3 (error states) |
 
 ### Design Specifications
 
@@ -596,3 +637,41 @@ Colors, typography, and layout principles are defined in `REQUIREMENTS.md` under
 - **Inter font** via Google Fonts or local installation
 - **Monaco/Consolas** for monospace code display
 - **shadcn/ui** components styled to match the design system
+
+---
+
+## Appendix: Pre-Implementation Review Resolution
+
+This section documents the resolution of blocking and non-blocking issues identified during the pre-implementation review.
+
+### Blocking Issues - All Resolved
+
+| Issue | Resolution |
+|-------|------------|
+| **Autocomplete requires new API surface** | ✅ `GET /catalog/suggest` endpoint implemented in backend |
+| **Context "field count" not available** | ✅ `GET /catalog/contexts?includeCounts=true` implemented |
+| **CORS not implemented** | ✅ CORS configured in `WebConfig.java` for localhost:5173 and localhost:3000 |
+| **fieldPathContains behavior conflicts** | ✅ Backend updated to accept both full paths (`/Ceremony/...`) and plain text (`Amount`) |
+| **Error response contract mismatch** | ✅ `ErrorResponse` interface documented consistently across API spec and implementation plan |
+| **XML null vs empty semantics underspecified** | ✅ Explicit semantics added to REQUIREMENTS.md: `hasNull` is effectively always false for XML (no null concept), `hasEmpty` is true for whitespace-only or self-closing elements |
+
+### Non-Blocking Issues - All Addressed
+
+| Issue | Resolution |
+|-------|------------|
+| **250-result rule mechanism** | ✅ Clarified: UI requests `size=250`, backend supports up to 1000. This is a UI choice, not backend enforcement. |
+| **Metadata casing in UI** | ✅ Clarified in REQUIREMENTS.md: backend normalizes to lowercase, UI displays as stored |
+| **Update-context payload nuance** | ✅ Added "Implementation Notes" section explaining that requiredMetadata must be sent in PUT payloads |
+| **Accessibility acceptance criteria** | ✅ Removed - explicitly noted as not a priority for initial release |
+| **Shareable URL state scope** | ✅ Added "Shareable URL State" section specifying which parameters are encoded vs not |
+
+### Questions Answered
+
+| Question | Answer |
+|----------|--------|
+| Are backend changes in-scope? | **Yes** - All backend changes have been implemented |
+| What is fieldPathContains contract? | **Substring contains** for plain text, regex pattern match when starting with `/` |
+| What error response schema to use? | **Backend GlobalExceptionHandler output**: `{message, status, timestamp, error, errors?}` |
+| For field counts: N+1 or first-class API? | **First-class API**: `GET /catalog/contexts?includeCounts=true` |
+| What constitutes "null" in XML? | **Not applicable** - standard XML has no null concept; `hasNull` is effectively always false unless `xsi:nil="true"` is present |
+| Deployment model? | **Separate-origin** - CORS configured for Vite dev server (localhost:5173), production config separate |
