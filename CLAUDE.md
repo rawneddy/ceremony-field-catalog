@@ -49,6 +49,23 @@ docker exec -it ceremony-mongo mongosh
 ### API Testing
 Use `tests/CatalogSmokeTests.http` with VS Code REST Client extension for manual API testing.
 
+## Documentation Structure
+
+```
+docs/
+├── MOTIVATION.md      # WHY - Business context, legacy system challenges
+├── ARCHITECTURE.md    # WHAT - Technical architecture, data model
+├── COMPLETED.md       # Changelog of completed development work
+├── api/
+│   ├── API_SPECIFICATION.md  # REST API reference
+│   └── TESTING.md            # Testing guide
+├── sdk/
+│   └── README.md             # Client SDK documentation
+└── ui/
+    ├── REQUIREMENTS.md       # UI requirements with IDs (REQ-x.x)
+    └── IMPLEMENTATION.md     # UI implementation plan
+```
+
 ## Architecture Overview
 
 This is a **dynamic field observation catalog system** that tracks XML field usage patterns across unlimited business contexts:

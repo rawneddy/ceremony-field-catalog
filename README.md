@@ -47,10 +47,13 @@ winget install Apache.Maven
 ---
 | Document | Description |
 |----------|-------------|
-| [docs/OVERVIEW.md](docs/OVERVIEW.md) | System overview explaining the problem being solved and legacy pipeline context |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Detailed technical architecture, components, and API layer documentation |
-| [docs/MOTIVATION.md](docs/MOTIVATION.md) | Business context explaining why the catalog is needed and how legacy systems work |
-| [tests/CatalogSmokeTests.http](tests/CatalogSmokeTests.http) | REST Client test file with example API calls for manual testing |
+| [docs/MOTIVATION.md](docs/MOTIVATION.md) | Business context explaining why the catalog is needed |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Technical architecture, components, and data model |
+| [docs/api/API_SPECIFICATION.md](docs/api/API_SPECIFICATION.md) | Complete REST API reference |
+| [docs/api/TESTING.md](docs/api/TESTING.md) | Testing guide and patterns |
+| [docs/sdk/README.md](docs/sdk/README.md) | Client SDK documentation (.NET, Python) |
+| [docs/ui/](docs/ui/) | UI requirements and implementation plan |
+| [tests/CatalogSmokeTests.http](tests/CatalogSmokeTests.http) | REST Client test file for manual API testing |
 
 ## Getting Started
 ---
@@ -149,7 +152,7 @@ mvn clean test
 
 Integration tests use Testcontainers to spin up a temporary MongoDB instance. Docker must be running.
 
-For detailed testing patterns and guidelines, see [docs/TESTING.md](docs/TESTING.md).
+For detailed testing patterns and guidelines, see [docs/api/TESTING.md](docs/api/TESTING.md).
 
 ## Project Structure
 ---

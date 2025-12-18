@@ -38,7 +38,7 @@ Field identity is computed as: `hash(contextId + requiredMetadata + fieldPath)`
 - **Future:** May require API key or JWT tokens
 
 ### CORS Configuration
-- Configured to allow requests from `http://localhost:3000` for development
+- Configured to allow requests from `http://localhost:5173` (Vite) and `http://localhost:3000` for development
 - Production origins configured separately
 
 ### OpenAPI/Swagger
@@ -247,7 +247,7 @@ Field identity is computed as: `hash(contextId + requiredMetadata + fieldPath)`
 | `contextId` | string | No | Filter by context (omit for cross-context search) |
 | `fieldPathContains` | string | No | Case-insensitive pattern match on fieldPath |
 | `page` | integer | No | Page number (0-based, default: 0) |
-| `size` | integer | No | Page size (1-1000, default: 20) |
+| `size` | integer | No | Page size (1-250, default: 50) |
 | `*` | string | No | Any other parameter treated as metadata filter |
 
 **Dynamic Metadata Filtering:**
@@ -523,7 +523,7 @@ GET /catalog/fields?contextId=renderdata&productCode=DDA
 
 ### Current Limits
 - No rate limiting implemented
-- Page size maximum: 1000 records
+- Page size maximum: 250 records
 - Query timeout: Configurable via application properties
 
 ### Performance Considerations
