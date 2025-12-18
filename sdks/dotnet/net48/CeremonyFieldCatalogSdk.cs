@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,6 +7,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
@@ -19,226 +21,295 @@ namespace Ceremony.Catalog.Sdk
     /// - NEVER throws exceptions to the caller
     /// - Returns immediately (fire-and-forget) - processing happens in background
     /// - Silently handles all errors (network failures, bad XML, API errors, etc.)
+    /// - Uses a dedicated background worker thread with BlockingCollection for controlled throughput
     /// - Optional error callback for logging without throwing
     ///
     /// This SDK is designed for use in legacy systems where:
     /// - Field catalog submission must never impact the main business flow
     /// - Failures should be silent (catalog is non-critical telemetry)
     /// - Performance impact must be minimal
+    ///
+    /// Usage:
+    /// 1. Call Initialize() once at application startup
+    /// 2. Call SubmitObservations() for each XML document (returns immediately)
+    /// 3. Optionally call Shutdown() during application shutdown for graceful drain
     /// </summary>
     public static class CeremonyFieldCatalogSdk
     {
         private const int DefaultBatchSize = 500;
+        private const int DefaultQueueCapacity = 10000;
         private const string ObservationsEndpoint = "/catalog/contexts/{0}/observations";
+
+        // Thread-safe queue for producer-consumer pattern
+        private static BlockingCollection<ObservationWorkItem> _queue;
+        private static Thread _workerThread;
+
+        // Configuration (set via Initialize)
+        private static HttpClient _httpClient;
+        private static string _baseUrl;
+        private static int _batchSize = DefaultBatchSize;
+        private static Action<Exception> _globalErrorHandler;
+
+        // State tracking
+        private static volatile bool _initialized;
+        private static volatile bool _shutdownRequested;
+
+        #region Initialization and Shutdown
+
+        /// <summary>
+        /// Initializes the SDK. Must be called once at application startup before submitting observations.
+        /// </summary>
+        /// <param name="httpClient">HttpClient instance for API communication (should be long-lived, shared instance)</param>
+        /// <param name="baseUrl">Base URL of the Ceremony Field Catalog API (e.g., "https://catalog.example.com")</param>
+        /// <param name="batchSize">Number of observations to send per API call (default: 500)</param>
+        /// <param name="queueCapacity">Maximum queue size before dropping items (default: 10000)</param>
+        /// <param name="onError">Optional global error callback for logging (will not throw)</param>
+        public static void Initialize(
+            HttpClient httpClient,
+            string baseUrl,
+            int batchSize = DefaultBatchSize,
+            int queueCapacity = DefaultQueueCapacity,
+            Action<Exception> onError = null)
+        {
+            if (_initialized)
+            {
+                return; // Already initialized - ignore subsequent calls
+            }
+
+            try
+            {
+                _httpClient = httpClient;
+                _baseUrl = baseUrl != null ? baseUrl.TrimEnd('/') : "";
+                _batchSize = batchSize > 0 ? batchSize : DefaultBatchSize;
+                _globalErrorHandler = onError;
+                _shutdownRequested = false;
+
+                // Create bounded queue - TryAdd will return false when full
+                _queue = new BlockingCollection<ObservationWorkItem>(boundedCapacity: queueCapacity);
+
+                // Start dedicated background worker thread
+                _workerThread = new Thread(ProcessQueue)
+                {
+                    IsBackground = true, // Won't prevent application shutdown
+                    Name = "CeremonyFieldCatalog-Worker"
+                };
+                _workerThread.Start();
+
+                _initialized = true;
+            }
+            catch (Exception ex)
+            {
+                SafeInvokeErrorCallback(onError, ex);
+            }
+        }
+
+        /// <summary>
+        /// Gracefully shuts down the SDK, allowing queued items to be processed.
+        /// Call this during application shutdown for clean termination.
+        /// </summary>
+        /// <param name="timeout">Maximum time to wait for queue to drain</param>
+        /// <returns>True if queue was fully drained, false if timeout occurred</returns>
+        public static bool Shutdown(TimeSpan timeout)
+        {
+            if (!_initialized || _shutdownRequested)
+            {
+                return true;
+            }
+
+            try
+            {
+                _shutdownRequested = true;
+
+                // Signal no more items will be added
+                _queue.CompleteAdding();
+
+                // Wait for worker thread to finish processing remaining items
+                return _workerThread.Join(timeout);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        #endregion
 
         #region Public Fire-and-Forget API
 
         /// <summary>
         /// Submits XML field observations from byte array. Fire-and-forget - returns immediately.
-        /// Never throws exceptions. Processing happens in background.
+        /// Never throws exceptions. Processing happens in background worker thread.
         /// </summary>
         /// <param name="xmlData">XML data as byte array (null-safe)</param>
         /// <param name="contextId">Context identifier for the observations</param>
         /// <param name="metadata">Metadata key-value pairs for the context</param>
-        /// <param name="httpClient">HttpClient instance for API communication</param>
-        /// <param name="baseUrl">Base URL of the Ceremony Field Catalog API</param>
-        /// <param name="batchSize">Number of observations to send per API call (default: 500)</param>
-        /// <param name="onError">Optional callback for error logging (will not throw)</param>
         public static void SubmitObservations(
             byte[] xmlData,
             string contextId,
-            Dictionary<string, string> metadata,
-            HttpClient httpClient,
-            string baseUrl,
-            int batchSize = DefaultBatchSize,
-            Action<Exception> onError = null)
+            Dictionary<string, string> metadata)
         {
-            // Fire and forget with safe task observation
-            SubmitObservationsSafeAsync(
-                () => ExtractObservationsFromBytes(xmlData, metadata),
-                contextId, httpClient, baseUrl, batchSize, onError)
-                .SafeFireAndForget(onError);
+            EnqueueWork(() => ExtractObservationsFromBytes(xmlData, metadata), contextId);
         }
 
         /// <summary>
         /// Submits XML field observations from string. Fire-and-forget - returns immediately.
-        /// Never throws exceptions. Processing happens in background.
+        /// Never throws exceptions. Processing happens in background worker thread.
         /// </summary>
         /// <param name="xmlData">XML data as string (null-safe)</param>
         /// <param name="contextId">Context identifier for the observations</param>
         /// <param name="metadata">Metadata key-value pairs for the context</param>
-        /// <param name="httpClient">HttpClient instance for API communication</param>
-        /// <param name="baseUrl">Base URL of the Ceremony Field Catalog API</param>
-        /// <param name="batchSize">Number of observations to send per API call (default: 500)</param>
-        /// <param name="onError">Optional callback for error logging (will not throw)</param>
         public static void SubmitObservations(
             string xmlData,
             string contextId,
-            Dictionary<string, string> metadata,
-            HttpClient httpClient,
-            string baseUrl,
-            int batchSize = DefaultBatchSize,
-            Action<Exception> onError = null)
+            Dictionary<string, string> metadata)
         {
-            SubmitObservationsSafeAsync(
-                () => ExtractObservationsFromString(xmlData, metadata),
-                contextId, httpClient, baseUrl, batchSize, onError)
-                .SafeFireAndForget(onError);
+            EnqueueWork(() => ExtractObservationsFromString(xmlData, metadata), contextId);
         }
 
         /// <summary>
         /// Submits XML field observations from XDocument. Fire-and-forget - returns immediately.
-        /// Never throws exceptions. Processing happens in background.
+        /// Never throws exceptions. Processing happens in background worker thread.
         /// </summary>
         /// <param name="xmlDocument">XDocument containing the XML data (null-safe)</param>
         /// <param name="contextId">Context identifier for the observations</param>
         /// <param name="metadata">Metadata key-value pairs for the context</param>
-        /// <param name="httpClient">HttpClient instance for API communication</param>
-        /// <param name="baseUrl">Base URL of the Ceremony Field Catalog API</param>
-        /// <param name="batchSize">Number of observations to send per API call (default: 500)</param>
-        /// <param name="onError">Optional callback for error logging (will not throw)</param>
         public static void SubmitObservations(
             XDocument xmlDocument,
             string contextId,
-            Dictionary<string, string> metadata,
-            HttpClient httpClient,
-            string baseUrl,
-            int batchSize = DefaultBatchSize,
-            Action<Exception> onError = null)
+            Dictionary<string, string> metadata)
         {
-            SubmitObservationsSafeAsync(
-                () => ExtractObservationsFromXDocument(xmlDocument, metadata),
-                contextId, httpClient, baseUrl, batchSize, onError)
-                .SafeFireAndForget(onError);
+            EnqueueWork(() => ExtractObservationsFromXDocument(xmlDocument, metadata), contextId);
         }
 
         /// <summary>
         /// Submits XML field observations from XElement. Fire-and-forget - returns immediately.
-        /// Never throws exceptions. Processing happens in background.
+        /// Never throws exceptions. Processing happens in background worker thread.
         /// </summary>
         /// <param name="xmlElement">XElement containing the XML data (null-safe)</param>
         /// <param name="contextId">Context identifier for the observations</param>
         /// <param name="metadata">Metadata key-value pairs for the context</param>
-        /// <param name="httpClient">HttpClient instance for API communication</param>
-        /// <param name="baseUrl">Base URL of the Ceremony Field Catalog API</param>
-        /// <param name="batchSize">Number of observations to send per API call (default: 500)</param>
-        /// <param name="onError">Optional callback for error logging (will not throw)</param>
         public static void SubmitObservations(
             XElement xmlElement,
             string contextId,
-            Dictionary<string, string> metadata,
-            HttpClient httpClient,
-            string baseUrl,
-            int batchSize = DefaultBatchSize,
-            Action<Exception> onError = null)
+            Dictionary<string, string> metadata)
         {
-            SubmitObservationsSafeAsync(
-                () => ExtractObservationsFromXElement(xmlElement, metadata),
-                contextId, httpClient, baseUrl, batchSize, onError)
-                .SafeFireAndForget(onError);
+            EnqueueWork(() => ExtractObservationsFromXElement(xmlElement, metadata), contextId);
         }
 
         #endregion
 
-        #region Safe Async Implementation
+        #region Queue Management
 
         /// <summary>
-        /// Core safe async implementation that wraps all operations in try-catch.
-        /// Never throws - all errors are passed to optional callback.
+        /// Enqueues work for background processing. Never blocks, never throws.
         /// </summary>
-        private static async Task SubmitObservationsSafeAsync(
-            Func<List<CatalogObservationDto>> extractionFunc,
-            string contextId,
-            HttpClient httpClient,
-            string baseUrl,
-            int batchSize,
-            Action<Exception> onError)
+        private static void EnqueueWork(Func<List<CatalogObservationDto>> extractionFunc, string contextId)
         {
+            // Silent fail if not initialized or shutting down
+            if (!_initialized || _shutdownRequested || _queue == null)
+            {
+                return;
+            }
+
             try
             {
-                // Validate inputs - return silently if invalid
-                Exception validationError;
-                if (!ValidateInputsSafe(contextId, httpClient, baseUrl, out validationError))
+                // Validate contextId
+                if (string.IsNullOrWhiteSpace(contextId))
                 {
-                    SafeInvokeErrorCallback(onError, validationError);
                     return;
                 }
 
-                // Extract observations from XML
+                // Extract observations (done on calling thread to avoid holding XML data)
                 var observations = extractionFunc();
                 if (observations == null || observations.Count == 0)
                 {
-                    return; // Nothing to send - silent success
+                    return;
                 }
 
-                // Send observations to API
-                await SendObservationsSafeAsync(observations, contextId, httpClient, baseUrl, batchSize, onError).ConfigureAwait(false);
+                // Create work item
+                var workItem = new ObservationWorkItem
+                {
+                    ContextId = contextId,
+                    Observations = observations
+                };
+
+                // Try to add to queue (non-blocking, drops if full)
+                _queue.TryAdd(workItem);
             }
             catch (Exception ex)
             {
-                // Catch-all for any unexpected errors
-                SafeInvokeErrorCallback(onError, ex);
+                SafeInvokeErrorCallback(_globalErrorHandler, ex);
             }
         }
 
         /// <summary>
-        /// Sends observations to the API with full error handling. Never throws.
+        /// Background worker thread that processes the queue.
+        /// Uses GetConsumingEnumerable which blocks when empty and exits when CompleteAdding is called.
         /// </summary>
-        private static async Task SendObservationsSafeAsync(
-            List<CatalogObservationDto> observations,
-            string contextId,
-            HttpClient httpClient,
-            string baseUrl,
-            int batchSize,
-            Action<Exception> onError)
+        private static void ProcessQueue()
         {
             try
             {
-                var endpoint = string.Format(ObservationsEndpoint, contextId);
-                var url = baseUrl.TrimEnd('/') + endpoint;
-
-                // Send observations in batches
-                for (int i = 0; i < observations.Count; i += batchSize)
+                foreach (var workItem in _queue.GetConsumingEnumerable())
                 {
                     try
                     {
-                        var batch = observations.Skip(i).Take(batchSize).ToList();
-                        await SendBatchSafeAsync(batch, url, httpClient, onError).ConfigureAwait(false);
+                        ProcessWorkItem(workItem);
                     }
-                    catch (Exception batchEx)
+                    catch (Exception ex)
                     {
-                        // Log batch error but continue with remaining batches
-                        SafeInvokeErrorCallback(onError, batchEx);
+                        SafeInvokeErrorCallback(_globalErrorHandler, ex);
                     }
                 }
             }
             catch (Exception ex)
             {
-                SafeInvokeErrorCallback(onError, ex);
+                // GetConsumingEnumerable can throw if collection is disposed
+                SafeInvokeErrorCallback(_globalErrorHandler, ex);
             }
         }
 
         /// <summary>
-        /// Sends a single batch to the API. Never throws.
+        /// Processes a single work item by sending observations to the API.
         /// </summary>
-        private static async Task SendBatchSafeAsync(
-            List<CatalogObservationDto> batch,
-            string url,
-            HttpClient httpClient,
-            Action<Exception> onError)
+        private static void ProcessWorkItem(ObservationWorkItem workItem)
+        {
+            var endpoint = string.Format(ObservationsEndpoint, workItem.ContextId);
+            var url = _baseUrl + endpoint;
+
+            // Send observations in batches
+            for (int i = 0; i < workItem.Observations.Count; i += _batchSize)
+            {
+                try
+                {
+                    var batch = workItem.Observations.Skip(i).Take(_batchSize).ToList();
+                    SendBatch(batch, url);
+                }
+                catch (Exception batchEx)
+                {
+                    // Log batch error but continue with remaining batches
+                    SafeInvokeErrorCallback(_globalErrorHandler, batchEx);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sends a single batch to the API synchronously.
+        /// </summary>
+        private static void SendBatch(List<CatalogObservationDto> batch, string url)
         {
             try
             {
                 var json = JsonSerializer.Serialize(batch);
                 using (var content = new StringContent(json, Encoding.UTF8, "application/json"))
                 {
-                    var response = await httpClient.PostAsync(url, content).ConfigureAwait(false);
+                    // Use synchronous send since we're on a dedicated worker thread
+                    var response = _httpClient.PostAsync(url, content).GetAwaiter().GetResult();
 
-                    // We don't throw on error status - just log it
                     if (!response.IsSuccessStatusCode)
                     {
-                        var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                        SafeInvokeErrorCallback(onError, new CatalogApiException(
+                        var errorContent = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                        SafeInvokeErrorCallback(_globalErrorHandler, new CatalogApiException(
                             string.Format("API returned {0}: {1}", response.StatusCode, errorContent),
                             response.StatusCode,
                             errorContent));
@@ -247,15 +318,15 @@ namespace Ceremony.Catalog.Sdk
             }
             catch (TaskCanceledException ex)
             {
-                SafeInvokeErrorCallback(onError, new CatalogApiException("Request timed out", ex));
+                SafeInvokeErrorCallback(_globalErrorHandler, new CatalogApiException("Request timed out", ex));
             }
             catch (HttpRequestException ex)
             {
-                SafeInvokeErrorCallback(onError, new CatalogApiException("Network error", ex));
+                SafeInvokeErrorCallback(_globalErrorHandler, new CatalogApiException("Network error", ex));
             }
             catch (Exception ex)
             {
-                SafeInvokeErrorCallback(onError, ex);
+                SafeInvokeErrorCallback(_globalErrorHandler, ex);
             }
         }
 
@@ -534,34 +605,6 @@ namespace Ceremony.Catalog.Sdk
         }
 
         /// <summary>
-        /// Validates inputs without throwing. Returns false if invalid.
-        /// </summary>
-        private static bool ValidateInputsSafe(string contextId, HttpClient httpClient, string baseUrl, out Exception error)
-        {
-            error = null;
-
-            if (string.IsNullOrWhiteSpace(contextId))
-            {
-                error = new ArgumentException("Context ID is required", "contextId");
-                return false;
-            }
-
-            if (httpClient == null)
-            {
-                error = new ArgumentNullException("httpClient", "HttpClient is required");
-                return false;
-            }
-
-            if (string.IsNullOrWhiteSpace(baseUrl))
-            {
-                error = new ArgumentException("Base URL is required", "baseUrl");
-                return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
         /// Safely invokes error callback without throwing.
         /// </summary>
         private static void SafeInvokeErrorCallback(Action<Exception> onError, Exception ex)
@@ -581,47 +624,15 @@ namespace Ceremony.Catalog.Sdk
         #endregion
     }
 
-    #region Task Extensions
+    #region Work Item
 
     /// <summary>
-    /// Extension methods for safe fire-and-forget task execution.
-    /// Ensures tasks are properly observed to prevent TaskScheduler.UnobservedTaskException.
-    /// Based on best practices from https://www.meziantou.net/fire-and-forget-a-task-in-dotnet.htm
+    /// Represents a unit of work for the background processor.
     /// </summary>
-    internal static class TaskExtensions
+    internal class ObservationWorkItem
     {
-        /// <summary>
-        /// Safely executes a task in fire-and-forget manner.
-        /// Observes the task to prevent UnobservedTaskException and optionally reports errors.
-        /// </summary>
-        /// <param name="task">The task to execute</param>
-        /// <param name="onError">Optional error callback (exceptions are never thrown)</param>
-        public static void SafeFireAndForget(this Task task, Action<Exception> onError = null)
-        {
-            // Don't wait on the task, but observe it to prevent UnobservedTaskException
-            task.ContinueWith(
-                t =>
-                {
-                    if (t.IsFaulted && t.Exception != null)
-                    {
-                        // Flatten AggregateException to get the actual exception
-                        var exception = t.Exception.GetBaseException();
-
-                        if (onError != null)
-                        {
-                            try
-                            {
-                                onError(exception);
-                            }
-                            catch
-                            {
-                                // Swallow callback errors
-                            }
-                        }
-                    }
-                },
-                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
-        }
+        public string ContextId { get; set; }
+        public List<CatalogObservationDto> Observations { get; set; }
     }
 
     #endregion
@@ -684,7 +695,7 @@ namespace Ceremony.Catalog.Sdk
     }
 
     /// <summary>
-    /// Exception for catalog API errors (used internally, never thrown to caller).
+    /// Exception for catalog API errors (used internally for error reporting, never thrown to caller).
     /// </summary>
     public class CatalogApiException : Exception
     {

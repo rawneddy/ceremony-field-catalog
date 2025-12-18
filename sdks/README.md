@@ -13,9 +13,9 @@ A fire-and-forget C# SDK for submitting XML field observations to the Ceremony F
 
 - **Never throws exceptions** - All errors are handled internally
 - **Fire-and-forget** - Returns immediately, processing happens in background
-- **Null-safe** - Handles null inputs gracefully without crashing
-- **Non-blocking** - Never impacts your main business flow
-- **Optional error logging** - Callback for logging without throwing
+- **Controlled throughput** - Uses BlockingCollection with dedicated worker thread
+- **Backpressure handling** - Drops items when queue is full (configurable capacity)
+- **Graceful shutdown** - Can drain queue before application exits
 
 This SDK is designed for legacy systems where field catalog submission is non-critical telemetry that should never impact the main business flow.
 
@@ -25,6 +25,7 @@ This SDK is designed for legacy systems where field catalog submission is non-cr
 - **Automatic Field Analysis**: Extracts field paths, occurrence counts, and null/empty patterns
 - **Batched API Calls**: Configurable batch sizes for optimal network performance
 - **Silent Failure**: Network errors, bad XML, API errors - all handled silently
+- **Queue-Based Processing**: Single background worker prevents connection exhaustion
 
 #### Dependencies
 - .NET Framework 4.8+
@@ -45,99 +46,102 @@ To use this SDK in your .NET project:
 
 ```csharp
 // ============================================================================
-// FIRE-AND-FORGET USAGE - SDK NEVER BLOCKS, NEVER THROWS
+// INITIALIZATION (once at application startup)
 // ============================================================================
 
-// Example 1: Basic fire-and-forget (no error handling needed)
-var xmlData = File.ReadAllBytes("document.xml");
-var metadata = new Dictionary<string, string>
-{
-    { "productCode", "DDA" },
-    { "action", "Fulfillment" }
-};
-
-// This returns IMMEDIATELY - processing happens in background
-// Even if XML is malformed, network is down, or API returns error
-// your code continues without interruption
-CeremonyFieldCatalogSdk.SubmitObservations(
-    xmlData,
-    "deposits",
-    metadata,
-    httpClient,
-    "https://api.ceremony-catalog.com"
-);
-
-// Your business logic continues immediately - no waiting!
-ProcessBusinessLogic();
-
-
-// Example 2: With optional error logging (still fire-and-forget, still never throws)
-CeremonyFieldCatalogSdk.SubmitObservations(
-    xmlData,
-    "deposits",
-    metadata,
-    httpClient,
-    "https://api.ceremony-catalog.com",
-    onError: ex => _logger.Warn($"Catalog submission failed: {ex.Message}")
-);
-
-
-// Example 3: All input types are null-safe
-CeremonyFieldCatalogSdk.SubmitObservations(
-    (byte[])null,        // Won't throw - silently returns
-    "deposits",
-    null,                // Won't throw - uses empty metadata
-    httpClient,
-    baseUrl
-);
-
-
-// Example 4: Handles all failure scenarios silently
-// - Malformed XML? Silent failure
-// - Network timeout? Silent failure
-// - API returns 500? Silent failure
-// - Invalid context? Silent failure
-// Your business flow is NEVER impacted
-
-
-// Example 5: String XML input
-var xmlString = "<Ceremony><Amount>100.00</Amount></Ceremony>";
-CeremonyFieldCatalogSdk.SubmitObservations(
-    xmlString,
-    "deposits",
-    metadata,
-    httpClient,
-    baseUrl
-);
-
-
-// Example 6: XDocument input (if you already have parsed XML)
-var xdoc = XDocument.Parse(xmlString);
-CeremonyFieldCatalogSdk.SubmitObservations(
-    xdoc,
-    "deposits",
-    metadata,
-    httpClient,
-    baseUrl
-);
-
-
-// Example 7: Recommended HttpClient setup for production
-// Use a single shared HttpClient instance with appropriate timeout
+// Create a shared HttpClient (recommended: single instance for app lifetime)
 var httpClient = new HttpClient
 {
     Timeout = TimeSpan.FromSeconds(30)
 };
 
-// Optionally configure for your environment
-httpClient.DefaultRequestHeaders.Add("X-Client-Id", "legacy-ceremony-system");
+// Initialize the SDK
+CeremonyFieldCatalogSdk.Initialize(
+    httpClient,
+    "https://catalog.example.com",
+    batchSize: 500,           // Observations per HTTP request (default: 500)
+    queueCapacity: 10000,     // Max queued items before dropping (default: 10000)
+    onError: ex => _logger.Warn($"Catalog error: {ex.Message}")
+);
+
+
+// ============================================================================
+// SUBMITTING OBSERVATIONS (fire-and-forget, returns immediately)
+// ============================================================================
+
+// Example 1: Basic usage with byte array
+var xmlData = File.ReadAllBytes("document.xml");
+var metadata = new Dictionary<string, string>
+{
+    { "productCode", "DDA" },
+    { "action", "Fulfillment" },
+    { "productSubCode", "4S" }
+};
+
+// This returns IMMEDIATELY - processing happens in background
+CeremonyFieldCatalogSdk.SubmitObservations(xmlData, "deposits", metadata);
+
+// Your business logic continues without waiting!
+ProcessNextDocument();
+
+
+// Example 2: String XML input
+var xmlString = "<Ceremony><Amount>100.00</Amount></Ceremony>";
+CeremonyFieldCatalogSdk.SubmitObservations(xmlString, "deposits", metadata);
+
+
+// Example 3: XDocument input (if you already have parsed XML)
+var xdoc = XDocument.Parse(xmlString);
+CeremonyFieldCatalogSdk.SubmitObservations(xdoc, "deposits", metadata);
+
+
+// Example 4: XElement input
+var element = XElement.Parse(xmlString);
+CeremonyFieldCatalogSdk.SubmitObservations(element, "deposits", metadata);
+
+
+// ============================================================================
+// GRACEFUL SHUTDOWN (optional, during application shutdown)
+// ============================================================================
+
+// Wait up to 30 seconds for queue to drain
+bool drained = CeremonyFieldCatalogSdk.Shutdown(TimeSpan.FromSeconds(30));
+if (!drained)
+{
+    _logger.Warn("Catalog queue did not fully drain before shutdown");
+}
 ```
 
+#### How It Works
+
+```
+                                    ┌─────────────────────┐
+SubmitObservations() ──► Queue ──► │ Background Worker   │ ──► HTTP POST
+SubmitObservations() ──►  (10k)    │ Thread              │     to API
+SubmitObservations() ──►           │ (GetConsumingEnum)  │
+        │                          └─────────────────────┘
+        │
+        └── Returns immediately (fire-and-forget)
+```
+
+- **Producer**: Your code calls `SubmitObservations()` which extracts fields and enqueues
+- **Queue**: `BlockingCollection<T>` with bounded capacity (default 10,000 items)
+- **Consumer**: Dedicated background thread processes items sequentially
+- **Backpressure**: When queue is full, new items are dropped (not blocked)
+
+#### Configuration Options
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `batchSize` | 500 | Observations per HTTP request |
+| `queueCapacity` | 10000 | Max items in queue before dropping |
+| `onError` | null | Global error callback for logging |
+
 #### Performance Notes
-- For large XML files (>10MB), use `byte[]` or `string` inputs for streaming performance
-- For already-parsed XML, use `XDocument` or `XElement` inputs
-- Adjust `batchSize` parameter based on your network conditions (default: 500)
-- The SDK automatically handles field path generation and occurrence tracking
+- XML extraction happens on the calling thread (to avoid holding references)
+- HTTP requests happen on a single background thread (controlled throughput)
+- Queue capacity of 10,000 ≈ 1-2 MB memory overhead
+- For large XML files (>10MB), use `byte[]` or `string` inputs for streaming
 
 ## API Compatibility
 
