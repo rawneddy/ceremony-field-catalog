@@ -4,10 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
-using Newtonsoft.Json;
 
 namespace Ceremony.Catalog.Sdk
 {
@@ -228,7 +229,7 @@ namespace Ceremony.Catalog.Sdk
         {
             try
             {
-                var json = JsonConvert.SerializeObject(batch, Formatting.None);
+                var json = JsonSerializer.Serialize(batch);
                 using (var content = new StringContent(json, Encoding.UTF8, "application/json"))
                 {
                     var response = await httpClient.PostAsync(url, content).ConfigureAwait(false);
@@ -636,7 +637,7 @@ namespace Ceremony.Catalog.Sdk
         /// <summary>
         /// Metadata key-value pairs that provide context for this observation.
         /// </summary>
-        [JsonProperty("metadata")]
+        [JsonPropertyName("metadata")]
         public Dictionary<string, string> Metadata { get; set; }
 
         /// <summary>
@@ -644,25 +645,25 @@ namespace Ceremony.Catalog.Sdk
         /// Uses consistent path format without indexing for field pattern identification.
         /// Example: /ceremony/customers/customer/name (not /ceremony/customers/customer[1]/name)
         /// </summary>
-        [JsonProperty("fieldPath")]
+        [JsonPropertyName("fieldPath")]
         public string FieldPath { get; set; }
 
         /// <summary>
         /// Number of times this field was observed in the current processing batch.
         /// </summary>
-        [JsonProperty("count")]
+        [JsonPropertyName("count")]
         public int Count { get; set; }
 
         /// <summary>
         /// Whether this field was observed to contain null values.
         /// </summary>
-        [JsonProperty("hasNull")]
+        [JsonPropertyName("hasNull")]
         public bool HasNull { get; set; }
 
         /// <summary>
         /// Whether this field was observed to contain empty string values.
         /// </summary>
-        [JsonProperty("hasEmpty")]
+        [JsonPropertyName("hasEmpty")]
         public bool HasEmpty { get; set; }
     }
 

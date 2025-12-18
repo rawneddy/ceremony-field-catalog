@@ -28,16 +28,16 @@ This SDK is designed for legacy systems where field catalog submission is non-cr
 
 #### Dependencies
 - .NET Framework 4.8+
-- Newtonsoft.Json (for JSON serialization)
+- System.Text.Json (for JSON serialization)
 - System.Xml.Linq (included in .NET Framework)
 
 #### Integration
 To use this SDK in your .NET project:
 
 1. Add the `CeremonyFieldCatalogSdk.cs` file to your project
-2. Install the Newtonsoft.Json NuGet package:
+2. Install the System.Text.Json NuGet package (if not already installed):
    ```
-   Install-Package Newtonsoft.Json
+   Install-Package System.Text.Json
    ```
 3. Add using statement: `using Ceremony.Catalog.Sdk;`
 
@@ -139,21 +139,6 @@ httpClient.DefaultRequestHeaders.Add("X-Client-Id", "legacy-ceremony-system");
 - Adjust `batchSize` parameter based on your network conditions (default: 500)
 - The SDK automatically handles field path generation and occurrence tracking
 
-## Future SDKs
-
-This directory structure is designed to accommodate additional SDKs:
-
-```
-sdks/
-├── dotnet/
-│   ├── net48/           # .NET Framework 4.8
-│   ├── netstandard2.0/  # .NET Standard 2.0 (future)
-│   └── net6.0/          # .NET 6+ (future)
-├── python/              # Python SDK (future)
-├── javascript/          # JavaScript/Node.js SDK (future)
-└── go/                  # Go SDK (future)
-```
-
 ## API Compatibility
 
 All SDKs are designed to work with the Ceremony Field Catalog API endpoints:
@@ -163,20 +148,3 @@ All SDKs are designed to work with the Ceremony Field Catalog API endpoints:
 - **Field Search**: `GET /catalog/fields`
 
 For API documentation, see the main project's OpenAPI documentation at `/swagger-ui.html` when the API is running.
-
-## Contributing
-
-When adding new SDKs:
-
-1. Follow the established folder structure: `{language}/{framework-version}/`
-2. **Must be fire-and-forget** - Never block the caller
-3. **Must never throw exceptions** - Handle all errors internally
-4. Support optional error callback for logging
-5. Support batched operations for performance
-6. Match the API's DTO structure exactly
-7. Include usage examples and integration instructions
-8. Update this README with the new SDK information
-
-## Support
-
-For SDK-specific issues, please file issues in the main repository with the appropriate language label.
