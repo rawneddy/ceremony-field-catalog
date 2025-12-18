@@ -263,7 +263,7 @@ export interface SearchParams {
   productCode?: string;
   productSubCode?: string;
   loanProductCode?: string;
-  xpathContains?: string;
+  fieldPathContains?: string;
   page?: number;
   size?: number;
   sort?: string;

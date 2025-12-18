@@ -128,7 +128,7 @@ PUT /catalog/contexts/deposits
 ```bash
 # Submit observations to specific context
 POST /catalog/contexts/deposits/observations
-[{"metadata": {"productCode": "DDA", "channel": "Online"}, "xpath": "/Ceremony/Amount", "count": 1, "hasNull": false, "hasEmpty": false}]
+[{"metadata": {"productCode": "DDA", "channel": "Online"}, "fieldPath": "/Ceremony/Amount", "count": 1, "hasNull": false, "hasEmpty": false}]
 ```
 
 **Dynamic Search**:
@@ -139,8 +139,8 @@ GET /catalog/fields?contextId=deposits&page=0&size=10
 # Cross-context search by any metadata
 GET /catalog/fields?productCode=DDA&page=0&size=10
 
-# XPath pattern search
-GET /catalog/fields?xpath=/Ceremony/Amount
+# Field path pattern search
+GET /catalog/fields?fieldPathContains=/Ceremony/Amount
 ```
 
 ## Development Guidelines

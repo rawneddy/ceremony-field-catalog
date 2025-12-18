@@ -333,14 +333,14 @@ namespace Ceremony.Catalog.Sdk
             foreach (var kvp in fieldStats)
             {
                 var stats = kvp.Value;
-                
+
                 observations.Add(new CatalogObservationDto
                 {
                     Metadata = stats.Metadata,
                     FieldPath = stats.FieldPath,
-                    Occurs = stats.TotalOccurrences,
-                    AllowsNull = stats.NullValueCount > 0,
-                    AllowsEmpty = stats.EmptyValueCount > 0
+                    Count = stats.TotalOccurrences,
+                    HasNull = stats.NullValueCount > 0,
+                    HasEmpty = stats.EmptyValueCount > 0
                 });
             }
 
@@ -454,22 +454,22 @@ namespace Ceremony.Catalog.Sdk
         public string FieldPath { get; set; }
 
         /// <summary>
-        /// Number of times this field occurred in the document.
+        /// Number of times this field was observed in the current processing batch.
         /// </summary>
-        [JsonProperty("occurs")]
-        public int Occurs { get; set; }
+        [JsonProperty("count")]
+        public int Count { get; set; }
 
         /// <summary>
-        /// Whether this field was observed to allow null values.
+        /// Whether this field was observed to contain null values.
         /// </summary>
-        [JsonProperty("allowsNull")]
-        public bool AllowsNull { get; set; }
+        [JsonProperty("hasNull")]
+        public bool HasNull { get; set; }
 
         /// <summary>
-        /// Whether this field was observed to allow empty values.
+        /// Whether this field was observed to contain empty string values.
         /// </summary>
-        [JsonProperty("allowsEmpty")]
-        public bool AllowsEmpty { get; set; }
+        [JsonProperty("hasEmpty")]
+        public bool HasEmpty { get; set; }
     }
 
     #endregion

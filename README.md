@@ -43,6 +43,15 @@ winget install EclipseAdoptium.Temurin.21.JDK
 winget install Apache.Maven
 ```
 
+## See Also
+---
+| Document | Description |
+|----------|-------------|
+| [docs/OVERVIEW.md](docs/OVERVIEW.md) | System overview explaining the problem being solved and legacy pipeline context |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Detailed technical architecture, components, and API layer documentation |
+| [docs/MOTIVATION.md](docs/MOTIVATION.md) | Business context explaining why the catalog is needed and how legacy systems work |
+| [tests/CatalogSmokeTests.http](tests/CatalogSmokeTests.http) | REST Client test file with example API calls for manual testing |
+
 ## Getting Started
 ---
 ### Option A: Docker Compose (Recommended)
@@ -149,11 +158,3 @@ For detailed testing patterns and guidelines, see [docs/TESTING.md](docs/TESTING
 - `src/main/resources/application.yml` — Spring Boot configuration
 - `docker-compose.yml` — Docker Compose configuration
 - `Dockerfile` — Multi-stage build for the Spring Boot app
-
-## See Also
----
-| Document | Description |
-|----------|-------------|
-| [docs/OVERVIEW.md](docs/OVERVIEW.md) | System overview explaining the problem being solved and legacy pipeline context |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Detailed technical architecture, components, and API layer documentation |
-| [docs/MOTIVATION.md](docs/MOTIVATION.md) | Business context explaining why the catalog is needed and how legacy systems work |
