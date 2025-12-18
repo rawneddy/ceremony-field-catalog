@@ -12,136 +12,338 @@ using Newtonsoft.Json;
 namespace Ceremony.Catalog.Sdk
 {
     /// <summary>
-    /// High-performance SDK for submitting XML field observations to the Ceremony Field Catalog API.
-    /// Supports multiple XML input formats and efficiently traverses XML to extract field patterns
-    /// without indexing - focuses on field pattern identification rather than document navigation.
+    /// Fire-and-forget SDK for submitting XML field observations to the Ceremony Field Catalog API.
+    ///
+    /// Design principles:
+    /// - NEVER throws exceptions to the caller
+    /// - Returns immediately (fire-and-forget) - processing happens in background
+    /// - Silently handles all errors (network failures, bad XML, API errors, etc.)
+    /// - Optional error callback for logging without throwing
+    ///
+    /// This SDK is designed for use in legacy systems where:
+    /// - Field catalog submission must never impact the main business flow
+    /// - Failures should be silent (catalog is non-critical telemetry)
+    /// - Performance impact must be minimal
     /// </summary>
     public static class CeremonyFieldCatalogSdk
     {
         private const int DefaultBatchSize = 500;
         private const string ObservationsEndpoint = "/catalog/contexts/{0}/observations";
 
-        #region Public API Methods
+        #region Public Fire-and-Forget API
 
         /// <summary>
-        /// Submits XML field observations from byte array to the Ceremony Field Catalog API.
-        /// Uses streaming XmlReader for optimal memory performance with large XML files.
+        /// Submits XML field observations from byte array. Fire-and-forget - returns immediately.
+        /// Never throws exceptions. Processing happens in background.
         /// </summary>
-        /// <param name="xmlData">XML data as byte array</param>
+        /// <param name="xmlData">XML data as byte array (null-safe)</param>
         /// <param name="contextId">Context identifier for the observations</param>
         /// <param name="metadata">Metadata key-value pairs for the context</param>
         /// <param name="httpClient">HttpClient instance for API communication</param>
         /// <param name="baseUrl">Base URL of the Ceremony Field Catalog API</param>
         /// <param name="batchSize">Number of observations to send per API call (default: 500)</param>
-        /// <returns>Task representing the async operation</returns>
-        public static async Task SubmitObservationsAsync(
-            byte[] xmlData, 
-            string contextId, 
-            Dictionary<string, string> metadata, 
-            HttpClient httpClient, 
+        /// <param name="onError">Optional callback for error logging (will not throw)</param>
+        public static void SubmitObservations(
+            byte[] xmlData,
+            string contextId,
+            Dictionary<string, string> metadata,
+            HttpClient httpClient,
             string baseUrl,
-            int batchSize = DefaultBatchSize)
+            int batchSize = DefaultBatchSize,
+            Action<Exception> onError = null)
         {
-            if (xmlData == null) throw new ArgumentNullException(nameof(xmlData));
-            ValidateInputs(contextId, metadata, httpClient, baseUrl);
-
-            using (var stream = new MemoryStream(xmlData))
-            using (var reader = XmlReader.Create(stream, CreateXmlReaderSettings()))
-            {
-                var observations = ExtractObservationsFromReader(reader, metadata);
-                await SendObservationsBatchedAsync(observations, contextId, httpClient, baseUrl, batchSize);
-            }
+            // Fire and forget with safe task observation
+            SubmitObservationsSafeAsync(
+                () => ExtractObservationsFromBytes(xmlData, metadata),
+                contextId, httpClient, baseUrl, batchSize, onError)
+                .SafeFireAndForget(onError);
         }
 
         /// <summary>
-        /// Submits XML field observations from string to the Ceremony Field Catalog API.
-        /// Uses streaming XmlReader for optimal memory performance.
+        /// Submits XML field observations from string. Fire-and-forget - returns immediately.
+        /// Never throws exceptions. Processing happens in background.
         /// </summary>
-        /// <param name="xmlData">XML data as string</param>
+        /// <param name="xmlData">XML data as string (null-safe)</param>
         /// <param name="contextId">Context identifier for the observations</param>
         /// <param name="metadata">Metadata key-value pairs for the context</param>
         /// <param name="httpClient">HttpClient instance for API communication</param>
         /// <param name="baseUrl">Base URL of the Ceremony Field Catalog API</param>
         /// <param name="batchSize">Number of observations to send per API call (default: 500)</param>
-        /// <returns>Task representing the async operation</returns>
-        public static async Task SubmitObservationsAsync(
-            string xmlData, 
-            string contextId, 
-            Dictionary<string, string> metadata, 
-            HttpClient httpClient, 
+        /// <param name="onError">Optional callback for error logging (will not throw)</param>
+        public static void SubmitObservations(
+            string xmlData,
+            string contextId,
+            Dictionary<string, string> metadata,
+            HttpClient httpClient,
             string baseUrl,
-            int batchSize = DefaultBatchSize)
+            int batchSize = DefaultBatchSize,
+            Action<Exception> onError = null)
         {
-            if (string.IsNullOrEmpty(xmlData)) throw new ArgumentException("XML data cannot be null or empty", nameof(xmlData));
-            ValidateInputs(contextId, metadata, httpClient, baseUrl);
-
-            using (var stringReader = new StringReader(xmlData))
-            using (var reader = XmlReader.Create(stringReader, CreateXmlReaderSettings()))
-            {
-                var observations = ExtractObservationsFromReader(reader, metadata);
-                await SendObservationsBatchedAsync(observations, contextId, httpClient, baseUrl, batchSize);
-            }
+            SubmitObservationsSafeAsync(
+                () => ExtractObservationsFromString(xmlData, metadata),
+                contextId, httpClient, baseUrl, batchSize, onError)
+                .SafeFireAndForget(onError);
         }
 
         /// <summary>
-        /// Submits XML field observations from XDocument to the Ceremony Field Catalog API.
-        /// Uses LINQ to XML for efficient traversal of already-parsed XML.
+        /// Submits XML field observations from XDocument. Fire-and-forget - returns immediately.
+        /// Never throws exceptions. Processing happens in background.
         /// </summary>
-        /// <param name="xmlDocument">XDocument containing the XML data</param>
+        /// <param name="xmlDocument">XDocument containing the XML data (null-safe)</param>
         /// <param name="contextId">Context identifier for the observations</param>
         /// <param name="metadata">Metadata key-value pairs for the context</param>
         /// <param name="httpClient">HttpClient instance for API communication</param>
         /// <param name="baseUrl">Base URL of the Ceremony Field Catalog API</param>
         /// <param name="batchSize">Number of observations to send per API call (default: 500)</param>
-        /// <returns>Task representing the async operation</returns>
-        public static async Task SubmitObservationsAsync(
-            XDocument xmlDocument, 
-            string contextId, 
-            Dictionary<string, string> metadata, 
-            HttpClient httpClient, 
+        /// <param name="onError">Optional callback for error logging (will not throw)</param>
+        public static void SubmitObservations(
+            XDocument xmlDocument,
+            string contextId,
+            Dictionary<string, string> metadata,
+            HttpClient httpClient,
             string baseUrl,
-            int batchSize = DefaultBatchSize)
+            int batchSize = DefaultBatchSize,
+            Action<Exception> onError = null)
         {
-            if (xmlDocument?.Root == null) throw new ArgumentException("XDocument cannot be null and must have a root element", nameof(xmlDocument));
-            ValidateInputs(contextId, metadata, httpClient, baseUrl);
-
-            var observations = ExtractObservationsFromElement(xmlDocument.Root, metadata);
-            await SendObservationsBatchedAsync(observations, contextId, httpClient, baseUrl, batchSize);
+            SubmitObservationsSafeAsync(
+                () => ExtractObservationsFromXDocument(xmlDocument, metadata),
+                contextId, httpClient, baseUrl, batchSize, onError)
+                .SafeFireAndForget(onError);
         }
 
         /// <summary>
-        /// Submits XML field observations from XElement to the Ceremony Field Catalog API.
-        /// Uses LINQ to XML for efficient traversal of already-parsed XML.
+        /// Submits XML field observations from XElement. Fire-and-forget - returns immediately.
+        /// Never throws exceptions. Processing happens in background.
         /// </summary>
-        /// <param name="xmlElement">XElement containing the XML data</param>
+        /// <param name="xmlElement">XElement containing the XML data (null-safe)</param>
         /// <param name="contextId">Context identifier for the observations</param>
         /// <param name="metadata">Metadata key-value pairs for the context</param>
         /// <param name="httpClient">HttpClient instance for API communication</param>
         /// <param name="baseUrl">Base URL of the Ceremony Field Catalog API</param>
         /// <param name="batchSize">Number of observations to send per API call (default: 500)</param>
-        /// <returns>Task representing the async operation</returns>
-        public static async Task SubmitObservationsAsync(
-            XElement xmlElement, 
-            string contextId, 
-            Dictionary<string, string> metadata, 
-            HttpClient httpClient, 
+        /// <param name="onError">Optional callback for error logging (will not throw)</param>
+        public static void SubmitObservations(
+            XElement xmlElement,
+            string contextId,
+            Dictionary<string, string> metadata,
+            HttpClient httpClient,
             string baseUrl,
-            int batchSize = DefaultBatchSize)
+            int batchSize = DefaultBatchSize,
+            Action<Exception> onError = null)
         {
-            if (xmlElement == null) throw new ArgumentNullException(nameof(xmlElement));
-            ValidateInputs(contextId, metadata, httpClient, baseUrl);
-
-            var observations = ExtractObservationsFromElement(xmlElement, metadata);
-            await SendObservationsBatchedAsync(observations, contextId, httpClient, baseUrl, batchSize);
+            SubmitObservationsSafeAsync(
+                () => ExtractObservationsFromXElement(xmlElement, metadata),
+                contextId, httpClient, baseUrl, batchSize, onError)
+                .SafeFireAndForget(onError);
         }
 
         #endregion
 
-        #region XML Processing - Streaming XmlReader (for byte[] and string)
+        #region Safe Async Implementation
 
         /// <summary>
-        /// Extracts field observations from XML using streaming XmlReader for maximum performance.
-        /// Builds field paths incrementally without indexing to focus on field pattern identification.
+        /// Core safe async implementation that wraps all operations in try-catch.
+        /// Never throws - all errors are passed to optional callback.
+        /// </summary>
+        private static async Task SubmitObservationsSafeAsync(
+            Func<List<CatalogObservationDto>> extractionFunc,
+            string contextId,
+            HttpClient httpClient,
+            string baseUrl,
+            int batchSize,
+            Action<Exception> onError)
+        {
+            try
+            {
+                // Validate inputs - return silently if invalid
+                Exception validationError;
+                if (!ValidateInputsSafe(contextId, httpClient, baseUrl, out validationError))
+                {
+                    SafeInvokeErrorCallback(onError, validationError);
+                    return;
+                }
+
+                // Extract observations from XML
+                var observations = extractionFunc();
+                if (observations == null || observations.Count == 0)
+                {
+                    return; // Nothing to send - silent success
+                }
+
+                // Send observations to API
+                await SendObservationsSafeAsync(observations, contextId, httpClient, baseUrl, batchSize, onError).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // Catch-all for any unexpected errors
+                SafeInvokeErrorCallback(onError, ex);
+            }
+        }
+
+        /// <summary>
+        /// Sends observations to the API with full error handling. Never throws.
+        /// </summary>
+        private static async Task SendObservationsSafeAsync(
+            List<CatalogObservationDto> observations,
+            string contextId,
+            HttpClient httpClient,
+            string baseUrl,
+            int batchSize,
+            Action<Exception> onError)
+        {
+            try
+            {
+                var endpoint = string.Format(ObservationsEndpoint, contextId);
+                var url = baseUrl.TrimEnd('/') + endpoint;
+
+                // Send observations in batches
+                for (int i = 0; i < observations.Count; i += batchSize)
+                {
+                    try
+                    {
+                        var batch = observations.Skip(i).Take(batchSize).ToList();
+                        await SendBatchSafeAsync(batch, url, httpClient, onError).ConfigureAwait(false);
+                    }
+                    catch (Exception batchEx)
+                    {
+                        // Log batch error but continue with remaining batches
+                        SafeInvokeErrorCallback(onError, batchEx);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                SafeInvokeErrorCallback(onError, ex);
+            }
+        }
+
+        /// <summary>
+        /// Sends a single batch to the API. Never throws.
+        /// </summary>
+        private static async Task SendBatchSafeAsync(
+            List<CatalogObservationDto> batch,
+            string url,
+            HttpClient httpClient,
+            Action<Exception> onError)
+        {
+            try
+            {
+                var json = JsonConvert.SerializeObject(batch, Formatting.None);
+                using (var content = new StringContent(json, Encoding.UTF8, "application/json"))
+                {
+                    var response = await httpClient.PostAsync(url, content).ConfigureAwait(false);
+
+                    // We don't throw on error status - just log it
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        SafeInvokeErrorCallback(onError, new CatalogApiException(
+                            string.Format("API returned {0}: {1}", response.StatusCode, errorContent),
+                            response.StatusCode,
+                            errorContent));
+                    }
+                }
+            }
+            catch (TaskCanceledException ex)
+            {
+                SafeInvokeErrorCallback(onError, new CatalogApiException("Request timed out", ex));
+            }
+            catch (HttpRequestException ex)
+            {
+                SafeInvokeErrorCallback(onError, new CatalogApiException("Network error", ex));
+            }
+            catch (Exception ex)
+            {
+                SafeInvokeErrorCallback(onError, ex);
+            }
+        }
+
+        #endregion
+
+        #region XML Extraction (Safe)
+
+        /// <summary>
+        /// Extracts observations from byte array. Returns empty list on any error.
+        /// </summary>
+        private static List<CatalogObservationDto> ExtractObservationsFromBytes(byte[] xmlData, Dictionary<string, string> metadata)
+        {
+            if (xmlData == null || xmlData.Length == 0)
+                return new List<CatalogObservationDto>();
+
+            try
+            {
+                using (var stream = new MemoryStream(xmlData))
+                using (var reader = XmlReader.Create(stream, CreateXmlReaderSettings()))
+                {
+                    return ExtractObservationsFromReader(reader, metadata ?? new Dictionary<string, string>());
+                }
+            }
+            catch
+            {
+                return new List<CatalogObservationDto>();
+            }
+        }
+
+        /// <summary>
+        /// Extracts observations from string. Returns empty list on any error.
+        /// </summary>
+        private static List<CatalogObservationDto> ExtractObservationsFromString(string xmlData, Dictionary<string, string> metadata)
+        {
+            if (string.IsNullOrEmpty(xmlData))
+                return new List<CatalogObservationDto>();
+
+            try
+            {
+                using (var stringReader = new StringReader(xmlData))
+                using (var reader = XmlReader.Create(stringReader, CreateXmlReaderSettings()))
+                {
+                    return ExtractObservationsFromReader(reader, metadata ?? new Dictionary<string, string>());
+                }
+            }
+            catch
+            {
+                return new List<CatalogObservationDto>();
+            }
+        }
+
+        /// <summary>
+        /// Extracts observations from XDocument. Returns empty list on any error.
+        /// </summary>
+        private static List<CatalogObservationDto> ExtractObservationsFromXDocument(XDocument xmlDocument, Dictionary<string, string> metadata)
+        {
+            if (xmlDocument == null || xmlDocument.Root == null)
+                return new List<CatalogObservationDto>();
+
+            try
+            {
+                return ExtractObservationsFromElement(xmlDocument.Root, metadata ?? new Dictionary<string, string>());
+            }
+            catch
+            {
+                return new List<CatalogObservationDto>();
+            }
+        }
+
+        /// <summary>
+        /// Extracts observations from XElement. Returns empty list on any error.
+        /// </summary>
+        private static List<CatalogObservationDto> ExtractObservationsFromXElement(XElement xmlElement, Dictionary<string, string> metadata)
+        {
+            if (xmlElement == null)
+                return new List<CatalogObservationDto>();
+
+            try
+            {
+                return ExtractObservationsFromElement(xmlElement, metadata ?? new Dictionary<string, string>());
+            }
+            catch
+            {
+                return new List<CatalogObservationDto>();
+            }
+        }
+
+        /// <summary>
+        /// Extracts field observations from XML using streaming XmlReader.
         /// </summary>
         private static List<CatalogObservationDto> ExtractObservationsFromReader(XmlReader reader, Dictionary<string, string> metadata)
         {
@@ -154,17 +356,10 @@ namespace Ceremony.Catalog.Sdk
                 {
                     case XmlNodeType.Element:
                         var elementName = reader.LocalName;
-                        
-                        // Push element onto path stack
                         pathStack.Push(elementName);
-                        
-                        // Build current field path
                         var currentPath = BuildFieldPathFromStack(pathStack);
-                        
-                        // Process element and its attributes
                         ProcessElementWithReader(reader, currentPath, fieldStats, metadata);
-                        
-                        // If self-closing element, pop immediately
+
                         if (reader.IsEmptyElement)
                         {
                             pathStack.Pop();
@@ -172,7 +367,6 @@ namespace Ceremony.Catalog.Sdk
                         break;
 
                     case XmlNodeType.EndElement:
-                        // Pop element from path stack
                         if (pathStack.Count > 0)
                         {
                             pathStack.Pop();
@@ -181,7 +375,6 @@ namespace Ceremony.Catalog.Sdk
 
                     case XmlNodeType.Text:
                     case XmlNodeType.CDATA:
-                        // Process text content of current element
                         if (pathStack.Count > 0)
                         {
                             var textPath = BuildFieldPathFromStack(pathStack);
@@ -196,18 +389,16 @@ namespace Ceremony.Catalog.Sdk
         }
 
         /// <summary>
-        /// Processes an XML element and its attributes during streaming read.
+        /// Processes an XML element and its attributes.
         /// </summary>
         private static void ProcessElementWithReader(XmlReader reader, string fieldPath, Dictionary<string, FieldStatistics> fieldStats, Dictionary<string, string> metadata)
         {
-            // Initialize field statistics for this element
             if (!fieldStats.ContainsKey(fieldPath))
             {
                 fieldStats[fieldPath] = new FieldStatistics { FieldPath = fieldPath, Metadata = new Dictionary<string, string>(metadata) };
             }
             fieldStats[fieldPath].TotalOccurrences++;
 
-            // Process attributes
             if (reader.HasAttributes)
             {
                 while (reader.MoveToNextAttribute())
@@ -216,90 +407,71 @@ namespace Ceremony.Catalog.Sdk
                     var attributeValue = reader.Value;
                     UpdateFieldStatistics(fieldStats, attributePath, metadata, attributeValue);
                 }
-                reader.MoveToElement(); // Move back to element
+                reader.MoveToElement();
             }
         }
 
         /// <summary>
-        /// Builds field path string from the current path stack without indexing.
-        /// Creates consistent field pattern identifiers regardless of collection size.
+        /// Builds field path from stack.
         /// </summary>
         private static string BuildFieldPathFromStack(Stack<string> pathStack)
         {
             if (pathStack.Count == 0) return "/";
-            
             var pathElements = pathStack.ToArray().Reverse();
             return "/" + string.Join("/", pathElements);
         }
 
-        #endregion
-
-        #region XML Processing - LINQ to XML (for XDocument and XElement)
-
         /// <summary>
-        /// Extracts field observations from XElement using LINQ to XML.
-        /// Generates consistent field paths without indexing for cataloging purposes.
+        /// Extracts observations from XElement using LINQ to XML.
         /// </summary>
         private static List<CatalogObservationDto> ExtractObservationsFromElement(XElement rootElement, Dictionary<string, string> metadata)
         {
             var fieldStats = new Dictionary<string, FieldStatistics>();
-
-            // Process root element and all descendants
             ProcessElementRecursive(rootElement, fieldStats, metadata, "");
-
             return ConvertStatisticsToObservations(fieldStats);
         }
 
         /// <summary>
-        /// Recursively processes XElement to build field pattern catalog.
-        /// Focuses on field structure identification rather than instance tracking.
+        /// Recursively processes XElement.
         /// </summary>
         private static void ProcessElementRecursive(XElement element, Dictionary<string, FieldStatistics> fieldStats, Dictionary<string, string> metadata, string parentPath)
         {
-            // Build current field path without indexing
             var currentPath = parentPath + "/" + element.Name.LocalName;
 
-            // Process element text content
             if (!string.IsNullOrEmpty(element.Value) && !element.HasElements)
             {
-                // Only process text if this element doesn't have child elements
-                var textValue = element.Nodes().OfType<XText>().FirstOrDefault()?.Value ?? "";
+                var textNode = element.Nodes().OfType<XText>().FirstOrDefault();
+                var textValue = textNode != null ? textNode.Value : "";
                 UpdateFieldStatistics(fieldStats, currentPath, metadata, textValue);
             }
             else if (!element.HasElements)
             {
-                // Empty element - still record its existence
                 UpdateFieldStatistics(fieldStats, currentPath, metadata, "");
             }
 
-            // Process attributes
             foreach (var attribute in element.Attributes())
             {
                 var attributePath = currentPath + "/@" + attribute.Name.LocalName;
                 UpdateFieldStatistics(fieldStats, attributePath, metadata, attribute.Value);
             }
 
-            // Process child elements
             foreach (var childElement in element.Elements())
             {
                 ProcessElementRecursive(childElement, fieldStats, metadata, currentPath);
             }
         }
 
-        #endregion
-
-        #region Field Statistics Processing
-
         /// <summary>
-        /// Updates field statistics for a given field path with value analysis.
+        /// Updates field statistics.
         /// </summary>
         private static void UpdateFieldStatistics(Dictionary<string, FieldStatistics> fieldStats, string fieldPath, Dictionary<string, string> metadata, string value)
         {
-            if (!fieldStats.TryGetValue(fieldPath, out var stats))
+            FieldStatistics stats;
+            if (!fieldStats.TryGetValue(fieldPath, out stats))
             {
-                stats = new FieldStatistics 
-                { 
-                    FieldPath = fieldPath, 
+                stats = new FieldStatistics
+                {
+                    FieldPath = fieldPath,
                     Metadata = new Dictionary<string, string>(metadata),
                     TotalOccurrences = 0
                 };
@@ -308,23 +480,18 @@ namespace Ceremony.Catalog.Sdk
 
             stats.TotalOccurrences++;
 
-            // Analyze value characteristics
             if (value == null)
             {
                 stats.NullValueCount++;
             }
-            else if (string.IsNullOrEmpty(value))
-            {
-                stats.EmptyValueCount++;
-            }
             else if (string.IsNullOrWhiteSpace(value))
             {
-                stats.EmptyValueCount++; // Treat whitespace-only as empty
+                stats.EmptyValueCount++;
             }
         }
 
         /// <summary>
-        /// Converts field statistics to catalog observation DTOs.
+        /// Converts statistics to DTOs.
         /// </summary>
         private static List<CatalogObservationDto> ConvertStatisticsToObservations(Dictionary<string, FieldStatistics> fieldStats)
         {
@@ -333,7 +500,6 @@ namespace Ceremony.Catalog.Sdk
             foreach (var kvp in fieldStats)
             {
                 var stats = kvp.Value;
-
                 observations.Add(new CatalogObservationDto
                 {
                     Metadata = stats.Metadata,
@@ -349,57 +515,10 @@ namespace Ceremony.Catalog.Sdk
 
         #endregion
 
-        #region API Communication
+        #region Helper Methods
 
         /// <summary>
-        /// Sends observations to the API in batches for optimal performance.
-        /// </summary>
-        private static async Task SendObservationsBatchedAsync(
-            List<CatalogObservationDto> observations, 
-            string contextId, 
-            HttpClient httpClient, 
-            string baseUrl, 
-            int batchSize)
-        {
-            if (observations.Count == 0) return;
-
-            var endpoint = string.Format(ObservationsEndpoint, contextId);
-            var url = baseUrl.TrimEnd('/') + endpoint;
-
-            // Send observations in batches
-            for (int i = 0; i < observations.Count; i += batchSize)
-            {
-                var batch = observations.Skip(i).Take(batchSize).ToList();
-                await SendObservationBatchAsync(batch, url, httpClient);
-            }
-        }
-
-        /// <summary>
-        /// Sends a single batch of observations to the API.
-        /// </summary>
-        private static async Task SendObservationBatchAsync(List<CatalogObservationDto> batch, string url, HttpClient httpClient)
-        {
-            var json = JsonConvert.SerializeObject(batch, Formatting.None);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await httpClient.PostAsync(url, content);
-            
-            if (!response.IsSuccessStatusCode)
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                throw new CeremonyApiException(
-                    $"API call failed with status {response.StatusCode}: {errorContent}",
-                    response.StatusCode,
-                    errorContent);
-            }
-        }
-
-        #endregion
-
-        #region Helper Methods and Validation
-
-        /// <summary>
-        /// Creates optimized XmlReader settings for performance.
+        /// Creates XmlReader settings.
         /// </summary>
         private static XmlReaderSettings CreateXmlReaderSettings()
         {
@@ -409,27 +528,102 @@ namespace Ceremony.Catalog.Sdk
                 IgnoreProcessingInstructions = true,
                 IgnoreWhitespace = true,
                 DtdProcessing = DtdProcessing.Ignore,
-                XmlResolver = null // Security: Don't resolve external entities
+                XmlResolver = null
             };
         }
 
         /// <summary>
-        /// Validates common input parameters.
+        /// Validates inputs without throwing. Returns false if invalid.
         /// </summary>
-        private static void ValidateInputs(string contextId, Dictionary<string, string> metadata, HttpClient httpClient, string baseUrl)
+        private static bool ValidateInputsSafe(string contextId, HttpClient httpClient, string baseUrl, out Exception error)
         {
-            if (string.IsNullOrWhiteSpace(contextId)) 
-                throw new ArgumentException("Context ID cannot be null or empty", nameof(contextId));
-            if (metadata == null) 
-                throw new ArgumentNullException(nameof(metadata));
-            if (httpClient == null) 
-                throw new ArgumentNullException(nameof(httpClient));
-            if (string.IsNullOrWhiteSpace(baseUrl)) 
-                throw new ArgumentException("Base URL cannot be null or empty", nameof(baseUrl));
+            error = null;
+
+            if (string.IsNullOrWhiteSpace(contextId))
+            {
+                error = new ArgumentException("Context ID is required", "contextId");
+                return false;
+            }
+
+            if (httpClient == null)
+            {
+                error = new ArgumentNullException("httpClient", "HttpClient is required");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                error = new ArgumentException("Base URL is required", "baseUrl");
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Safely invokes error callback without throwing.
+        /// </summary>
+        private static void SafeInvokeErrorCallback(Action<Exception> onError, Exception ex)
+        {
+            if (onError == null) return;
+
+            try
+            {
+                onError(ex);
+            }
+            catch
+            {
+                // Swallow any errors from the callback itself
+            }
         }
 
         #endregion
     }
+
+    #region Task Extensions
+
+    /// <summary>
+    /// Extension methods for safe fire-and-forget task execution.
+    /// Ensures tasks are properly observed to prevent TaskScheduler.UnobservedTaskException.
+    /// Based on best practices from https://www.meziantou.net/fire-and-forget-a-task-in-dotnet.htm
+    /// </summary>
+    internal static class TaskExtensions
+    {
+        /// <summary>
+        /// Safely executes a task in fire-and-forget manner.
+        /// Observes the task to prevent UnobservedTaskException and optionally reports errors.
+        /// </summary>
+        /// <param name="task">The task to execute</param>
+        /// <param name="onError">Optional error callback (exceptions are never thrown)</param>
+        public static void SafeFireAndForget(this Task task, Action<Exception> onError = null)
+        {
+            // Don't wait on the task, but observe it to prevent UnobservedTaskException
+            task.ContinueWith(
+                t =>
+                {
+                    if (t.IsFaulted && t.Exception != null)
+                    {
+                        // Flatten AggregateException to get the actual exception
+                        var exception = t.Exception.GetBaseException();
+
+                        if (onError != null)
+                        {
+                            try
+                            {
+                                onError(exception);
+                            }
+                            catch
+                            {
+                                // Swallow callback errors
+                            }
+                        }
+                    }
+                },
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+        }
+    }
+
+    #endregion
 
     #region Data Transfer Objects
 
@@ -474,10 +668,10 @@ namespace Ceremony.Catalog.Sdk
 
     #endregion
 
-    #region Internal Data Structures
+    #region Internal Classes
 
     /// <summary>
-    /// Internal class for tracking field statistics during XML traversal.
+    /// Internal class for tracking field statistics.
     /// </summary>
     internal class FieldStatistics
     {
@@ -488,27 +682,37 @@ namespace Ceremony.Catalog.Sdk
         public int EmptyValueCount { get; set; }
     }
 
-    #endregion
-
-    #region Exception Classes
-
     /// <summary>
-    /// Exception thrown when the Ceremony Field Catalog API returns an error.
+    /// Exception for catalog API errors (used internally, never thrown to caller).
     /// </summary>
-    public class CeremonyApiException : Exception
+    public class CatalogApiException : Exception
     {
-        public System.Net.HttpStatusCode StatusCode { get; }
-        public string ResponseContent { get; }
+        /// <summary>
+        /// HTTP status code from the API response, if available.
+        /// </summary>
+        public System.Net.HttpStatusCode? StatusCode { get; private set; }
 
-        public CeremonyApiException(string message, System.Net.HttpStatusCode statusCode, string responseContent) 
+        /// <summary>
+        /// Raw response content from the API, if available.
+        /// </summary>
+        public string ResponseContent { get; private set; }
+
+        /// <summary>
+        /// Creates a new CatalogApiException with a message.
+        /// </summary>
+        public CatalogApiException(string message) : base(message) { }
+
+        /// <summary>
+        /// Creates a new CatalogApiException with a message and inner exception.
+        /// </summary>
+        public CatalogApiException(string message, Exception innerException)
+            : base(message, innerException) { }
+
+        /// <summary>
+        /// Creates a new CatalogApiException with API response details.
+        /// </summary>
+        public CatalogApiException(string message, System.Net.HttpStatusCode statusCode, string responseContent)
             : base(message)
-        {
-            StatusCode = statusCode;
-            ResponseContent = responseContent;
-        }
-
-        public CeremonyApiException(string message, System.Net.HttpStatusCode statusCode, string responseContent, Exception innerException) 
-            : base(message, innerException)
         {
             StatusCode = statusCode;
             ResponseContent = responseContent;
@@ -517,112 +721,3 @@ namespace Ceremony.Catalog.Sdk
 
     #endregion
 }
-
-#region Usage Examples
-
-/*
-// Example 1: Field patterns are consistent regardless of collection size
-var xmlWithMultipleCustomers = @"
-<ceremony>
-  <customers>
-    <customer>
-      <id>123</id>
-      <name>John</name>
-    </customer>
-    <customer>
-      <id>456</id>
-      <name>Jane</name>
-    </customer>
-    <customer>
-      <id>789</id>
-      <name>Bob</name>
-    </customer>
-  </customers>
-</ceremony>";
-
-var xmlWithSingleCustomer = @"
-<ceremony>
-  <customers>
-    <customer>
-      <id>123</id>
-      <name>John</name>
-    </customer>
-  </customers>
-</ceremony>";
-
-// Both generate identical field paths:
-// /ceremony/customers/customer/id
-// /ceremony/customers/customer/name
-// Perfect for field pattern cataloging!
-
-var metadata = new Dictionary<string, string> 
-{
-    { "productCode", "DDA" },
-    { "action", "Fulfillment" }
-};
-
-using (var httpClient = new HttpClient())
-{
-    // Process first document
-    await CeremonyFieldCatalogSdk.SubmitObservationsAsync(
-        xmlWithMultipleCustomers, 
-        "deposits", 
-        metadata, 
-        httpClient, 
-        "https://api.ceremony-catalog.com"
-    );
-    
-    // Process second document - will merge with same field patterns
-    await CeremonyFieldCatalogSdk.SubmitObservationsAsync(
-        xmlWithSingleCustomer, 
-        "deposits", 
-        metadata, 
-        httpClient, 
-        "https://api.ceremony-catalog.com"
-    );
-}
-
-// Example 2: Attributes are also cataloged
-var xmlWithAttributes = @"
-<ceremony>
-  <account type='checking' status='active'>
-    <balance currency='USD'>1000.00</balance>
-  </account>
-</ceremony>";
-
-// Generates field paths:
-// /ceremony/account/@type
-// /ceremony/account/@status  
-// /ceremony/account/balance
-// /ceremony/account/balance/@currency
-
-// Example 3: Future JSON support would work similarly
-// JSON: { "ceremony": { "customers": { "customer": [{"name": "John"}] } } }
-// Would generate: /ceremony/customers/customer/name
-// Same field pattern concept!
-
-// Example 4: Large file processing with streaming
-var xmlBytes = File.ReadAllBytes("large-financial-document.xml");
-await CeremonyFieldCatalogSdk.SubmitObservationsAsync(
-    xmlBytes, "deposits", metadata, httpClient, baseUrl, 
-    batchSize: 1000  // Process in larger batches for big files
-);
-
-// Example 5: Error handling
-try
-{
-    await CeremonyFieldCatalogSdk.SubmitObservationsAsync(xmlBytes, "deposits", metadata, httpClient, baseUrl);
-    Console.WriteLine("Field observations submitted successfully!");
-}
-catch (CeremonyApiException ex)
-{
-    Console.WriteLine($"API Error {ex.StatusCode}: {ex.Message}");
-    Console.WriteLine($"Response: {ex.ResponseContent}");
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"General Error: {ex.Message}");
-}
-*/
-
-#endregion
