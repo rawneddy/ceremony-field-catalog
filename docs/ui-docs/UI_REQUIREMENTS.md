@@ -103,16 +103,15 @@ The UI must support the **dynamic Context system**:
   - Row highlighting on hover
   - Alternating row colors for readability
 
-**US3.2: Pagination & Navigation**
+**US3.2: Results Display & Navigation**
 - **As a** user
-- **I want to** navigate through large result sets efficiently
-- **So that** I can explore all available data
+- **I want to** see results with clear feedback when there are many matches
+- **So that** I can refine my search if needed
 - **Acceptance Criteria:**
-  - Page size selector (25, 50, 100, 200)
-  - First/Previous/Next/Last navigation
-  - Jump to specific page input
-  - Results count display ("Showing 1-50 of 1,247 results")
-  - Keyboard navigation support (arrow keys, enter)
+  - Single-page results (max 250 entries)
+  - Results count display ("Showing 250 of 1,247 results - refine your search")
+  - Keyboard navigation support (arrow keys for row selection)
+  - Client-side filtering to narrow displayed results
 
 **US3.3: Field Detail View**
 - **As a** user
@@ -200,8 +199,8 @@ The UI must support the **dynamic Context system**:
 │ │ [Expandable detail panels]                              │ │
 │ └─────────────────────────────────────────────────────────┘ │
 ├─────────────────────────────────────────────────────────────┤
-│ Pagination: [First] [Prev] 1 2 3 ... [Next] [Last]          │
-│ Page Size: [25▼] Records per page                           │
+│ Results Info: "Showing 250 of 1,247 - refine your search"   │
+│ Client-side Filter: [Filter results...] [Clear Filters]     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -265,11 +264,11 @@ The UI must support the **dynamic Context system**:
 - **Actions:** Copy fieldPath, close panel
 - **Animation:** Smooth expand/collapse
 
-#### Pagination
-- **Controls:** First, Previous, Page Numbers, Next, Last
-- **Page Size:** Dropdown selector
-- **Info:** "Showing X-Y of Z results"
-- **Keyboard:** Arrow keys for navigation
+#### Results & Filtering
+- **Max Results:** 250 entries per search (single page)
+- **Info:** "Showing X of Y results" with prompt to refine if truncated
+- **Client-side Filter:** Text input to filter displayed results instantly
+- **Keyboard:** Arrow keys for row navigation
 
 ## Technical Constraints
 
