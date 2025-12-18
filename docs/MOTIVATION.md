@@ -57,10 +57,10 @@ The system reads `ProductCode` to make decisions, but `Name`, `SSN`, `Balance`, 
 
 ### The Transform Black Box
 
-The XSLT transforms that convert Ceremony XML to document-specific XML are themselves complex:
-- Many are auto-generated or evolved over years
-- They select paths from the input XML and map them to output structures
-- The transforms know what they need, but extracting this knowledge programmatically is extremely difficult
+The coded (and in some cases XSLT) transforms that convert Ceremony XML or BMIC XML to document-specific XML are themselves complex:
+- Many have evolved over years
+- They select paths from the input XML and map them to output structures, sometimes using complex business rules
+- The transforms know what they need **for those fields they touch directly**, but extracting this knowledge programmatically is extremely difficult
 
 ---
 
@@ -68,15 +68,15 @@ The XSLT transforms that convert Ceremony XML to document-specific XML are thems
 
 ### Pathway 1: Ceremony Path
 - Ceremony XML → Business Rules → Per-Document Transforms → PDF Generation API
-- **The problem**: Transforms know what they need, but we'd have to reverse-engineer hundreds of XSLTs to extract field requirements
+- **The problem**: Transforms know what they need for those fields they touch, but most fields pass through. And for the ones that do not we'd have to reverse-engineer hundreds of coded transformation methods to extract field requirements
 
-### Pathway 2: OnDemand Path
-- Pre-formed Document XML → Passthrough → PDF Generation API
-- **The problem**: The legacy system has zero knowledge of these fields. It just forwards whatever it receives.
-
-### Pathway 3: BMIC Path
+### Pathway 2: BMIC Path
 - Reference ID → Fetch BMIC XML from SOR → Light Transform → PDF Generation API
-- **The problem**: BMIC XML comes from an external system. ~90% of fields are shared across documents with no documentation of which fields each document actually uses.
+- **The problem**: BMIC XML comes from an external system. ~90% of fields are shared across documents with sparse/scattered documentation of which fields each document actually uses.  Further, complex XSLT transforms developed 10+ years ago are still handling much of the transformation.
+
+### Pathway 3: OnDemand Path
+- Pre-formed Document XML → Passthrough → PDF Generation API
+- **The problem**: The legacy system shies away from any first class knowledge of these fields. It just forwards whatever it receives.
 
 ---
 
@@ -84,12 +84,12 @@ The XSLT transforms that convert Ceremony XML to document-specific XML are thems
 
 Several approaches have been considered and rejected:
 
-### "Just read the XSLT transforms"
-- Hundreds of transforms, many auto-generated
-- Complex conditional logic (`xsl:if`, `xsl:choose`)
+### "Just read the transforms"
+- Hundreds of transforms, many complicated by calls across code files and shared libraries
+- Complex conditional logic in code, but also in the legacy XSLT
 - Template composition and includes
 - Dynamic XPath expressions
-- Would take months of manual analysis with high error risk
+- Would take months of manual analysis with high error risk.  AI could help, but we would still not know which fields are actually used.  Only real world data will tell us that.
 
 ### "Ask the template team for schemas"
 - The template team defines what their document templates expect
@@ -97,14 +97,13 @@ Several approaches have been considered and rejected:
 - Their schemas define structure, not "which fields are used for which product codes"
 
 ### "Document it manually"
-- 500+ document templates
+- 250+ document templates
 - Dozens of product codes, subcodes, actions, states
 - Combinations explode combinatorially
 - Would be outdated before completion
 
 ### "Add logging and analyze logs"
-- Log volume would be enormous (1-2M ceremonies/month)
-- Storage costs prohibitive
+- Log volume would be enormous (1-2M ceremonies/month) when considering the hundreds of fields per ceremony
 - Log analysis would require building... essentially what this catalog does
 
 ---
@@ -125,7 +124,7 @@ Instead of trying to extract field knowledge from code (which largely doesn't ha
 At each instrumentation point, we observe:
 - **What fields exist** (the XPath)
 - **For what context** (product code, document code, etc.)
-- **Occurrence patterns** (how many times per document, is it always present, can it be null/empty)
+- **Occurrence patterns** (is the field always present, can it be null/empty, what are its max/min values, etc)
 
 ### Example Observation Flow
 
@@ -219,7 +218,7 @@ The catalog should run continuously, but 30 days provides a solid baseline.
 
 The Ceremony Field Catalog exists because:
 
-1. **The legacy system is a passthrough** - It doesn't know what fields exist because it doesn't examine most of them
+1. **The legacy system is majority passthrough** - It doesn't know what fields exist because it doesn't examine most of them
 2. **Static analysis is impractical** - Hundreds of transforms, complex logic, combinatorial explosion
 3. **Manual documentation is impossible** - Too many combinations, would be outdated immediately
 4. **Empirical observation works** - Watch production traffic, build statistical field coverage

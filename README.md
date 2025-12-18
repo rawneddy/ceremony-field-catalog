@@ -140,6 +140,8 @@ mvn clean test
 
 Integration tests use Testcontainers to spin up a temporary MongoDB instance. Docker must be running.
 
+For detailed testing patterns and guidelines, see [docs/TESTING.md](docs/TESTING.md).
+
 ## Project Structure
 ---
 - `src/main/java/com/ceremony/catalog/` — Main application code
@@ -147,3 +149,11 @@ Integration tests use Testcontainers to spin up a temporary MongoDB instance. Do
 - `src/main/resources/application.yml` — Spring Boot configuration
 - `docker-compose.yml` — Docker Compose configuration
 - `Dockerfile` — Multi-stage build for the Spring Boot app
+
+## See Also
+---
+| Document | Description |
+|----------|-------------|
+| [docs/OVERVIEW.md](docs/OVERVIEW.md) | System overview explaining the problem being solved and legacy pipeline context |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Detailed technical architecture, components, and API layer documentation |
+| [docs/MOTIVATION.md](docs/MOTIVATION.md) | Business context explaining why the catalog is needed and how legacy systems work |

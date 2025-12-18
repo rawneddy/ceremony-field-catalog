@@ -47,7 +47,7 @@ docker exec -it ceremony-mongo mongosh
 ```
 
 ### API Testing
-Use `CatalogSmokeTests.http` with VS Code REST Client extension for manual API testing.
+Use `tests/CatalogSmokeTests.http` with VS Code REST Client extension for manual API testing.
 
 ## Architecture Overview
 
@@ -170,4 +170,4 @@ Required extensions:
 - REST Client (for .http testing)
 - Test Explorer UI
 
-The codebase uses Java 17, Spring Boot 3.2.5, and follows modern Spring Data MongoDB patterns with Testcontainers for reliable integration testing.
+The codebase uses Java 21, Spring Boot 3.2.5, and follows modern Spring Data MongoDB patterns with Testcontainers for reliable integration testing.
