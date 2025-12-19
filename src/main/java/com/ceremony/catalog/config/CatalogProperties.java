@@ -69,20 +69,15 @@ public class CatalogProperties {
 
     @Data
     public static class Search {
-        @Schema(description = "Maximum number of results to return in a single search", example = "10000")
-        @Min(value = 1, message = "Max results must be at least 1")
-        @Max(value = 100000, message = "Max results cannot exceed 100000")
-        private int maxResults = 10000;
-
         @Schema(description = "Default page size for search results", example = "50")
         @Min(value = 1, message = "Default page size must be at least 1")
         @Max(value = 1000, message = "Default page size cannot exceed 1000")
         private int defaultPageSize = 50;
 
-        @Schema(description = "Maximum page size allowed for search requests", example = "1000")
+        @Schema(description = "Maximum page size allowed for search requests", example = "250")
         @Min(value = 1, message = "Max page size must be at least 1")
         @Max(value = 5000, message = "Max page size cannot exceed 5000")
-        private int maxPageSize = 1000;
+        private int maxPageSize = 250;
 
         @Schema(description = "Timeout for search operations", example = "PT30S")
         private Duration timeout = Duration.ofSeconds(30);

@@ -60,13 +60,14 @@ public class GlobalExceptionHandler {
         log.warn("Handler method validation error: {}", e.getMessage());
 
         List<String> errors = new ArrayList<>();
-        e.getAllValidationResults().forEach(result -> {
+        e.getParameterValidationResults().forEach(result -> {
             result.getResolvableErrors().forEach(error -> {
                 String field = "";
-                if (error.getCodes() != null && error.getCodes().length > 0) {
+                String[] codes = error.getCodes();
+                if (codes != null && codes.length > 0) {
                     // Extract field name from the code (e.g., "fieldPath" from "NotBlank.fieldPath")
-                    String code = error.getCodes()[0];
-                    if (code.contains(".")) {
+                    String code = codes[0];
+                    if (code != null && code.contains(".")) {
                         field = code.substring(code.lastIndexOf('.') + 1) + ": ";
                     }
                 }
@@ -106,9 +107,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
         log.warn("Type mismatch: {}", e.getMessage());
-        
-        String message = String.format("Invalid value '%s' for parameter '%s'. Expected type: %s", 
-            e.getValue(), e.getName(), e.getRequiredType().getSimpleName());
+
+        Class<?> requiredType = e.getRequiredType();
+        String typeName = requiredType != null ? requiredType.getSimpleName() : "unknown";
+        String message = String.format("Invalid value '%s' for parameter '%s'. Expected type: %s",
+            e.getValue(), e.getName(), typeName);
         
         Map<String, Object> errorResponse = Map.of(
             "message", message,

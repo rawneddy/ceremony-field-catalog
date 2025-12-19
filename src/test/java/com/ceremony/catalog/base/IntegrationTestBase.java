@@ -11,7 +11,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.mongodb.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -36,6 +36,7 @@ import java.util.Map;
 })
 public abstract class IntegrationTestBase {
     
+    @SuppressWarnings("resource") // Container lifecycle managed by Testcontainers JUnit extension
     @Container
     static MongoDBContainer mongoContainer = new MongoDBContainer("mongo:7")
             .withReuse(true);  // Reuse across test classes for performance

@@ -39,18 +39,19 @@ class CatalogServiceTest extends ServiceTestBase {
     void minOccursDropsToZeroWhenFieldMissing() {
         // Setup context using helper
         createAndVerifyContext("deposits", "productcode", "productsubcode", "action");
-        
+
+        // Submit with mixed case - API normalizes to lowercase
         catalogService.merge("deposits", List.of(
             TestDataBuilder.depositsObservation()
-                .withFieldPath("/Ceremony/FeeCode")
+                .withFieldPath("/Ceremony/FeeCode")  // Mixed case input
                 .build()
         ));
 
-        // Verify first field created using custom assertions
+        // Verify field created with lowercase path
         var entries = catalogRepository.findAll();
         assertThat(entries).hasSize(1);
         TestAssertions.assertThat(entries.get(0))
-            .hasFieldPath("/Ceremony/FeeCode")
+            .hasFieldPath("/ceremony/feecode")  // Lowercased
             .hasContextId("deposits")
             .hasMinOccurs(1)
             .hasMaxOccurs(1);
@@ -62,14 +63,14 @@ class CatalogServiceTest extends ServiceTestBase {
             "action", "fulfillment"
         );
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/DifferentField", 1, false, false)
+            new CatalogObservationDTO(metadata, "/Ceremony/DifferentField", 1, false, false)  // Mixed case
         ));
 
         entries = catalogRepository.findAll();
         assertThat(entries).hasSize(2);
-        
+
         var feeCodeEntry = entries.stream()
-            .filter(e -> e.getFieldPath().equals("/Ceremony/FeeCode"))
+            .filter(e -> e.getFieldPath().equals("/ceremony/feecode"))  // Lowercased
             .findFirst()
             .orElseThrow();
         assertThat(feeCodeEntry.getMinOccurs()).isEqualTo(0); // Should be zero now
@@ -88,7 +89,7 @@ class CatalogServiceTest extends ServiceTestBase {
 
         // First observation with count 1
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/Amount", 1, false, false)
+            new CatalogObservationDTO(metadata, "/ceremony/amount", 1, false, false)
         ));
 
         var entry = catalogRepository.findAll().get(0);
@@ -96,7 +97,7 @@ class CatalogServiceTest extends ServiceTestBase {
 
         // Second observation with count 5 should increase maxOccurs
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/Amount", 5, false, false)
+            new CatalogObservationDTO(metadata, "/ceremony/amount", 5, false, false)
         ));
 
         entry = catalogRepository.findAll().get(0);
@@ -116,7 +117,7 @@ class CatalogServiceTest extends ServiceTestBase {
 
         // First observation: no null, no empty
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/Name", 1, false, false)
+            new CatalogObservationDTO(metadata, "/ceremony/name", 1, false, false)
         ));
 
         var entry = catalogRepository.findAll().get(0);
@@ -125,7 +126,7 @@ class CatalogServiceTest extends ServiceTestBase {
 
         // Second observation: has null
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/Name", 1, true, false)
+            new CatalogObservationDTO(metadata, "/ceremony/name", 1, true, false)
         ));
 
         entry = catalogRepository.findAll().get(0);
@@ -134,7 +135,7 @@ class CatalogServiceTest extends ServiceTestBase {
 
         // Third observation: has empty
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/Name", 1, false, true)
+            new CatalogObservationDTO(metadata, "/ceremony/name", 1, false, true)
         ));
 
         entry = catalogRepository.findAll().get(0);
@@ -203,22 +204,22 @@ class CatalogServiceTest extends ServiceTestBase {
         );
 
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/Amount", 1, false, false),
-            new CatalogObservationDTO(metadata, "/Ceremony/Name", 1, false, false)
+            new CatalogObservationDTO(metadata, "/ceremony/amount", 1, false, false),
+            new CatalogObservationDTO(metadata, "/ceremony/name", 1, false, false)
         ));
 
-        var criteria = new CatalogSearchCriteria("deposits", null, null);
+        var criteria = new CatalogSearchCriteria(null, "deposits", null, null);
         Page<CatalogEntry> results = catalogService.find(criteria, PageRequest.of(0, 10));
 
         assertThat(results.getContent()).hasSize(2);
         assertThat(results.getContent().stream().map(CatalogEntry::getFieldPath))
-            .containsExactlyInAnyOrder("/Ceremony/Amount", "/Ceremony/Name");
+            .containsExactlyInAnyOrder("/ceremony/amount", "/ceremony/name");
     }
 
     @Test
     void searchFindsByFieldPathPattern() {
         createAndVerifyContext("deposits", "productcode", "productsubcode", "action");
-        
+
         Map<String, String> metadata = Map.of(
             "productcode", "dda",
             "productsubcode", "4s",
@@ -226,15 +227,15 @@ class CatalogServiceTest extends ServiceTestBase {
         );
 
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/FeeCode", 1, false, false),
-            new CatalogObservationDTO(metadata, "/Ceremony/Amount", 1, false, false)
+            new CatalogObservationDTO(metadata, "/ceremony/feecode", 1, false, false),
+            new CatalogObservationDTO(metadata, "/ceremony/amount", 1, false, false)
         ));
 
-        var criteria = new CatalogSearchCriteria(null, null, "/Ceremony/FeeCode");
+        var criteria = new CatalogSearchCriteria(null, null, null, "/ceremony/feecode");
         Page<CatalogEntry> results = catalogService.find(criteria, PageRequest.of(0, 10));
 
         assertThat(results.getContent()).hasSize(1);
-        assertThat(results.getContent().get(0).getFieldPath()).isEqualTo("/Ceremony/FeeCode");
+        assertThat(results.getContent().get(0).getFieldPath()).isEqualTo("/ceremony/feecode");
     }
 
     // ===== CASE-INSENSITIVE METADATA TESTS =====
@@ -252,7 +253,7 @@ class CatalogServiceTest extends ServiceTestBase {
 
         // Should not throw an exception
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(mixedCaseMetadata, "/Ceremony/Amount", 1, false, false)
+            new CatalogObservationDTO(mixedCaseMetadata, "/ceremony/amount", 1, false, false)
         ));
 
         var entries = catalogRepository.findAll();
@@ -274,7 +275,7 @@ class CatalogServiceTest extends ServiceTestBase {
         );
 
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(uppercaseMetadata, "/Ceremony/Amount", 1, false, false)
+            new CatalogObservationDTO(uppercaseMetadata, "/ceremony/amount", 1, false, false)
         ));
 
         var entries = catalogRepository.findAll();
@@ -297,7 +298,7 @@ class CatalogServiceTest extends ServiceTestBase {
 
         assertThatThrownBy(() -> 
             catalogService.merge("deposits", List.of(
-                new CatalogObservationDTO(incompleteMetadata, "/Ceremony/Amount", 1, false, false)
+                new CatalogObservationDTO(incompleteMetadata, "/ceremony/amount", 1, false, false)
             ))
         ).isInstanceOf(IllegalArgumentException.class)
          .hasMessageContaining("Required metadata field missing: action");
@@ -315,7 +316,7 @@ class CatalogServiceTest extends ServiceTestBase {
 
         assertThatThrownBy(() -> 
             catalogService.merge("deposits", List.of(
-                new CatalogObservationDTO(metadataWithUnexpectedField, "/Ceremony/Amount", 1, false, false)
+                new CatalogObservationDTO(metadataWithUnexpectedField, "/ceremony/amount", 1, false, false)
             ))
         ).isInstanceOf(IllegalArgumentException.class)
          .hasMessageContaining("Unexpected metadata field: unexpectedfield");
@@ -329,7 +330,7 @@ class CatalogServiceTest extends ServiceTestBase {
         catalogService.merge("deposits", List.of(
             new CatalogObservationDTO(
                 Map.of("productcode", "dda", "action", "fulfillment"),
-                "/Ceremony/Amount", 
+                "/ceremony/amount", 
                 1, false, false
             )
         ));
@@ -338,7 +339,7 @@ class CatalogServiceTest extends ServiceTestBase {
         catalogService.merge("deposits", List.of(
             new CatalogObservationDTO(
                 Map.of("PRODUCTCODE", "DDA", "ACTION", "FULFILLMENT"),
-                "/Ceremony/Amount", 
+                "/ceremony/amount", 
                 2, false, false
             )
         ));
@@ -366,7 +367,7 @@ class CatalogServiceTest extends ServiceTestBase {
         );
 
         catalogService.merge("deposits", List.of(
-            new CatalogObservationDTO(metadata, "/Ceremony/Amount", 1, false, false)
+            new CatalogObservationDTO(metadata, "/ceremony/amount", 1, false, false)
         ));
 
         var entries = catalogRepository.findAll();
@@ -385,22 +386,22 @@ class CatalogServiceTest extends ServiceTestBase {
         catalogService.merge("deposits", List.of(
             new CatalogObservationDTO(
                 Map.of("ProductCode", "dda", "Action", "fulfillment"),
-                "/Ceremony/Amount", 
+                "/ceremony/amount", 
                 1, false, false
             ),
             new CatalogObservationDTO(
                 Map.of("productcode", "sav", "action", "inquiry"),
-                "/Ceremony/Balance", 
+                "/ceremony/balance", 
                 1, false, false
             )
         ));
 
         // Search with lowercase metadata should find both
         var searchMetadata = Map.of("productcode", "dda");
-        var criteria = new CatalogSearchCriteria("deposits", searchMetadata, null);
+        var criteria = new CatalogSearchCriteria(null, "deposits", searchMetadata, null);
         Page<CatalogEntry> results = catalogService.find(criteria, PageRequest.of(0, 10));
 
         assertThat(results.getContent()).hasSize(1);
-        assertThat(results.getContent().get(0).getFieldPath()).isEqualTo("/Ceremony/Amount");
+        assertThat(results.getContent().get(0).getFieldPath()).isEqualTo("/ceremony/amount");
     }
 }

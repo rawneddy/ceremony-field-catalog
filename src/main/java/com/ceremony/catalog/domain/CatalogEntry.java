@@ -3,6 +3,7 @@ package com.ceremony.catalog.domain;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.util.Map;
 
@@ -14,13 +15,24 @@ import java.util.Map;
 public class CatalogEntry {
     @Id
     private String id;
-    
+
+    @Field("contextid")
     private String contextId;
+
     private Map<String, String> metadata;
-    
+
+    @Field("fieldpath")
     private String fieldPath;
+
+    @Field("maxoccurs")
     private int maxOccurs;
+
+    @Field("minoccurs")
     private int minOccurs;
+
+    @Field("allowsnull")
     private boolean allowsNull;
+
+    @Field("allowsempty")
     private boolean allowsEmpty;
 }

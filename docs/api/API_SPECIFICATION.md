@@ -97,7 +97,13 @@ Field identity is computed as: `hash(contextId + requiredMetadata + fieldPath)`
 
 **Purpose:** Retrieve all available contexts
 
-**Response:** `200 OK`
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `includeCounts` | boolean | No | Include field count for each context (default: false) |
+
+**Response (without includeCounts):** `200 OK`
 ```json
 [
   {
@@ -119,6 +125,23 @@ Field identity is computed as: `hash(contextId + requiredMetadata + fieldPath)`
     "active": true,
     "createdAt": "2024-01-16T08:00:00Z",
     "updatedAt": null
+  }
+]
+```
+
+**Response (with includeCounts=true):** `200 OK`
+```json
+[
+  {
+    "contextId": "deposits",
+    "displayName": "Deposits",
+    "description": "Ceremony XML processing for account deposits",
+    "requiredMetadata": ["productCode", "productSubCode", "action"],
+    "optionalMetadata": ["channel"],
+    "active": true,
+    "createdAt": "2024-01-15T10:30:00Z",
+    "updatedAt": null,
+    "fieldCount": 1247
   }
 ]
 ```
@@ -240,24 +263,45 @@ Field identity is computed as: `hash(contextId + requiredMetadata + fieldPath)`
 
 **Purpose:** Search and retrieve cataloged fields with filtering and pagination
 
+**Two Search Modes:**
+
+1. **Global Search (`q`)**: OR-based search across fieldPath, contextId, AND metadata values. Best for quick, exploratory searches.
+2. **Filter Search**: AND-based search with specific filters. Best for precise queries.
+
+When `q` is provided, other filter parameters are ignored.
+
+**String/Regex Mode:** The `useRegex` parameter controls how search terms are interpreted:
+- `useRegex=false` (default): Literal string matching with special characters escaped
+- `useRegex=true`: Search term treated as regex pattern
+
+**Active Context Filtering:** Results are automatically filtered to only include fields from **active contexts**. Fields belonging to inactive contexts are never returned. This applies to both search modes and autocomplete suggestions.
+
 **Query Parameters:**
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `q` | string | No | Global search term - searches fieldPath, contextId, AND metadata values using OR logic. When provided, other filters are ignored. |
 | `contextId` | string | No | Filter by context (omit for cross-context search) |
-| `fieldPathContains` | string | No | Case-insensitive pattern match on fieldPath |
+| `fieldPathContains` | string | No | Pattern match on fieldPath. When `useRegex=false` (default), special characters are escaped for literal matching. When `useRegex=true`, treated as regex pattern. |
+| `useRegex` | boolean | No | When `true`, treat `q` and `fieldPathContains` as regex patterns. Default: `false` (literal string matching). |
 | `page` | integer | No | Page number (0-based, default: 0) |
 | `size` | integer | No | Page size (1-250, default: 50) |
 | `*` | string | No | Any other parameter treated as metadata filter |
 
-**Dynamic Metadata Filtering:**
-Any query parameter not in the standard list becomes a metadata filter:
-```
-GET /catalog/fields?contextId=deposits&productCode=DDA&productSubCode=4S
-```
-This filters for fields where `metadata.productCode = "DDA"` AND `metadata.productSubCode = "4S"`.
+**Global Search Examples:**
 
-**Example Requests:**
+```bash
+# Find fields containing "Amount" in fieldPath, contextId, or any metadata value
+GET /catalog/fields?q=Amount
+
+# Find fields related to "deposit"
+GET /catalog/fields?q=deposit
+
+# Regex search across all fields
+GET /catalog/fields?q=^/Ceremony/.*Amount&useRegex=true
+```
+
+**Filter Search Examples:**
 
 ```bash
 # Search within a context
@@ -272,9 +316,16 @@ GET /catalog/fields?productCode=DDA
 # Search by field path pattern
 GET /catalog/fields?fieldPathContains=WithholdingCode
 
-# Combined filters
+# Combined filters (AND logic)
 GET /catalog/fields?contextId=deposits&productCode=DDA&fieldPathContains=Account
 ```
+
+**Dynamic Metadata Filtering:**
+Any query parameter not in the standard list becomes a metadata filter:
+```
+GET /catalog/fields?contextId=deposits&productCode=DDA&productSubCode=4S
+```
+This filters for fields where `metadata.productCode = "DDA"` AND `metadata.productSubCode = "4S"`.
 
 **Response:** `200 OK`
 ```json
@@ -338,6 +389,54 @@ GET /catalog/fields?contextId=deposits&productCode=DDA&fieldPathContains=Account
 ```
 
 **Note:** Metadata keys and values are normalized to lowercase for case-insensitive matching.
+
+---
+
+#### 8. Suggest Values (Autocomplete)
+
+**Endpoint:** `GET /catalog/suggest`
+
+**Purpose:** Get autocomplete suggestions for fieldPath or metadata values
+
+**Active Context Filtering:** Suggestions are automatically scoped to **active contexts only**. Values from inactive contexts are never suggested.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `field` | string | Yes | Field to suggest for: `fieldPath` or `metadata.{name}` |
+| `prefix` | string | No | Prefix to match (case-insensitive) |
+| `contextId` | string | No | Scope suggestions to a specific context |
+| `limit` | integer | No | Maximum suggestions to return (default: 10, max: 100) |
+| `metadata.*` | string | No | Additional metadata filters to scope suggestions |
+
+**Example Requests:**
+
+```bash
+# Cross-context fieldPath suggestions
+GET /catalog/suggest?field=fieldPath&prefix=/Ceremony/Acc&limit=15
+
+# Scoped fieldPath suggestions (within context and metadata)
+GET /catalog/suggest?field=fieldPath&prefix=/Ceremony/Acc&contextId=deposits&metadata.productCode=DDA
+
+# Metadata value suggestions
+GET /catalog/suggest?field=metadata.productCode&prefix=DD&contextId=deposits
+```
+
+**Response:** `200 OK`
+```json
+[
+  "/Ceremony/Account/Amount",
+  "/Ceremony/Account/Balance",
+  "/Ceremony/Account/FeeCode"
+]
+```
+
+**Notes:**
+- Suggestions are case-insensitive prefix matches
+- Results are sorted alphabetically and limited to the specified max
+- For `fieldPath`, prefix should start with `/` for path suggestions
+- For metadata values, prefix can be any partial match
 
 ---
 
@@ -414,11 +513,11 @@ interface PagedResponse<T> {
 
 ```typescript
 interface ErrorResponse {
-  message: string;
-  status: number;
-  timestamp: string;
-  error: string;
-  validationErrors?: Record<string, string>;
+  message: string;           // Human-readable error message
+  status: number;            // HTTP status code
+  timestamp: string;         // ISO 8601 timestamp
+  error: string;             // Error type (e.g., "Bad Request", "Validation Error")
+  errors?: string[];         // Optional array of validation error messages
 }
 ```
 

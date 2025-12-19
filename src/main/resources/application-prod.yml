@@ -45,7 +45,7 @@ app:
     search:
       max-results: ${CATALOG_MAX_RESULTS:10000}
       default-page-size: ${CATALOG_DEFAULT_PAGE_SIZE:50}
-      max-page-size: ${CATALOG_MAX_PAGE_SIZE:1000}
+      max-page-size: ${CATALOG_MAX_PAGE_SIZE:250}  # Aligned with UI expectations
       timeout: ${CATALOG_SEARCH_TIMEOUT:PT30S}
     validation:
       max-xpath-length: ${VALIDATION_MAX_XPATH_LENGTH:1000}

@@ -16,6 +16,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@SuppressWarnings("null") // Spring Data repository null safety warnings
 public class CatalogService {
     private final CatalogRepository repository;
     private final ContextService contextService;
@@ -173,7 +174,7 @@ public class CatalogService {
             // If we have field paths to update, fetch only those entries and update them
             List<CatalogEntry> entriesToUpdate = fieldPathsToUpdate.isEmpty() ? 
                 List.of() : 
-                repository.searchByCriteria(new CatalogSearchCriteria(contextId, contextKey.metadata(), null))
+                repository.searchByCriteria(new CatalogSearchCriteria(null, contextId, contextKey.metadata(), null))
                     .stream()
                     .filter(entry -> fieldPathsToUpdate.contains(entry.getFieldPath()))
                     .peek(entry -> entry.setMinOccurs(0))
@@ -188,68 +189,101 @@ public class CatalogService {
     public Page<CatalogEntry> find(CatalogSearchCriteria criteria, Pageable pageable) {
         // Sanitize search criteria
         CatalogSearchCriteria sanitizedCriteria = sanitizeSearchCriteria(criteria);
-        return repository.searchByCriteria(sanitizedCriteria, pageable);
+        // Get active context IDs to filter results - inactive contexts are invisible to searches
+        Set<String> activeContextIds = contextService.getActiveContextIds();
+        return repository.searchByCriteria(sanitizedCriteria, activeContextIds, pageable);
+    }
+
+    public List<String> suggestValues(String field, String prefix, String contextId, Map<String, String> metadata, int limit) {
+        // Validate field parameter
+        if (field == null || field.trim().isEmpty()) {
+            throw new IllegalArgumentException("Field parameter is required");
+        }
+
+        // Normalize to lowercase - all MongoDB field names are lowercase
+        String normalizedField = field.toLowerCase();
+
+        if (!normalizedField.equals("fieldpath") && !normalizedField.startsWith("metadata.")) {
+            throw new IllegalArgumentException("Field must be 'fieldPath' or 'metadata.{name}'");
+        }
+
+        // Sanitize inputs - InputValidationService handles lowercasing
+        String cleanedContextId = contextId != null ?
+            validationService.validateAndCleanContextId(contextId) : null;
+        Map<String, String> cleanedMetadata = metadata != null ?
+            validationService.validateAndCleanMetadata(metadata) : null;
+
+        // Lowercase prefix for case-insensitive matching
+        String cleanedPrefix = prefix != null ? prefix.toLowerCase() : null;
+
+        // Ensure limit is reasonable
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+
+        // Get active context IDs - suggestions only come from active contexts
+        Set<String> activeContextIds = contextService.getActiveContextIds();
+
+        return repository.suggestValues(normalizedField, cleanedPrefix, cleanedContextId, cleanedMetadata, activeContextIds, safeLimit);
+    }
+
+    public long countFieldsByContextId(String contextId) {
+        if (contextId == null || contextId.trim().isEmpty()) {
+            return 0;
+        }
+        String cleanedContextId = validationService.validateAndCleanContextId(contextId);
+        return repository.countByContextId(cleanedContextId);
     }
     
     private CatalogSearchCriteria sanitizeSearchCriteria(CatalogSearchCriteria criteria) {
-        String cleanedContextId = criteria.contextId() != null ? 
+        // Sanitize global search term (q) - only lowercase, don't escape regex chars
+        // The repository will handle escaping based on useRegex flag
+        String cleanedQ = criteria.q() != null ?
+            criteria.q().toLowerCase() : null;
+
+        String cleanedContextId = criteria.contextId() != null ?
             validationService.validateAndCleanContextId(criteria.contextId()) : null;
+        // Don't escape fieldPathContains - repository handles it based on useRegex
         String cleanedFieldPathContains = criteria.fieldPathContains() != null ?
-            validationService.validateAndCleanFieldPath(criteria.fieldPathContains()) : null;
+            criteria.fieldPathContains().toLowerCase() : null;
         Map<String, String> cleanedMetadata = criteria.metadata() != null ?
             validationService.validateAndCleanMetadata(criteria.metadata()) : null;
-            
-        return new CatalogSearchCriteria(cleanedContextId, cleanedMetadata, cleanedFieldPathContains);
+
+        return new CatalogSearchCriteria(cleanedQ, cleanedContextId, cleanedMetadata, cleanedFieldPathContains, criteria.useRegex());
     }
     
     private Map<String, String> filterToRequiredMetadata(Context context, Map<String, String> metadata) {
+        // Metadata is already lowercase from InputValidationService
         Map<String, String> filteredMetadata = new TreeMap<>();
-        
-        // Create case-insensitive lookup map
-        Map<String, String> metadataLower = metadata.entrySet().stream()
-            .collect(HashMap::new, 
-                (map, entry) -> map.put(entry.getKey().toLowerCase(), entry.getValue().toLowerCase()),
-                HashMap::putAll);
-        
         for (String requiredField : context.getRequiredMetadata()) {
-            String value = metadataLower.get(requiredField.toLowerCase());
+            String value = metadata.get(requiredField);
             if (value != null) {
-                // Store with normalized lowercase key and value
-                filteredMetadata.put(requiredField.toLowerCase(), value);
+                filteredMetadata.put(requiredField, value);
             }
         }
         return filteredMetadata;
     }
-    
+
     private Map<String, String> filterToAllowedMetadata(Context context, Map<String, String> metadata) {
+        // Metadata is already lowercase from InputValidationService
         Map<String, String> filteredMetadata = new TreeMap<>();
-        
-        // Create case-insensitive lookup map
-        Map<String, String> metadataLower = metadata.entrySet().stream()
-            .collect(HashMap::new, 
-                (map, entry) -> map.put(entry.getKey().toLowerCase(), entry.getValue().toLowerCase()),
-                HashMap::putAll);
-        
+
         // Include required metadata
         for (String requiredField : context.getRequiredMetadata()) {
-            String value = metadataLower.get(requiredField.toLowerCase());
+            String value = metadata.get(requiredField);
             if (value != null) {
-                // Store with normalized lowercase key and value
-                filteredMetadata.put(requiredField.toLowerCase(), value);
+                filteredMetadata.put(requiredField, value);
             }
         }
-        
+
         // Include optional metadata if present
         if (context.getOptionalMetadata() != null) {
             for (String optionalField : context.getOptionalMetadata()) {
-                String value = metadataLower.get(optionalField.toLowerCase());
+                String value = metadata.get(optionalField);
                 if (value != null) {
-                    // Store with normalized lowercase key and value
-                    filteredMetadata.put(optionalField.toLowerCase(), value);
+                    filteredMetadata.put(optionalField, value);
                 }
             }
         }
-        
+
         return filteredMetadata;
     }
 }

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-001234</LoanNumber>
+    <LoanType>AUTO</LoanType>
+    <Term>60</Term>
+    <Amount>25000.00</Amount>
+    <InterestRate>6.99</InterestRate>
+    <OriginationDate>2024-03-15</OriginationDate>
+    <MaturityDate>2029-03-15</MaturityDate>
+  </LoanDetails>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>John</FirstName>
+        <MiddleName xsi:nil="true"/>
+        <LastName>Smith</LastName>
+      </Name>
+      <SSN>123-45-6789</SSN>
+      <DateOfBirth>1985-07-22</DateOfBirth>
+      <Address>
+        <Street1>123 Main Street</Street1>
+        <Street2></Street2>
+        <City>Springfield</City>
+        <State>IL</State>
+        <ZipCode>62701</ZipCode>
+      </Address>
+      <Phone type="mobile">555-123-4567</Phone>
+      <Phone type="home">555-987-6543</Phone>
+      <Email>john.smith@email.com</Email>
+      <Employment>
+        <Employer>Acme Corporation</Employer>
+        <Title>Senior Engineer</Title>
+        <AnnualIncome>95000.00</AnnualIncome>
+        <StartDate>2018-06-01</StartDate>
+      </Employment>
+    </PrimaryBorrower>
+    <CoBorrower xsi:nil="true"/>
+  </Borrower>
+  <Collateral>
+    <Vehicle>
+      <Make>Toyota</Make>
+      <Model>Camry</Model>
+      <Year>2024</Year>
+      <VIN>1HGBH41JXMN109186</VIN>
+      <EstimatedValue>28500.00</EstimatedValue>
+    </Vehicle>
+  </Collateral>
+  <Fees>
+    <Fee type="origination">
+      <Amount>250.00</Amount>
+      <Description>Loan Origination Fee</Description>
+    </Fee>
+    <Fee type="documentation">
+      <Amount>75.00</Amount>
+      <Description>Document Preparation</Description>
+    </Fee>
+  </Fees>
+</loan_info>

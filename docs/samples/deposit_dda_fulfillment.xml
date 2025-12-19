@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-789012</TransactionId>
+    <Timestamp>2024-03-15T14:30:00Z</Timestamp>
+    <Channel>ONLINE</Channel>
+    <Action>FULFILLMENT</Action>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-001234</CustomerId>
+    <Name>
+      <FirstName>Emily</FirstName>
+      <MiddleName></MiddleName>
+      <LastName>Williams</LastName>
+    </Name>
+    <SSN>111-22-3333</SSN>
+    <DateOfBirth>1990-05-15</DateOfBirth>
+    <CustomerSince>2015-08-22</CustomerSince>
+    <Address>
+      <Street1>321 Pine Road</Street1>
+      <Street2 xsi:nil="true"/>
+      <City>Denver</City>
+      <State>CO</State>
+      <ZipCode>80202</ZipCode>
+    </Address>
+    <Contact>
+      <Email>emily.williams@email.com</Email>
+      <Phone type="primary">555-345-6789</Phone>
+    </Contact>
+  </Customer>
+  <Accounts>
+    <Account productCode="DDA" productSubCode="4S">
+      <AccountNumber>1234567890</AccountNumber>
+      <AccountTitle>Emily Williams</AccountTitle>
+      <OpenDate>2024-03-15</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>5000.00</Current>
+        <Available>4850.00</Available>
+        <Pending>150.00</Pending>
+      </Balance>
+      <InterestRate>0.01</InterestRate>
+      <OverdraftProtection>true</OverdraftProtection>
+      <LinkedSavings xsi:nil="true"/>
+    </Account>
+  </Accounts>
+  <Disclosures>
+    <Disclosure type="TERMS_AND_CONDITIONS">
+      <Version>2024.1</Version>
+      <AcceptedDate>2024-03-15</AcceptedDate>
+    </Disclosure>
+    <Disclosure type="PRIVACY_POLICY">
+      <Version>2024.1</Version>
+      <AcceptedDate>2024-03-15</AcceptedDate>
+    </Disclosure>
+    <Disclosure type="EFTA">
+      <Version>2024.1</Version>
+      <AcceptedDate>2024-03-15</AcceptedDate>
+    </Disclosure>
+  </Disclosures>
+  <Fees>
+    <MonthlyServiceFee>0.00</MonthlyServiceFee>
+    <MinimumBalance>0.00</MinimumBalance>
+  </Fees>
+</Ceremony>

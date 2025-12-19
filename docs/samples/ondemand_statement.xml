@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OnDemand xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Request>
+    <RequestId>REQ-2024-112233</RequestId>
+    <Timestamp>2024-03-15T16:45:00Z</Timestamp>
+    <DocumentType>STATEMENT</DocumentType>
+    <DocumentCode>STMT001</DocumentCode>
+    <DeliveryMethod>EMAIL</DeliveryMethod>
+    <Priority>NORMAL</Priority>
+  </Request>
+  <Customer>
+    <CustomerId>CUST-009999</CustomerId>
+    <Name>
+      <FirstName>Maria</FirstName>
+      <MiddleName xsi:nil="true"/>
+      <LastName>Garcia</LastName>
+    </Name>
+    <Email>maria.garcia@email.com</Email>
+    <PreferredFormat>PDF</PreferredFormat>
+  </Customer>
+  <StatementDetails>
+    <AccountNumber>5555666677</AccountNumber>
+    <AccountType>DDA</AccountType>
+    <StatementPeriod>
+      <StartDate>2024-02-01</StartDate>
+      <EndDate>2024-02-29</EndDate>
+    </StatementPeriod>
+    <OpeningBalance>12500.00</OpeningBalance>
+    <ClosingBalance>14750.25</ClosingBalance>
+    <TotalCredits>8500.00</TotalCredits>
+    <TotalDebits>6249.75</TotalDebits>
+    <TransactionCount>47</TransactionCount>
+    <AverageBalance>13625.12</AverageBalance>
+  </StatementDetails>
+  <Transactions>
+    <Transaction seq="1">
+      <Date>2024-02-01</Date>
+      <PostDate>2024-02-01</PostDate>
+      <Description>OPENING BALANCE</Description>
+      <Amount>12500.00</Amount>
+      <Balance>12500.00</Balance>
+      <Type>INFO</Type>
+      <Category></Category>
+      <CheckNumber xsi:nil="true"/>
+    </Transaction>
+    <Transaction seq="2">
+      <Date>2024-02-02</Date>
+      <PostDate>2024-02-02</PostDate>
+      <Description>DIRECT DEPOSIT - ACME CORP</Description>
+      <Amount>3500.00</Amount>
+      <Balance>16000.00</Balance>
+      <Type>CREDIT</Type>
+      <Category>PAYROLL</Category>
+      <CheckNumber xsi:nil="true"/>
+    </Transaction>
+    <Transaction seq="3">
+      <Date>2024-02-03</Date>
+      <PostDate>2024-02-03</PostDate>
+      <Description>CHECK #1042</Description>
+      <Amount>-1500.00</Amount>
+      <Balance>14500.00</Balance>
+      <Type>DEBIT</Type>
+      <Category>PAYMENT</Category>
+      <CheckNumber>1042</CheckNumber>
+    </Transaction>
+    <Transaction seq="4">
+      <Date>2024-02-05</Date>
+      <PostDate>2024-02-05</PostDate>
+      <Description>VENMO PAYMENT</Description>
+      <Amount>-75.50</Amount>
+      <Balance>14424.50</Balance>
+      <Type>DEBIT</Type>
+      <Category>P2P</Category>
+      <CheckNumber xsi:nil="true"/>
+    </Transaction>
+    <Transaction seq="5">
+      <Date>2024-02-15</Date>
+      <PostDate>2024-02-15</PostDate>
+      <Description>DIRECT DEPOSIT - ACME CORP</Description>
+      <Amount>3500.00</Amount>
+      <Balance>17924.50</Balance>
+      <Type>CREDIT</Type>
+      <Category>PAYROLL</Category>
+      <CheckNumber xsi:nil="true"/>
+    </Transaction>
+  </Transactions>
+  <Summary>
+    <DepositSummary>
+      <Count>5</Count>
+      <Total>8500.00</Total>
+    </DepositSummary>
+    <WithdrawalSummary>
+      <Count>42</Count>
+      <Total>6249.75</Total>
+    </WithdrawalSummary>
+    <FeeSummary>
+      <Count>0</Count>
+      <Total>0.00</Total>
+    </FeeSummary>
+    <InterestSummary>
+      <Count>1</Count>
+      <Total>0.25</Total>
+      <APY>0.01</APY>
+    </InterestSummary>
+  </Summary>
+  <Disclosures>
+    <Disclosure>
+      <Text>This statement is provided for informational purposes only.</Text>
+    </Disclosure>
+    <Disclosure>
+      <Text>Please review transactions and report any discrepancies within 60 days.</Text>
+    </Disclosure>
+  </Disclosures>
+  <RenderOptions>
+    <IncludeLogo>true</IncludeLogo>
+    <IncludeBarcode>true</IncludeBarcode>
+    <PaperSize>LETTER</PaperSize>
+    <Orientation>PORTRAIT</Orientation>
+  </RenderOptions>
+</OnDemand>

@@ -1,0 +1,73 @@
+# .clinerules - Permissive configuration with critical safeguards
+
+# Auto-approve most operations
+auto_approve:
+  - read_file
+  - list_files
+  - search_files
+  - write_to_file
+  - execute_command
+
+# Blocked commands - Claude will ask before running these
+blocked_commands:
+  # Sudo/privilege escalation
+  - "sudo"
+  - "su"
+  - "doas"
+  
+  # Git branch deletion
+  - "git branch -d"
+  - "git branch -D"
+  - "git push --delete"
+  - "git push origin --delete"
+  
+  # Dangerous file operations outside project
+  - "rm -rf /"
+  - "rm -rf ~"
+  - "rm -rf /*"
+  - "rm -rf ~/*"
+  
+  # System modifications
+  - "shutdown"
+  - "reboot"
+  - "systemctl"
+  - "service"
+  - "kill -9"
+  - "killall"
+  
+  # Package managers (can break system)
+  - "apt-get remove"
+  - "apt remove"
+  - "brew uninstall"
+  - "pip uninstall"
+  - "npm uninstall -g"
+  
+  # Network exposure
+  - "chmod 777"
+  - "chmod -R 777"
+  
+  # Database drops
+  - "DROP DATABASE"
+  - "DROP TABLE"
+
+# Protected paths - never modify without asking
+protected_paths:
+  - ".env"
+  - ".env.local"
+  - ".env.production"
+  - "secrets.yml"
+  - "secrets.yaml"
+  - ".aws/credentials"
+  - ".ssh/"
+  - "id_rsa"
+  - "id_ed25519"
+
+# Custom instructions
+custom_instructions: |
+  - You have broad permissions but ALWAYS ask before:
+    * Deleting git branches
+    * Running destructive commands outside the project directory
+    * Using sudo or privilege escalation
+    * Modifying system configuration
+  - When in doubt about safety, ask first
+  - Confirm before running any command that could affect production systems

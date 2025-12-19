@@ -1,7 +1,6 @@
 package com.ceremony.catalog.api;
 
 import com.ceremony.catalog.annotation.TestProfile;
-import com.ceremony.catalog.api.dto.CatalogObservationDTO;
 import com.ceremony.catalog.api.dto.ContextDefinitionDTO;
 import com.ceremony.catalog.base.IntegrationTestBase;
 import com.ceremony.catalog.util.TestDataBuilder;
@@ -37,10 +36,10 @@ class CatalogControllerSimpleTest extends IntegrationTestBase {
         );
         assertThat(contextResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        // Submit observations using builder
+        // Submit observations using builder - mixed case input
         var observations = List.of(
             TestDataBuilder.depositsObservation()
-                .withFieldPath("/Ceremony/Amount")
+                .withFieldPath("/Ceremony/Amount")  // Mixed case - API will lowercase
                 .build()
         );
 
@@ -58,7 +57,7 @@ class CatalogControllerSimpleTest extends IntegrationTestBase {
             String.class
         );
         assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(getResponse.getBody()).contains("/Ceremony/Amount");
+        assertThat(getResponse.getBody()).contains("/ceremony/amount");  // Lowercased output
         assertThat(getResponse.getBody()).contains("deposits");
     }
 
@@ -71,16 +70,16 @@ class CatalogControllerSimpleTest extends IntegrationTestBase {
         restTemplate.postForEntity("/catalog/contexts", new HttpEntity<>(TestDataBuilder.depositsContext(), headers), Void.class);
         restTemplate.postForEntity("/catalog/contexts", new HttpEntity<>(TestDataBuilder.loansContext(), headers), Void.class);
 
-        // Submit observations using builders
+        // Submit observations using builders - mixed case inputs
         var depositsObs = List.of(
             TestDataBuilder.depositsObservation()
-                .withFieldPath("/Ceremony/Amount")
+                .withFieldPath("/Ceremony/Amount")  // Mixed case
                 .build()
         );
 
         var loansObs = List.of(
             TestDataBuilder.loansObservation()
-                .withFieldPath("/BMIC/FICO")
+                .withFieldPath("/BMIC/FICO")  // All caps
                 .build()
         );
 
@@ -107,8 +106,8 @@ class CatalogControllerSimpleTest extends IntegrationTestBase {
             String.class
         );
         assertThat(getAll.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(getAll.getBody()).contains("/Ceremony/Amount");
-        assertThat(getAll.getBody()).contains("/BMIC/FICO");
+        assertThat(getAll.getBody()).contains("/ceremony/amount");  // Lowercased from /Ceremony/Amount
+        assertThat(getAll.getBody()).contains("/bmic/fico");  // Lowercased from /BMIC/FICO
     }
 
     @Test

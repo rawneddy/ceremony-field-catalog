@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-456789</TransactionId>
+    <Timestamp>2024-03-14T09:15:00Z</Timestamp>
+    <Channel>BRANCH</Channel>
+    <Action>INQUIRY</Action>
+    <BranchId>BR-0042</BranchId>
+    <TellerId>T-1234</TellerId>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-005678</CustomerId>
+    <Name>
+      <FirstName>Robert</FirstName>
+      <MiddleName>James</MiddleName>
+      <LastName>Chen</LastName>
+    </Name>
+    <SSN>444-55-6666</SSN>
+    <DateOfBirth>1965-12-01</DateOfBirth>
+    <CustomerSince>1998-02-14</CustomerSince>
+    <Address>
+      <Street1>555 Maple Lane</Street1>
+      <Street2>Suite 100</Street2>
+      <City>Seattle</City>
+      <State>WA</State>
+      <ZipCode>98101</ZipCode>
+    </Address>
+    <Contact>
+      <Email>robert.chen@email.com</Email>
+      <Phone type="primary">555-456-7890</Phone>
+      <Phone type="work">555-111-2222</Phone>
+    </Contact>
+    <PreferredLanguage>EN</PreferredLanguage>
+  </Customer>
+  <Accounts>
+    <Account productCode="SAV" productSubCode="HY">
+      <AccountNumber>9876543210</AccountNumber>
+      <AccountTitle>Robert J Chen</AccountTitle>
+      <OpenDate>1998-02-14</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>125750.00</Current>
+        <Available>125750.00</Available>
+        <Pending>0.00</Pending>
+      </Balance>
+      <InterestRate>4.25</InterestRate>
+      <APY>4.34</APY>
+      <YTDInterest>3215.67</YTDInterest>
+      <WithdrawalsThisMonth>2</WithdrawalsThisMonth>
+      <WithdrawalLimit>6</WithdrawalLimit>
+    </Account>
+    <Account productCode="SAV" productSubCode="MM">
+      <AccountNumber>9876543211</AccountNumber>
+      <AccountTitle>Robert J Chen Money Market</AccountTitle>
+      <OpenDate>2010-06-30</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>75000.00</Current>
+        <Available>75000.00</Available>
+        <Pending>0.00</Pending>
+      </Balance>
+      <InterestRate>4.50</InterestRate>
+      <APY>4.60</APY>
+      <YTDInterest>2156.25</YTDInterest>
+      <Tier>PLATINUM</Tier>
+      <MinimumBalance>25000.00</MinimumBalance>
+    </Account>
+  </Accounts>
+  <RecentTransactions>
+    <Transaction>
+      <Date>2024-03-13</Date>
+      <Description>ACH DEPOSIT - EMPLOYER</Description>
+      <Amount>5000.00</Amount>
+      <Type>CREDIT</Type>
+    </Transaction>
+    <Transaction>
+      <Date>2024-03-10</Date>
+      <Description>TRANSFER TO CHECKING</Description>
+      <Amount>-2000.00</Amount>
+      <Type>DEBIT</Type>
+    </Transaction>
+  </RecentTransactions>
+</Ceremony>

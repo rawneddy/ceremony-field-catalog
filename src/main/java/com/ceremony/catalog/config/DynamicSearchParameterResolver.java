@@ -2,6 +2,8 @@ package com.ceremony.catalog.config;
 
 import com.ceremony.catalog.api.dto.CatalogSearchRequest;
 import org.springframework.core.MethodParameter;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -13,26 +15,30 @@ import java.util.Map;
 import java.util.Set;
 
 public class DynamicSearchParameterResolver implements HandlerMethodArgumentResolver {
-    
+
     private static final Set<String> KNOWN_PARAMETERS = Set.of(
-        "contextId", "fieldPathContains", "page", "size"
+        "q", "contextId", "fieldPathContains", "useRegex", "page", "size"
     );
 
     @Override
-    public boolean supportsParameter(MethodParameter parameter) {
+    public boolean supportsParameter(@NonNull MethodParameter parameter) {
         return parameter.getParameterType().equals(CatalogSearchRequest.class);
     }
 
     @Override
-    public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
-                                NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
-        
+    public Object resolveArgument(@NonNull MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
+                                @NonNull NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) {
+
         Map<String, String> metadata = new HashMap<>();
-        
+
+        // Extract global search parameter (q)
+        String q = webRequest.getParameter("q");
+        q = (q != null && !q.trim().isEmpty()) ? q : null;
+
         // Extract known parameters
         String contextId = webRequest.getParameter("contextId");
         contextId = (contextId != null && !contextId.trim().isEmpty()) ? contextId : null;
-        
+
         String fieldPathContains = webRequest.getParameter("fieldPathContains");
         fieldPathContains = (fieldPathContains != null && !fieldPathContains.trim().isEmpty()) ? fieldPathContains : null;
         
@@ -57,12 +63,19 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
                 size = 50;
             }
         }
-        
+
+        // Parse useRegex parameter (defaults to false)
+        boolean useRegex = false;
+        String useRegexParam = webRequest.getParameter("useRegex");
+        if (useRegexParam != null && !useRegexParam.trim().isEmpty()) {
+            useRegex = Boolean.parseBoolean(useRegexParam);
+        }
+
         // Handle any other parameters as metadata
         Iterator<String> paramNames = webRequest.getParameterNames();
         while (paramNames.hasNext()) {
             String paramName = paramNames.next();
-            if (!KNOWN_PARAMETERS.contains(paramName)) {
+            if (paramName != null && !KNOWN_PARAMETERS.contains(paramName)) {
                 String value = webRequest.getParameter(paramName);
                 if (value != null && !value.trim().isEmpty()) {
                     // Normalize metadata keys and values to lowercase for case-insensitive handling
@@ -70,8 +83,8 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
                 }
             }
         }
-        
+
         // Create and return the immutable Record
-        return new CatalogSearchRequest(contextId, fieldPathContains, page, size, metadata);
+        return new CatalogSearchRequest(q, contextId, fieldPathContains, useRegex, page, size, metadata);
     }
 }
