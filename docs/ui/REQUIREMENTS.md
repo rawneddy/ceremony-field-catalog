@@ -73,6 +73,8 @@ The backend normalizes data to **lowercase** for case-insensitive matching:
 | REQ-1.4 | Delete context | Confirmation dialog showing context name and field count that will be deleted. Requires explicit confirmation. |
 | REQ-1.5 | Visual distinction for inactive contexts | Inactive contexts displayed with muted/greyed styling to indicate they are not accepting observations |
 
+**Note on inactive contexts:** The backend API automatically filters out fields from inactive contexts in all search and autocomplete responses. The UI only needs to hide inactive contexts from dropdowns (REQ-2.5, REQ-4.3) - no client-side result filtering is required.
+
 ### REQ-2: Field Search (Two-View Model)
 
 The UI provides two distinct search views optimized for different use cases:

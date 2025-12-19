@@ -270,6 +270,8 @@ Field identity is computed as: `hash(contextId + requiredMetadata + fieldPath)`
 
 When `q` is provided, other filter parameters are ignored.
 
+**Active Context Filtering:** Results are automatically filtered to only include fields from **active contexts**. Fields belonging to inactive contexts are never returned. This applies to both search modes and autocomplete suggestions.
+
 **Query Parameters:**
 
 | Parameter | Type | Required | Description |
@@ -387,6 +389,8 @@ This filters for fields where `metadata.productCode = "DDA"` AND `metadata.produ
 **Endpoint:** `GET /catalog/suggest`
 
 **Purpose:** Get autocomplete suggestions for fieldPath or metadata values
+
+**Active Context Filtering:** Suggestions are automatically scoped to **active contexts only**. Values from inactive contexts are never suggested.
 
 **Query Parameters:**
 

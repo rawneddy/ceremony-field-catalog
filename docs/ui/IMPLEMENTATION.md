@@ -4,6 +4,10 @@
 
 This document provides the technical implementation plan for the Ceremony Field Catalog UI. It implements the requirements defined in `REQUIREMENTS.md`. See the "Requirements Traceability" section at the end for mapping between components and requirements.
 
+**Related documents:**
+- `planning/DECISIONS.md` - Pre-implementation review resolution and design decisions
+- `planning/ROADMAP.md` - Future enhancements (not part of initial buildout)
+
 ## Summary
 
 Build a React UI for the Ceremony Field Catalog, living in `ui/` folder alongside the Spring Boot API.
@@ -36,11 +40,11 @@ ui/
 │   │   │   ├── ContextForm.tsx
 │   │   │   └── ContextDeleteDialog.tsx
 │   │   ├── search/                # Field search components
-│   │   │   ├── QuickSearchForm.tsx   # Simple global search input
-│   │   │   ├── AdvancedSearchForm.tsx # Context selector + metadata filters
+│   │   │   ├── QuickSearchForm.tsx   # Global search (uses FieldPathInput)
+│   │   │   ├── AdvancedSearchForm.tsx # Context + metadata + fieldPath filters
 │   │   │   ├── ContextSelector.tsx    # Single-select context dropdown
 │   │   │   ├── MetadataFilters.tsx   # Dynamic filters with autocomplete
-│   │   │   ├── FieldPathInput.tsx    # Input with string/regex toggle and autocomplete
+│   │   │   ├── FieldPathInput.tsx    # Shared input: string/regex toggle + autocomplete (used by Quick & Advanced)
 │   │   │   ├── ResultsFilter.tsx     # Client-side filter (path, metadata, context)
 │   │   │   ├── TruncationWarning.tsx # Warning banner when results exceed max
 │   │   │   ├── FieldResults.tsx      # Wrapper with view toggle (Table/Tree)
@@ -372,6 +376,8 @@ Inactive contexts are **only visible in the Context Management view**. They do n
 - Search page context dropdown (REQ-2.5)
 - Upload page context dropdown (REQ-4.3)
 
+**Backend enforcement:** The API automatically filters out fields from inactive contexts. Search results and autocomplete suggestions will never include data from inactive contexts. The UI does not need to implement any client-side filtering for this - it's handled entirely by the backend.
+
 This prevents users from attempting to search or upload to contexts that are no longer active. To reactivate a context, use the Context Management view.
 
 ### String/Regex Toggle (REQ-2.11)
@@ -398,11 +404,12 @@ Field path inputs include a toggle between **String** (default) and **Regex** mo
 - Use for: "Find fields matching `/account/.*/amount`"
 
 **Implementation:**
-- `FieldPathInput` component manages toggle state
+- `FieldPathInput` is a **shared component** used by both:
+  - `QuickSearchForm` - the main input on the home page
+  - `AdvancedSearchForm` - the fieldPath filter input
 - In string mode, escape input before API call: `input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')`
 - Toggle state can be encoded in URL as `regex=true` for shareable links
-- Only applies to Quick Search input and Advanced Search fieldPath input
-- Context and metadata filters always use literal matching (no toggle)
+- Context selector and metadata filters do NOT use FieldPathInput (no toggle needed)
 
 ---
 
@@ -777,156 +784,3 @@ Colors, typography, and layout principles are defined in `REQUIREMENTS.md` under
 - **Inter font** via Google Fonts or local installation
 - **Monaco/Consolas** for monospace code display
 - **shadcn/ui** components styled to match the design system
-
----
-
-## Appendix: Pre-Implementation Review Resolution
-
-This section documents the resolution of blocking and non-blocking issues identified during the pre-implementation review.
-
-### Blocking Issues - All Resolved
-
-| Issue | Resolution |
-|-------|------------|
-| **Autocomplete requires new API surface** | ✅ `GET /catalog/suggest` endpoint implemented in backend |
-| **Context "field count" not available** | ✅ `GET /catalog/contexts?includeCounts=true` implemented |
-| **CORS not implemented** | ✅ CORS configured in `WebConfig.java` for localhost:5173 and localhost:3000 |
-| **fieldPathContains behavior conflicts** | ✅ Backend updated to accept both full paths (`/Ceremony/...`) and plain text (`Amount`) |
-| **Error response contract mismatch** | ✅ `ErrorResponse` interface documented consistently across API spec and implementation plan |
-| **XML null vs empty semantics underspecified** | ✅ Explicit semantics added to REQUIREMENTS.md: `hasNull` is true when `xsi:nil="true"` is present (existing SDKs don't implement this - known bug), `hasEmpty` is true for whitespace-only or self-closing elements |
-
-### Non-Blocking Issues - All Addressed
-
-| Issue | Resolution |
-|-------|------------|
-| **250-result rule mechanism** | ✅ Clarified: Centralized in `config.ts` as `MAX_RESULTS_PER_PAGE`. Backend `max-page-size` must be aligned. |
-| **Metadata casing in UI** | ✅ Clarified in REQUIREMENTS.md: backend normalizes to lowercase, UI displays as stored |
-| **Update-context payload nuance** | ✅ Added "Implementation Notes" section explaining that requiredMetadata must be sent in PUT payloads |
-| **Accessibility acceptance criteria** | ✅ Removed - explicitly noted as not a priority for initial release |
-| **Shareable URL state scope** | ✅ Added "Shareable URL State" section specifying which parameters are encoded vs not |
-
-### Questions Answered
-
-| Question | Answer |
-|----------|--------|
-| Are backend changes in-scope? | **Yes** - All backend changes have been implemented |
-| What is fieldPathContains contract? | **Regex pattern match** - special characters (`. * + ? [ ] ( )`) have regex meaning. UI may need to escape for literal matching. |
-| What error response schema to use? | **Backend GlobalExceptionHandler output**: `{message, status, timestamp, error, errors?}` |
-| For field counts: N+1 or first-class API? | **First-class API**: `GET /catalog/contexts?includeCounts=true` |
-| What constitutes "null" in XML? | **Not applicable** - standard XML has no null concept; `hasNull` is effectively always false unless `xsi:nil="true"` is present |
-| Deployment model? | **Separate-origin** - CORS configured for Vite dev server (localhost:5173), production config separate |
-
-### LLM Review Questions - Addressed
-
-| Question | Decision |
-|----------|----------|
-| Autocomplete debounce timing? | **300ms** - balances responsiveness with API efficiency. Defined in `config.ts`. |
-| Export large result sets? | **Client-side only** - exports only what's loaded (up to `MAX_RESULTS_PER_PAGE`). No server-side bulk export. |
-| Keyboard navigation scope? | **Both** - arrow keys work in results table AND autocomplete dropdowns. Enter selects suggestion. |
-| Detail panel animation timing? | **100ms** - instant feel, no perceptible delay. Defined in `config.ts`. |
-
----
-
-## Appendix: XML Explorer Enhancement (Future Consideration)
-
-This appendix describes a potential enhancement to the Upload page that would transform it from a simple submission form into an **XML Explorer + Optional Catalog Submission** tool.
-
-### The Insight
-
-Users upload XML files for two distinct reasons:
-
-1. **Exploration**: "What fields are in this XML?" - Developer debugging a production file, analyst understanding document structure
-2. **Contribution**: "Add these observations to the catalog" - QA tester feeding real-world data into the system
-
-The current design only addresses #2. This enhancement addresses both.
-
-### Proposed Flow
-
-```
-┌─ Upload ─────────────────────────────────────────────────────┐
-│                                                              │
-│  PHASE 1: EXPLORE (no server interaction)                    │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │        Drag XML files here to explore                │    │
-│  │              their field structure                   │    │
-│  └──────────────────────────────────────────────────────┘    │
-│                                                              │
-│                    ↓ (parse client-side)                     │
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │ 156 fields found across 3 files           [Export ▼] │    │
-│  ├──────────────────────────────────────────────────────┤    │
-│  │ fieldPath              │ Count │ Null? │ Empty?      │    │
-│  │ /Ceremony/Account/...  │   3   │  No   │  No         │    │
-│  │ /Ceremony/Customer/... │   1   │  Yes  │  No         │    │
-│  │ ... (same results view as Search page)               │    │
-│  └──────────────────────────────────────────────────────┘    │
-│                                                              │
-│  PHASE 2: SUBMIT TO CATALOG (optional)                       │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │ Add these observations to the catalog?               │    │
-│  │                                                       │    │
-│  │ Context: [deposits ▼]                                │    │
-│  │ productCode: [DDA____]  action: [FULFILLMENT_]       │    │
-│  │                                                       │    │
-│  │                              [Submit to Catalog]      │    │
-│  └──────────────────────────────────────────────────────┘    │
-└──────────────────────────────────────────────────────────────┘
-```
-
-### Key Benefits
-
-| Benefit | Description |
-|---------|-------------|
-| **Immediate value** | User sees field structure without any server interaction |
-| **"What's in this file?"** | Answers the question directly, no catalog pollution |
-| **Preview before commit** | Verify observations look correct before submitting |
-| **Reuses existing components** | Same `FieldTable`, `FieldDetailPanel`, `ResultsFilter` as Search page |
-
-### Implementation Considerations
-
-**Phase 1 (Explore):**
-- `xmlParser.ts` already produces observations client-side
-- Display observations using existing results components
-- No API calls needed - pure client-side exploration
-- Export to CSV/JSON works on parsed data (no submission required)
-
-**Phase 2 (Submit):**
-- Only shown after files are parsed
-- Context + metadata selection (same as current design)
-- Submits the already-parsed observations to API
-- Shows success/error feedback
-
-**Component reuse:**
-- `FieldTable` / `FieldRow` / `FieldDetailPanel` - identical to Search page
-- `ResultsFilter` - client-side filtering of parsed fields
-- New: `ParsedFieldsView` wrapper that displays observations before submission
-
-### Future Vision: Document Provenance
-
-A natural extension of this feature is **tracking which documents contributed to each catalog entry**.
-
-**The idea:**
-- Store original XML documents in blob storage (S3, Azure Blob)
-- Link each observation to its source document ID
-- Enable: "Click a field → see documents containing this field → download example"
-
-**Current architecture compatibility:**
-
-| Aspect | Current State | Future-Ready? |
-|--------|---------------|---------------|
-| Field identity (FieldKey) | Stable hash of contextId + requiredMetadata + fieldPath | ✅ Yes - can add source tracking without changing identity |
-| Observation merge | Multiple uploads update same entry's statistics | ⚠️ Would need separate `ObservationSources` collection to track document origins |
-| Backend storage | MongoDB only | ✅ Can add blob storage integration (Spring Boot supports S3/Azure easily) |
-| API contracts | No document reference fields | ✅ Can extend response DTOs without breaking existing clients |
-
-**No major architectural blockers.** The key requirements for future compatibility:
-1. Keep FieldKey stable (already done)
-2. Don't assume observations are untraceable
-3. Consider adding `uploadBatchId` to observations for grouping (optional, would help track which files were uploaded together)
-
-### Decision
-
-**For Phase 1 (POC):** Keep current upload design (direct submission).
-
-**For future consideration:** This enhancement could be added as a Phase 7+ feature or as a standalone improvement. The architecture supports it without breaking changes.
