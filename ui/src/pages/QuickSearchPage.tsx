@@ -17,9 +17,15 @@ const FieldSearchPage: React.FC = () => {
   const [selectedRow, setSelectedRow] = useState<CatalogEntry | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [suggestionIndex, setSuggestionIndex] = useState(-1);
 
   // Suggestions for field paths (enabled in string mode)
   const suggestions = useSuggest('fieldPath', query, undefined);
+
+  // Reset selection when suggestions change
+  React.useEffect(() => {
+    setSuggestionIndex(-1);
+  }, [suggestions]);
 
   // State for the actual search being executed
   const [searchParams, setSearchParams] = useState({
@@ -42,13 +48,70 @@ const FieldSearchPage: React.FC = () => {
     clearAllFacets
   } = useFacets(data?.content);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
     setHasSearched(true);
     setSearchParams({
       q: query,
       useRegex: isRegex
     });
+    setShowSuggestions(false);
+  };
+
+  const suggestionsRef = React.useRef<HTMLDivElement>(null);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSuggestionIndex(prev => {
+        const next = Math.min(prev + 1, suggestions.length - 1);
+        scrollSuggestionIntoView(next);
+        return next;
+      });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSuggestionIndex(prev => {
+        const next = Math.max(prev - 1, -1);
+        scrollSuggestionIntoView(next);
+        return next;
+      });
+    } else if (e.key === 'Enter') {
+      if (suggestionIndex >= 0) {
+        e.preventDefault();
+        const selected = suggestions[suggestionIndex];
+        setQuery(selected);
+        // Don't search yet - let them refine or hit enter again
+        setSuggestionIndex(-1);
+      } else {
+        // Normal form submit handles the search
+      }
+    } else if (e.key === 'Tab') {
+      if (suggestionIndex >= 0) {
+        e.preventDefault();
+        const selected = suggestions[suggestionIndex];
+        
+        // Partial autocomplete: fill up to the end of the match
+        const matchIndex = selected.toLowerCase().indexOf(query.toLowerCase());
+        if (matchIndex !== -1) {
+          const partial = selected.substring(0, matchIndex + query.length);
+          setQuery(partial);
+        } else {
+          // Fallback if match logic is fuzzy or regex-based in future
+          setQuery(selected);
+        }
+      }
+    }
+  };
+
+  const scrollSuggestionIntoView = (index: number) => {
+    if (suggestionsRef.current) {
+      const suggestionElements = suggestionsRef.current.children;
+      if (suggestionElements[index]) {
+        suggestionElements[index].scrollIntoView({ block: 'nearest' });
+      }
+    }
   };
 
   return (
@@ -63,6 +126,7 @@ const FieldSearchPage: React.FC = () => {
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   placeholder="Search field paths... (e.g. /Ceremony/Account or Account)"
@@ -70,17 +134,21 @@ const FieldSearchPage: React.FC = () => {
                 />
 
                 {showSuggestions && !isRegex && query.length > 0 && suggestions.length > 0 && (
-                  <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-steel rounded-md shadow-2xl max-h-64 overflow-y-auto">
-                    {suggestions.map((suggestion) => (
+                  <div 
+                    ref={suggestionsRef}
+                    className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-steel rounded-md shadow-2xl max-h-64 overflow-y-auto"
+                  >
+                    {suggestions.map((suggestion, index) => (
                       <button
                         key={suggestion}
                         type="button"
-                        className="w-full text-left px-4 py-3 text-sm hover:bg-paper transition-colors font-mono border-b border-steel/50 last:border-0"
+                        className={`w-full text-left px-4 py-3 text-sm transition-colors font-mono border-b border-steel/50 last:border-0 ${
+                          index === suggestionIndex ? 'bg-ceremony/10 text-ceremony font-bold' : 'hover:bg-paper'
+                        }`}
                         onClick={() => {
                           setQuery(suggestion);
                           setShowSuggestions(false);
-                          setHasSearched(true);
-                          setSearchParams({ q: suggestion, useRegex: isRegex });
+                          // Don't auto-search on click either, consistent with keyboard "drill-down"
                         }}
                       >
                         {suggestion}
