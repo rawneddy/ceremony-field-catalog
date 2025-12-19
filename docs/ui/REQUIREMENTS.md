@@ -90,7 +90,7 @@ The UI provides two distinct search views optimized for different use cases:
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
-| REQ-2.5 | Context selector | Single-select dropdown to filter by context. When no context is selected, search returns results from all contexts. |
+| REQ-2.5 | Context selector | Single-select dropdown to filter by context. **Only active contexts are shown** (inactive contexts are managed exclusively in Context Management). When no context is selected, search returns results from all active contexts. |
 | REQ-2.6 | Dynamic metadata filtering | When a context is selected, show filter inputs for all required and optional metadata fields defined by that context. Filters combine with AND logic. When no context selected, metadata filters are hidden. |
 | REQ-2.7 | Field path pattern filter | Text input for regex pattern matching on fieldPath. Works with or without context selection. **Note:** Input is treated as regex - characters like `.`, `*`, `+`, `?`, `[`, `]`, `(`, `)` have special meaning. For literal matching, the UI may need to escape these characters. |
 | REQ-2.8 | Scoped fieldPath autocomplete | When user types a path starting with `/`, show autocomplete suggestions. Suggestions scoped to selected context and metadata filters if present. |
@@ -102,11 +102,11 @@ The UI provides two distinct search views optimized for different use cases:
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
 | REQ-3.1 | Results table | Display results in table with columns: fieldPath, context (when cross-context), metadata values (when context selected), minOccurs, maxOccurs, allowsNull, allowsEmpty. All columns sortable. |
-| REQ-3.2 | Single-page results | Display max 250 results per search. If more exist, show a prominent warning banner (not subtle text) indicating results are truncated and the user should refine their search. Example: "Showing 250 of X results - please refine your search to see all matches." |
+| REQ-3.2 | Single-page results | Display up to `MAX_RESULTS_PER_PAGE` results per search (see UI Configuration). If more exist, show a prominent warning banner (not subtle text) indicating results are truncated and the user should refine their search. Example: "Showing 250 of X results - please refine your search to see all matches." |
 | REQ-3.3 | Client-side filtering | After results load, provide instant client-side filters: text filter on path, text filter on metadata, context multi-select (to show/hide results by context), checkboxes for has-null, has-empty, optional (min=0), repeating (max>1). |
-| REQ-3.4 | Field detail panel | Clicking a row opens slide-out panel showing: full fieldPath with copy button, context, all metadata key-value pairs, occurrence range, null/empty flags. |
-| REQ-3.5 | Keyboard navigation | Arrow keys (up/down) navigate between result rows. Selected row highlighted, detail panel updates. |
-| REQ-3.6 | Export results | Export current results to CSV or JSON format. Option to export all results or only client-side filtered results. |
+| REQ-3.4 | Field detail panel | Clicking a row opens slide-out panel showing: full fieldPath with copy button, context, all metadata key-value pairs, occurrence range, null/empty flags. Panel slides from right with `DETAIL_PANEL_ANIMATION_MS` timing (see UI Configuration). |
+| REQ-3.5 | Keyboard navigation | Arrow keys (up/down) navigate between result rows and autocomplete suggestions. Enter selects the highlighted autocomplete suggestion. Selected result row highlighted, detail panel updates. |
+| REQ-3.6 | Export results | Export currently loaded results to CSV or JSON format. Option to export all loaded results or only client-side filtered subset. Export is client-side only (no server-side bulk export). |
 | REQ-3.7 | Highlight matching text | When searching by fieldPath pattern, highlight the matched portion in the results display. |
 
 ### REQ-4: XML Upload
@@ -115,7 +115,7 @@ The UI provides two distinct search views optimized for different use cases:
 |----|-------------|---------------------|
 | REQ-4.1 | File upload interface | Drag-and-drop zone accepting multiple XML files. Also supports click-to-browse. |
 | REQ-4.2 | XML parsing | Parse uploaded XML files to extract field observations. Logic matches existing SDK implementations (strip namespaces, extract leaf elements and attributes, track count/null/empty). See "XML Parsing Semantics" below. |
-| REQ-4.3 | Metadata input | Before upload, user selects context and provides required metadata values. Inputs have autocomplete. Show warning if context is inactive. |
+| REQ-4.3 | Metadata input | Before upload, user selects context and provides required metadata values. **Only active contexts are shown** in the dropdown (inactive contexts cannot receive observations). Inputs have autocomplete. |
 | REQ-4.4 | Upload progress | Show progress indicator per file. Display final summary: X observations extracted from Y files, submission status. |
 
 #### XML Parsing Semantics (REQ-4.2 Detail)
@@ -192,6 +192,21 @@ The UI provides two distinct search views optimized for different use cases:
 - Detail panels slide out from right
 - Consistent spacing and alignment
 - Navy blue corporate-minimalist aesthetic
+
+---
+
+## UI Configuration
+
+Configurable values for the UI. These should be defined in a single location (e.g., `config.ts`) and referenced throughout the application.
+
+| Setting | Default | Notes |
+|---------|---------|-------|
+| `MAX_RESULTS_PER_PAGE` | 250 | Maximum results displayed per search. Must align with backend `max-page-size` setting (see `application.yml`). When exceeded, truncation warning is shown. |
+| `AUTOCOMPLETE_DEBOUNCE_MS` | 300 | Delay before autocomplete API requests fire. Balances responsiveness with API efficiency. |
+| `DETAIL_PANEL_ANIMATION_MS` | 100 | Slide-out panel animation duration. Keep fast for responsive feel. |
+| `API_BASE_URL` | (env var) | Backend API URL, configured via environment variable. |
+
+**Backend alignment note:** The `MAX_RESULTS_PER_PAGE` value must match the backend's `app.catalog.search.max-page-size` setting. Both are currently set to 250.
 
 ---
 

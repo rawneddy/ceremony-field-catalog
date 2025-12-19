@@ -42,7 +42,7 @@ ui/
 │   │   │   ├── MetadataFilters.tsx   # Dynamic filters with autocomplete
 │   │   │   ├── FieldPathInput.tsx    # Input with autocomplete (when starts with /)
 │   │   │   ├── ResultsFilter.tsx     # Client-side filter (path, metadata, context)
-│   │   │   ├── TruncationWarning.tsx # Warning banner when results exceed 250
+│   │   │   ├── TruncationWarning.tsx # Warning banner when results exceed max
 │   │   │   ├── FieldResults.tsx      # Wrapper with view toggle (Table/Tree)
 │   │   │   ├── FieldTable.tsx        # Dynamic columns, sortable, keyboard nav
 │   │   │   ├── FieldRow.tsx          # Clickable with highlight state + copy btn
@@ -57,7 +57,7 @@ ui/
 │   ├── hooks/
 │   │   ├── useContexts.ts         # Fetch contexts (with optional includeCounts)
 │   │   ├── useContextMutations.ts # Create/update/delete
-│   │   ├── useFieldSearch.ts      # Search (single page, max 250 results)
+│   │   ├── useFieldSearch.ts      # Search (single page, max results per config)
 │   │   ├── useSuggest.ts          # Autocomplete for fieldPath and metadata
 │   │   ├── useXmlUpload.ts        # Handle file parsing and submission
 │   │   └── useDebounce.ts
@@ -65,6 +65,7 @@ ui/
 │   │   ├── api.ts                 # Axios instance
 │   │   ├── catalogApi.ts          # API methods
 │   │   └── xmlParser.ts           # XML to observations (ported from Python)
+│   ├── config.ts                  # UI configuration constants (see REQUIREMENTS.md)
 │   ├── types/
 │   │   └── index.ts               # TypeScript interfaces
 │   ├── pages/
@@ -158,9 +159,9 @@ Results (156 matches):
 ```
 
 **Behavior:**
-- Context single-select dropdown (no selection = search all contexts)
+- Context single-select dropdown with active contexts only (no selection = search all active contexts)
 - When context selected: show metadata filter inputs for that context
-- When no context selected: hide metadata filters, show results from all contexts
+- When no context selected: hide metadata filters, show results from all active contexts
 - All filters combine with AND logic
 - FieldPath filter supports case-insensitive regex matching
 - FieldPath autocomplete when input starts with `/` (scoped to context + metadata if selected)
@@ -171,9 +172,9 @@ Results (156 matches):
 
 ### Results Interaction Features
 
-**Single Page Results (POC Simplification)** - The UI requests `size=250` for all searches (backend max is also 250). No pagination controls. This keeps the POC simple while still being useful.
+**Single Page Results (POC Simplification)** - The UI requests `size=MAX_RESULTS_PER_PAGE` for all searches (see `config.ts`). The backend `max-page-size` must be aligned. No pagination controls. This keeps the POC simple while still being useful.
 
-**Truncation Warning Banner** - When results are truncated (total > 250), display a prominent warning banner above the results table:
+**Truncation Warning Banner** - When results are truncated (total > `MAX_RESULTS_PER_PAGE`), display a prominent warning banner above the results table:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ ⚠️  Showing 250 of 1,847 results.                           │
@@ -331,11 +332,13 @@ Results (showing 1 of 40):                        ↓ click header to sort
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Upload Page - Inactive Context Warning
+### Inactive Context Visibility
 
-On Upload page, if user selects an inactive context:
-- Show warning banner: "This context is inactive and may not accept observations"
-- Still allow upload attempt (backend will reject if truly inactive)
+Inactive contexts are **only visible in the Context Management view**. They do not appear in:
+- Search page context dropdown (REQ-2.5)
+- Upload page context dropdown (REQ-4.3)
+
+This prevents users from attempting to search or upload to contexts that are no longer active. To reactivate a context, use the Context Management view.
 
 ---
 
@@ -399,7 +402,7 @@ The "shareable searches" feature (Phase 3, step 11) encodes search parameters in
 **Advanced Search Page:**
 5. Build `AdvancedSearchPage` - filter-based search form + results
 6. Build `AdvancedSearchForm` container component
-7. Build `ContextSelector` - single-select dropdown (no selection = all contexts)
+7. Build `ContextSelector` - single-select dropdown with active contexts only (no selection = all active contexts)
 8. Build `MetadataFilters` - dynamic inputs based on selected context with autocomplete
 9. Build `FieldPathInput` - input with autocomplete when starts with `/`
 10. Integrate with `useFieldSearch` hook using AND-based filter parameters
@@ -444,7 +447,7 @@ The "shareable searches" feature (Phase 3, step 11) encodes search parameters in
 2. Build `useXmlUpload` hook (parse files, batch submit to API)
 3. Build upload components:
    - `FileDropZone` - drag-and-drop with multi-file support
-   - `MetadataForm` - dynamic fields based on context with autocomplete
+   - `MetadataForm` - context selector (active contexts only) + dynamic metadata fields with autocomplete
    - `UploadProgress` - progress bar per file
    - `UploadResults` - summary (X observations from Y files)
 4. Create `UploadPage` assembling all components
@@ -526,6 +529,29 @@ See `docs/api/API_SPECIFICATION.md` for full API documentation.
 | C# SDK XML parser (primary reference) | `sdks/dotnet/net48/CeremonyFieldCatalogSdk.cs` |
 | Python XML parser (reference) | `sdks/python/ceremony_catalog_sdk.py` |
 | Python parser tests (reference) | `sdks/python/test_ceremony_catalog_sdk.py` |
+
+---
+
+## UI Configuration (`config.ts`)
+
+Centralized configuration values. See REQUIREMENTS.md "UI Configuration" section for full documentation.
+
+```typescript
+// config.ts
+export const config = {
+  /** Maximum results per search. Must align with backend max-page-size. */
+  MAX_RESULTS_PER_PAGE: 250,
+
+  /** Debounce delay for autocomplete API requests (ms). */
+  AUTOCOMPLETE_DEBOUNCE_MS: 300,
+
+  /** Detail panel slide animation duration (ms). Keep fast. */
+  DETAIL_PANEL_ANIMATION_MS: 100,
+
+  /** API base URL from environment. */
+  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+} as const;
+```
 
 ---
 
@@ -707,7 +733,7 @@ This section documents the resolution of blocking and non-blocking issues identi
 
 | Issue | Resolution |
 |-------|------------|
-| **250-result rule mechanism** | ✅ Clarified: UI requests `size=250`, backend max is also 250. Both are aligned. |
+| **250-result rule mechanism** | ✅ Clarified: Centralized in `config.ts` as `MAX_RESULTS_PER_PAGE`. Backend `max-page-size` must be aligned. |
 | **Metadata casing in UI** | ✅ Clarified in REQUIREMENTS.md: backend normalizes to lowercase, UI displays as stored |
 | **Update-context payload nuance** | ✅ Added "Implementation Notes" section explaining that requiredMetadata must be sent in PUT payloads |
 | **Accessibility acceptance criteria** | ✅ Removed - explicitly noted as not a priority for initial release |
@@ -718,8 +744,17 @@ This section documents the resolution of blocking and non-blocking issues identi
 | Question | Answer |
 |----------|--------|
 | Are backend changes in-scope? | **Yes** - All backend changes have been implemented |
-| What is fieldPathContains contract? | **Substring contains** for plain text, regex pattern match when starting with `/` |
+| What is fieldPathContains contract? | **Regex pattern match** - special characters (`. * + ? [ ] ( )`) have regex meaning. UI may need to escape for literal matching. |
 | What error response schema to use? | **Backend GlobalExceptionHandler output**: `{message, status, timestamp, error, errors?}` |
 | For field counts: N+1 or first-class API? | **First-class API**: `GET /catalog/contexts?includeCounts=true` |
 | What constitutes "null" in XML? | **Not applicable** - standard XML has no null concept; `hasNull` is effectively always false unless `xsi:nil="true"` is present |
 | Deployment model? | **Separate-origin** - CORS configured for Vite dev server (localhost:5173), production config separate |
+
+### LLM Review Questions - Addressed
+
+| Question | Decision |
+|----------|----------|
+| Autocomplete debounce timing? | **300ms** - balances responsiveness with API efficiency. Defined in `config.ts`. |
+| Export large result sets? | **Client-side only** - exports only what's loaded (up to `MAX_RESULTS_PER_PAGE`). No server-side bulk export. |
+| Keyboard navigation scope? | **Both** - arrow keys work in results table AND autocomplete dropdowns. Enter selects suggestion. |
+| Detail panel animation timing? | **100ms** - instant feel, no perceptible delay. Defined in `config.ts`. |
