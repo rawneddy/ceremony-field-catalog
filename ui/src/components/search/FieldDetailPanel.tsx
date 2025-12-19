@@ -24,7 +24,7 @@ const FieldDetailPanel: React.FC<FieldDetailPanelProps> = ({ entry, onClose }) =
 
   return (
     <div 
-      className="w-[450px] bg-white border-l border-steel shadow-2xl flex flex-col shrink-0 overflow-hidden animate-in slide-in-from-right"
+      className="w-[450px] bg-white border-l border-steel shadow-2xl flex flex-col shrink-0 overflow-hidden animate-in slide-in-from-right sticky top-0 h-full"
       style={{ animationDuration: `${config.DETAIL_PANEL_ANIMATION_MS}ms` }}
     >
       <div className="p-6 border-b border-steel flex items-center justify-between bg-paper">

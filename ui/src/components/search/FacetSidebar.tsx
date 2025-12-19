@@ -71,7 +71,7 @@ const FacetSidebar: React.FC<FacetSidebarProps> = ({
   }
 
   return (
-    <div className="w-64 bg-slate text-paper flex flex-col shrink-0 relative z-20 shadow-xl border-r border-ink">
+    <div className="w-64 bg-slate text-paper flex flex-col shrink-0 relative z-20 shadow-xl border-r border-ink sticky top-0 h-full">
       <div className="p-4 flex items-center justify-between border-b border-white/5">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-ceremony" />
