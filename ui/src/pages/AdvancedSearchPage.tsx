@@ -91,6 +91,11 @@ const AdvancedSearchPage: React.FC = () => {
                   Regex
                 </button>
               </div>
+              <button
+                className="bg-ceremony text-paper px-6 py-2.5 rounded text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-sm"
+              >
+                Search
+              </button>
             </div>
           </div>
 
