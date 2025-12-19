@@ -104,13 +104,14 @@ The UI provides two distinct search views optimized for different use cases:
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
-| REQ-3.1 | Results table | Display results in table with columns: fieldPath, context (when cross-context), metadata values (when context selected), minOccurs, maxOccurs, allowsNull, allowsEmpty. All columns sortable. |
+| REQ-3.1 | Results table | Display results in table with fixed columns: fieldPath, context, minOccurs, maxOccurs, allowsNull, allowsEmpty. All columns sortable. **No metadata columns** - metadata is shown in detail panel only (scales to any number of contexts). |
 | REQ-3.2 | Single-page results | Display up to `MAX_RESULTS_PER_PAGE` results per search (see UI Configuration). If more exist, show a prominent warning banner (not subtle text) indicating results are truncated and the user should refine their search. Example: "Showing 250 of X results - please refine your search to see all matches." |
-| REQ-3.3 | Client-side filtering | After results load, provide instant client-side filters: text filter on path, text filter on metadata, context multi-select (to show/hide results by context), checkboxes for has-null, has-empty, optional (min=0), repeating (max>1). |
-| REQ-3.4 | Field detail panel | Clicking a row opens slide-out panel showing: full fieldPath with copy button, context, all metadata key-value pairs, occurrence range, null/empty flags. Panel slides from right with `DETAIL_PANEL_ANIMATION_MS` timing (see UI Configuration). |
+| REQ-3.3 | Client-side filtering | Left sidebar provides instant client-side filters: faceted metadata filtering (REQ-3.8), property checkboxes for has-null/has-empty/optional/repeating, and text filter on path. All filters apply instantly without API calls. |
+| REQ-3.4 | Field detail panel | Clicking a row opens slide-out panel showing: full fieldPath with copy button, context, **all metadata key-value pairs**, occurrence range, null/empty flags. Panel slides from right with `DETAIL_PANEL_ANIMATION_MS` timing (see UI Configuration). |
 | REQ-3.5 | Keyboard navigation | Arrow keys (up/down) navigate between result rows and autocomplete suggestions. Enter selects the highlighted autocomplete suggestion. Selected result row highlighted, detail panel updates. |
 | REQ-3.6 | Export results | Export currently loaded results to CSV or JSON format. Option to export all loaded results or only client-side filtered subset. Export is client-side only (no server-side bulk export). |
 | REQ-3.7 | Highlight matching text | When searching by fieldPath pattern, highlight the matched portion in the results display. |
+| REQ-3.8 | Faceted metadata filtering | Left sidebar shows all metadata keys present in results with value counts. Clicking a key opens popover with: (1) Match mode toggle - "Match any" (OR, checkboxes) or "Match exactly" (AND, radio buttons), (2) List of values with counts. Filters apply instantly. Counts update dynamically as filters change. Multiple key filters combine with AND logic. |
 
 ### REQ-4: XML Upload
 
