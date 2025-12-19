@@ -45,6 +45,12 @@ public record ContextDefinitionDTO(
     List<String> optionalMetadata,
     
     @Schema(
+        description = "Rules for automatically extracting metadata values from XML. Map of field name to prioritized list of XPaths.",
+        example = "{\"productCode\": [\"/ceremony/productCode\", \"/header/product\"], \"region\": [\"/address/state\"]}"
+    )
+    java.util.Map<String, List<String>> metadataRules,
+    
+    @Schema(
         description = "Whether this context is active and accepting new observations",
         example = "true",
         requiredMode = Schema.RequiredMode.REQUIRED

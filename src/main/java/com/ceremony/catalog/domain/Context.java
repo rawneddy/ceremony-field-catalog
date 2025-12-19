@@ -20,6 +20,10 @@ public class Context {
     private String description;
     private List<String> requiredMetadata;
     private List<String> optionalMetadata;
+    
+    // Map of metadata field name -> List of XPaths to try in order
+    private java.util.Map<String, List<String>> metadataRules;
+    
     private boolean active;
     
     @Builder.Default

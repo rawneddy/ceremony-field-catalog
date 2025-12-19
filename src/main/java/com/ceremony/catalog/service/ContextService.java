@@ -38,6 +38,7 @@ public class ContextService {
             .description(dto.description())
             .requiredMetadata(normalizedRequired)
             .optionalMetadata(normalizedOptional)
+            .metadataRules(dto.metadataRules())
             .active(dto.active())
             .createdAt(Instant.now())
             .build();
@@ -59,6 +60,7 @@ public class ContextService {
                 existing.setDescription(dto.description());
                 // Note: NOT updating requiredMetadata - it's immutable after creation
                 existing.setOptionalMetadata(normalizedOptional);
+                existing.setMetadataRules(dto.metadataRules());
                 existing.setActive(dto.active());
                 existing.setUpdatedAt(Instant.now());
                 return repository.save(existing);

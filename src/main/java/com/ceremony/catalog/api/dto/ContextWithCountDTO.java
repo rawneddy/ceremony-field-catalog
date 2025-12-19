@@ -26,6 +26,9 @@ public record ContextWithCountDTO(
     @Schema(description = "Optional metadata fields for observations in this context", example = "[\"channel\", \"region\"]")
     List<String> optionalMetadata,
 
+    @Schema(description = "Rules for automatically extracting metadata values from XML. Map of field name to prioritized list of XPaths.")
+    java.util.Map<String, List<String>> metadataRules,
+
     @Schema(description = "Whether the context is accepting new observations", example = "true")
     boolean active,
 
@@ -55,6 +58,7 @@ public record ContextWithCountDTO(
             context.getDescription(),
             context.getRequiredMetadata(),
             context.getOptionalMetadata(),
+            context.getMetadataRules(),
             context.isActive(),
             context.getCreatedAt(),
             context.getUpdatedAt(),
