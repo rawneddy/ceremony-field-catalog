@@ -18,7 +18,7 @@ Update REQUIREMENTS.md and IMPLEMENTATION.md to address all issues raised in the
 | B2 | Facet count semantics | Disjunctive (Splunk-style): current facet counts stay constant, other facets update |
 | B3 | useFacets hook contract | Add TypeScript interface definition to IMPLEMENTATION.md |
 | B4 | Clear button scope | Clears only this facet's selection, document explicitly |
-| B5 | contextId as facet | Yes, include as built-in facet alongside metadata keys |
+| B5 | contextId as facet | **REVISED**: No - move to table column header dropdown (cleaner separation) |
 | B6 | Traceability inconsistencies | Fix outdated component names and REQ mappings |
 | B7 | Responsive 3-panel layout | Manual toggle only - user collapses sidebar if needed |
 
@@ -40,6 +40,8 @@ Update REQUIREMENTS.md and IMPLEMENTATION.md to address all issues raised in the
 |-------|----------|
 | Facet value sort order | Alphabetical (A-Z) |
 | Property filters location | Move to table column headers for Null?/Empty? only (Min/Max just need sorting) |
+| **Field Path filter** | **REVISED**: Move to table column header (text input) instead of sidebar |
+| **Context filter** | **REVISED**: Move to table column header (dropdown with distinct values) instead of sidebar facet |
 | Export format toggle | Same toggle style as String/Regex |
 | Loaded results scope (Q6) | Tooltip on sidebar header: "Filtering X loaded results" |
 | Many keys UX (Q7) | Pin active facets to top; add search input if > 10 keys |

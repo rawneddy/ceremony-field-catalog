@@ -45,11 +45,12 @@ ui/
 │   │   │   ├── ContextSelector.tsx    # Single-select context dropdown
 │   │   │   ├── MetadataFilters.tsx   # Dynamic filters with autocomplete
 │   │   │   ├── FieldPathInput.tsx    # Shared input: string/regex toggle + autocomplete (used by Quick & Advanced)
-│   │   │   ├── FacetSidebar.tsx      # Left sidebar with metadata facets (collapsible, scrollable)
+│   │   │   ├── FacetSidebar.tsx      # Left sidebar with ONLY metadata facets (collapsible, scrollable)
 │   │   │   ├── MetadataFacet.tsx     # Single facet row with popover for value selection
 │   │   │   ├── FacetPopover.tsx      # Popover: "Include any"/"Require one" mode + values with search
-│   │   │   ├── PathFilter.tsx        # Text input for filtering by path
-│   │   │   ├── ColumnFilter.tsx      # Dropdown filter for table column headers (Null?/Empty?)
+│   │   │   ├── ColumnFilter.tsx      # Filter components for table column headers
+│   │   │   ├── PathColumnFilter.tsx  # Text input filter for Field Path column header
+│   │   │   ├── ContextColumnFilter.tsx # Dropdown filter for Context column header
 │   │   │   ├── TruncationWarning.tsx # Warning banner when results exceed max
 │   │   │   ├── FieldResults.tsx      # Wrapper with view toggle (Table/Tree)
 │   │   │   ├── FieldTable.tsx        # Fixed columns (no metadata), sortable, keyboard nav
@@ -66,7 +67,7 @@ ui/
 │   │   ├── useContexts.ts         # Fetch contexts (with optional includeCounts)
 │   │   ├── useContextMutations.ts # Create/update/delete
 │   │   ├── useFieldSearch.ts      # Search (single page, max results per config)
-│   │   ├── useFacets.ts           # Build facet index from results, manage facet state, disjunctive counting
+│   │   ├── useFacets.ts           # Build facet index from results (metadata only), manage facet state, disjunctive counting
 │   │   ├── useSuggest.ts          # Autocomplete for fieldPath and metadata
 │   │   ├── useXmlUpload.ts        # Handle file parsing and submission
 │   │   └── useDebounce.ts
@@ -110,7 +111,44 @@ ui/
 
 ## Search Design (Two Separate Views)
 
-The UI provides two distinct search views optimized for different use cases:
+The UI provides two distinct search views optimized for different use cases.
+
+### Full 3-Panel Layout
+
+When a result row is selected, the complete layout shows all three panels:
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│  🔍 [Amount_________________________] [String ▼] [Search]              [Advanced Search →]               │
+├──────────────────┬────────────────────────────────────────────────────────────────┬──────────────────────┤
+│                  │                                                                │                      │
+│  METADATA        │  Results (23 of 250)                         [Export (23)]    │  METADATA DETAIL     │
+│  FACETS          │                                                                │                      │
+│  (Filter)        │  ┌─────────────────────┬──────────┬─────┬─────┬──────┬──────┐ │  Field Path:         │
+│                  │  │ Field Path      ↕   │ Context↕ │ Min │ Max │Null?▼│Empty?▼│ │  /ceremony/account/  │
+│  Filtering 23    │  │ [🔍 _____________ ] │ [All  ▼] │     │     │      │      │ │  amt          [📋]   │
+│                  │  ├─────────────────────┼──────────┼─────┼─────┼──────┼──────┤ │                      │
+│  productCode (4) │  │ /ceremony/acct/amt  │ deposits │  1  │  1  │ No   │ No   │ │  Context: deposits   │
+│  action      (2) │  │ /ceremony/cust/id   │ loans    │  0  │  1  │ Yes  │ No   │ │                      │
+│                  │  │►/ceremony/req/type  │ ondemand │  1  │  1  │ No   │ No   │◄│  Metadata:           │
+│  ──────────────  │  └─────────────────────┴──────────┴─────┴─────┴──────┴──────┘ │    productCode: DDA  │
+│                  │                                                                │    action: Fulfillment│
+│  [Clear All]     │                                                                │                      │
+│                  │                                                                │  Statistics:         │
+│                  │                                                                │    Occurs: 1-1       │
+│                  │                                                                │    Null: No          │
+│                  │                                                                │    Empty: No         │
+└──────────────────┴────────────────────────────────────────────────────────────────┴──────────────────────┘
+     ↑                                        ↑                                              ↑
+  LEFT SIDEBAR                             TABLE                                      RIGHT PANEL
+  Metadata FILTER                    Data + Column Filters                         Metadata DETAIL
+  "Filter by metadata"             "Filter by column values"                   "View all metadata"
+```
+
+**Design principle:** Clean separation of concerns:
+- **Left sidebar** = Filter by metadata values (not visible in table columns)
+- **Table column headers** = Filter by column values (Field Path, Context, Null?, Empty?)
+- **Right detail panel** = View complete metadata for selected row
 
 ### Quick Search View (Home Page: `/`)
 
@@ -123,18 +161,16 @@ Simple global search across field paths and contexts using OR logic.
 │  ↳ Searching all values (start with / for field paths)    ← hint text           │
 ├───────────────────┬──────────────────────────────────────────────────────────────┤
 │                   │                                                              │
-│ [≡] FILTER        │  Results (23 of 250)                       [Export (23)]    │
+│ [≡] METADATA      │  Results (23 of 250)                       [Export (23)]    │
 │ Filtering 23      │                                                              │
-│                   │  ┌────────────────────────┬─────────┬─────┬─────┬──────┬──────┐
-│ contextId     (3) │  │ Field Path             │ Context │ Min │ Max │Null?▼│Empty?▼
-│ productCode   (4) │  ├────────────────────────┼─────────┼─────┼─────┼──────┼──────┤
-│ action        (2) │  │ /ceremony/account/amt  │ deposits│  1  │  1  │ No   │ No   │
-│                   │  │ /ceremony/customer/id  │ loans   │  0  │  1  │ Yes  │ No   │
-│ ────────────────  │  │ /ceremony/request/type │ ondemand│  1  │  1  │ No   │ No   │
-│                   │  └────────────────────────┴─────────┴─────┴─────┴──────┴──────┘
-│ Path: [________]  │                                                              │
-│                   │                                                              │
-│ [Clear All]       │                                                              │
+│                   │  ┌─────────────────────────┬───────────┬─────┬─────┬──────┬──────┐
+│ productCode ● 2/4 │  │ Field Path          ↕   │ Context ↕ │ Min │ Max │Null?▼│Empty?▼
+│ action        (2) │  │ [🔍 _________________ ] │ [All   ▼] │     │     │      │      │
+│                   │  ├─────────────────────────┼───────────┼─────┼─────┼──────┼──────┤
+│ ────────────────  │  │ /ceremony/account/amt   │ deposits  │  1  │  1  │ No   │ No   │
+│                   │  │ /ceremony/customer/id   │ loans     │  0  │  1  │ Yes  │ No   │
+│ [Clear All]       │  │ /ceremony/request/type  │ ondemand  │  1  │  1  │ No   │ No   │
+│                   │  └─────────────────────────┴───────────┴─────┴─────┴──────┴──────┘
 └───────────────────┴──────────────────────────────────────────────────────────────┘
 ```
 
@@ -177,19 +213,16 @@ Filter-based search with AND logic for precise queries. Adds server-side metadat
 │                    ↑ autocomplete (scoped to context + metadata if selected)     │
 ├───────────────────┬──────────────────────────────────────────────────────────────┤
 │                   │                                                              │
-│ [≡] FILTER        │  Results (156 of 250)              [Export (156)]            │
+│ [≡] METADATA      │  Results (156 of 250)              [Export (156)]            │
 │ Filtering 156     │                                                              │
-│                   │  ┌────────────────────────┬─────────┬─────┬─────┬──────┬──────┐
-│ productCode ● 1/4 │  │ Field Path         ↕   │ Context │ Min │ Max │Null?▼│Empty?▼
-│ ────────────────  │  ├────────────────────────┼─────────┼─────┼─────┼──────┼──────┤
-│ contextId     (1) │  │ /ceremony/account/amt  │ deposits│  1  │  1  │ No   │ No   │
-│ action        (2) │  │ /ceremony/account/type │ deposits│  1  │  1  │ No   │ No   │
-│                   │  │ /ceremony/account/id   │ deposits│  0  │  1  │ Yes  │ No   │
-│ ────────────────  │  └────────────────────────┴─────────┴─────┴─────┴──────┴──────┘
-│                   │                                                              │
-│ Path: [________]  │                                                              │
-│                   │                                                              │
-│ [Clear All]       │                                                              │
+│                   │  ┌─────────────────────────┬───────────┬─────┬─────┬──────┬──────┐
+│ productCode ● 1/4 │  │ Field Path          ↕   │ Context ↕ │ Min │ Max │Null?▼│Empty?▼
+│ action        (2) │  │ [🔍 _________________ ] │ [All   ▼] │     │     │      │      │
+│                   │  ├─────────────────────────┼───────────┼─────┼─────┼──────┼──────┤
+│ ────────────────  │  │ /ceremony/account/amt   │ deposits  │  1  │  1  │ No   │ No   │
+│                   │  │ /ceremony/account/type  │ deposits  │  1  │  1  │ No   │ No   │
+│ [Clear All]       │  │ /ceremony/account/id    │ deposits  │  0  │  1  │ Yes  │ No   │
+│                   │  └─────────────────────────┴───────────┴─────┴─────┴──────┴──────┘
 └───────────────────┴──────────────────────────────────────────────────────────────┘
 ```
 
@@ -235,9 +268,10 @@ The search system has two filtering layers with distinct purposes:
 | Context (single-select) | Server-side (Advanced Search) | Determines which metadata fields to show, reduces data volume significantly |
 | Metadata values | Server-side (Advanced Search) | Uses indexes, reduces data volume |
 | FieldPath pattern (string/regex) | Server-side (search form) | Uses indexes, can match millions of records |
-| Faceted metadata filtering | Client-side (left sidebar) | Drill into metadata distribution of loaded results (includes contextId as built-in facet) |
+| Faceted metadata filtering | Client-side (left sidebar) | Drill into metadata distribution of loaded results |
+| Field Path text filter | Client-side (table column header) | Instant text match on fieldPath |
+| Context dropdown | Client-side (table column header) | Filter by context from loaded results |
 | Null?/Empty? dropdowns | Client-side (table column headers) | Filter by All/Yes/No per column |
-| Path text filter | Client-side (left sidebar) | Instant text match on fieldPath |
 
 **Key distinction:**
 - **Server-side**: Changes the API request, uses database indexes, affects what data is fetched
@@ -247,33 +281,34 @@ The search system has two filtering layers with distinct purposes:
 
 The left sidebar provides powerful client-side filtering using a faceted search pattern (similar to Splunk, Elasticsearch, or e-commerce sites). This allows users to drill into the metadata distribution of their search results.
 
-**Sidebar Layout:**
+**Sidebar Layout (Metadata Facets Only):**
 ```
 ┌──────────────────────┐
-│ [≡] FILTER RESULTS   │  ← collapse toggle, header
+│ [≡] METADATA FACETS  │  ← collapse toggle
 │ Filtering 156 loaded │  ← count with tooltip: "Counts based on loaded results (max 250)"
 │                      │
-│ [Search facets...]   │  ← shown if > 10 keys
+│ [Search facets...]   │  ← shown if > 10 metadata keys
 │                      │
 │ productCode ●    2/4 │  ← active facets pinned to top
 │ ──────────────────── │
-│ contextId        (3) │  ← 3 distinct values, no filter active
 │ action           (2) │
 │ loanType         (5) │
-│                      │
-│ ──────────────────── │
-│                      │
-│ Path: [___________]  │
+│ channel          (3) │
 │                      │
 │ [Clear All Filters]  │
 └──────────────────────┘
 ```
 
+**Design principle:** The sidebar contains ONLY metadata facets. Table columns (Field Path, Context, Null?, Empty?) have their own filters in column headers. This creates a clean separation:
+- **Sidebar** = Filter by metadata values (not visible in table)
+- **Column headers** = Filter by column values (visible in table)
+- **Detail panel** = View all metadata for selected row
+
 **Note:** Property filters (Has null, Has empty, Optional, Repeating) are now in table column headers (Null? and Empty? columns have filter dropdowns). Min/Max columns are sortable to find optional (minOccurs=0) or repeating (maxOccurs>1) fields.
 
 **How it works:**
 1. When results load, scan all entries to build a facet index
-2. Show **contextId as built-in facet** plus all metadata keys present in the result set
+2. Show all **metadata keys** present in the result set (NOT contextId - that's a column header filter)
 3. Facet values sorted alphabetically (A-Z)
 4. Active facets pinned to top of list
 5. Each key displays the count of distinct values: `productCode (4)`
@@ -318,25 +353,25 @@ The left sidebar provides powerful client-side filtering using a faceted search 
 
 **Cross-key logic:**
 All metadata key filters combine with AND logic:
-- `contextId = deposits AND productCode IN (DDA, CDA)` in "Include any" mode
-- `contextId = deposits AND productCode = CDA` in "Require one" mode
+- `productCode IN (DDA, CDA) AND action = Fulfillment` in "Include any" mode for productCode
+- `productCode = CDA AND action = Fulfillment` in "Require one" mode for productCode
 
 **Disjunctive counting (Splunk-style):**
 Counts are computed using disjunctive faceting - the current facet's own filter is excluded from its count calculation, while other filters apply. This shows "what would I get if I switched to this value?"
 
 Example:
 ```
-Before filtering:                After selecting contextId = deposits:
-│ contextId        (3) │         │ contextId    ●   1/3 │  ← counts for contextId stay constant (3 total)
-│ productCode      (4) │    →    │ productCode      (3) │  ← MMA gone (0 in deposits context)
-│ action           (2) │         │ action           (2) │
+Before filtering:                After selecting productCode = DDA:
+│ productCode      (4) │         │ productCode  ●   1/4 │  ← counts for productCode stay constant (4 total)
+│ action           (3) │    →    │ action           (2) │  ← updated: only 2 actions exist for DDA
+│ channel          (2) │         │ channel          (1) │  ← updated: only 1 channel for DDA
 ```
 
-After also selecting productCode = DDA:
+After also selecting action = Fulfillment:
 ```
-│ contextId    ●   1/3 │  ← still shows 3 (other contexts available if user deselects deposits)
-│ productCode  ●   1/3 │  ← DDA selected, but shows 3 total values available (DDA, CDA, SAV)
-│ action           (2) │  ← updated: only 2 actions exist for deposits+DDA combination
+│ productCode  ●   1/4 │  ← still shows 4 (other products available if user deselects DDA)
+│ action       ●   1/2 │  ← Fulfillment selected, shows 2 total actions available
+│ channel          (1) │  ← updated: only 1 channel for DDA+Fulfillment
 ```
 
 **Instant apply:**
@@ -356,15 +391,26 @@ After also selecting productCode = DDA:
 
 Metadata values are shown in the detail panel only, not in the table. This ensures the table scales regardless of how many contexts or metadata fields exist.
 
-**Column header filter dropdowns:**
+**Column header filters:**
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│ Field Path         ↕ │ Context ↕ │ Min ↕ │ Max ↕ │ Null? [▼] │ Empty? [▼] │
-│                        │           │       │       │ ○ All     │ ○ All      │
-│                        │           │       │       │ ○ Yes     │ ○ Yes      │
-│                        │           │       │       │ ○ No      │ ○ No       │
-└──────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────┬─────────────────┬───────┬───────┬──────────┬──────────┐
+│ Field Path              ↕   │ Context     ↕   │ Min ↕ │ Max ↕ │ Null? ▼  │ Empty? ▼ │
+│ [🔍 ____________________ ]  │ [All        ▼]  │       │       │ ○ All    │ ○ All    │
+│                             │ ○ All           │       │       │ ○ Yes    │ ○ Yes    │
+│                             │ ○ deposits      │       │       │ ○ No     │ ○ No     │
+│                             │ ○ loans         │       │       │          │          │
+│                             │ ○ ondemand      │       │       │          │          │
+└─────────────────────────────┴─────────────────┴───────┴───────┴──────────┴──────────┘
 ```
+
+| Column | Filter Type | Rationale |
+|--------|------------|-----------|
+| Field Path | Text input | Many unique values, text search needed |
+| Context | Dropdown (distinct values) | Few values, users can see what's available |
+| Min | Sortable only | Sort ascending to find optional (minOccurs=0) |
+| Max | Sortable only | Sort descending to find repeating (maxOccurs>1) |
+| Null? | Dropdown (All/Yes/No) | Boolean filter |
+| Empty? | Dropdown (All/Yes/No) | Boolean filter |
 
 **Sortable columns:**
 - Click column header → sort ascending
@@ -627,15 +673,16 @@ The "shareable searches" feature (Phase 3, step 11) encodes search parameters in
 19. Add export functionality (CSV/JSON, all/filtered)
 20. Wrap results in `FieldResults` with view toggle placeholder (Table active, Tree disabled)
 
-**Faceted Filtering (Left Sidebar):**
-21. Build `useFacets` hook - compute facet index from results (including contextId as built-in), manage filter state, disjunctive counting
-22. Build `FacetSidebar` - collapsible container for metadata facets, header with count tooltip, scrollable, "Search facets..." if > 10 keys
+**Faceted Filtering (Left Sidebar) + Column Header Filters:**
+21. Build `useFacets` hook - compute facet index from results (metadata keys only), manage filter state, disjunctive counting
+22. Build `FacetSidebar` - collapsible container for metadata facets ONLY, header with count tooltip, scrollable, "Search facets..." if > 10 keys
 23. Build `MetadataFacet` - single facet row showing key name and value count, active facets pinned to top
 24. Build `FacetPopover` - popover with "Include any"/"Require one" mode toggle, value search input, alphabetical values, [Clear] button
-25. Build `ColumnFilter` - dropdown filter component for table column headers (All/Yes/No for Null?/Empty?)
-26. Build `PathFilter` - text input for instant path filtering
-27. Wire facet state to filter displayed results (client-side, instant)
-28. Implement mode-switching warning dialog for "Include any" → "Require one" with multiple values
+25. Build `PathColumnFilter` - text input filter for Field Path column header
+26. Build `ContextColumnFilter` - dropdown filter for Context column header (distinct values from results)
+27. Build `ColumnFilter` - dropdown filter component for Null?/Empty? column headers (All/Yes/No)
+28. Wire all filter state to filter displayed results (client-side, instant)
+29. Implement mode-switching warning dialog for "Include any" → "Require one" with multiple values
 
 ### Phase 4: Context Management
 1. Build `useContextMutations` hook (create/update/delete)
@@ -850,7 +897,7 @@ interface FacetState {
 }
 
 interface FacetIndex {
-  [key: string]: FacetState;   // key = "contextId" or metadata key name
+  [key: string]: FacetState;   // key = metadata key name (NOT contextId - that's a column filter)
 }
 
 // Note: Backend uses Map<String, String> for metadata, so each entry has exactly
@@ -926,10 +973,11 @@ This section maps implementation components to requirements defined in `REQUIREM
 | `ExportButton.tsx` | REQ-3.6 (CSV/JSON export with column order) |
 | `ColumnFilter.tsx` | REQ-3.1 (Null?/Empty? header filter dropdowns) |
 | **Faceted Filtering Components** | |
-| `FacetSidebar.tsx` | REQ-3.3 (client-side filtering container), REQ-3.8 (collapsible, scrollable) |
-| `MetadataFacet.tsx` | REQ-3.8 (faceted metadata filtering, contextId as built-in) |
+| `FacetSidebar.tsx` | REQ-3.3 (client-side filtering container), REQ-3.8 (collapsible, scrollable, metadata only) |
+| `MetadataFacet.tsx` | REQ-3.8 (faceted metadata filtering) |
 | `FacetPopover.tsx` | REQ-3.8 ("Include any"/"Require one" mode, value selection, search) |
-| `PathFilter.tsx` | REQ-3.3 (path text filter) |
+| `PathColumnFilter.tsx` | REQ-3.1 (Field Path column header text filter) |
+| `ContextColumnFilter.tsx` | REQ-3.1 (Context column header dropdown filter) |
 | `useFacets.ts` | REQ-3.8 (facet index computation, disjunctive counting) |
 | **Upload Components** | |
 | `FileDropZone.tsx` | REQ-4.1 (drag-drop upload) |
