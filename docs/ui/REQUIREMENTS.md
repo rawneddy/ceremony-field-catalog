@@ -22,12 +22,20 @@ The UI must support the **dynamic Context system**:
 - Field identity is determined by: `contextId + requiredMetadata + fieldPath`
 - Searches can filter by context, metadata fields, or field path patterns
 
-### Metadata Normalization
+### Data Normalization
 
-The backend normalizes all metadata keys and values to **lowercase** for case-insensitive matching. The UI should:
-- Display metadata values as stored (lowercase)
-- Accept any case in filter inputs (will be normalized by API)
-- Show autocomplete suggestions in lowercase (as stored)
+The backend normalizes data to **lowercase** for case-insensitive matching:
+
+**Metadata normalization:**
+- All metadata keys and values are stored as lowercase
+- UI should display metadata values as stored (lowercase)
+- UI can accept any case in filter inputs (normalized by API)
+- Autocomplete suggestions appear in lowercase (as stored)
+
+**Field path normalization:**
+- All `fieldPath` values are stored as lowercase (e.g., `/ceremony/account/amount`)
+- UI should display field paths as stored (lowercase)
+- Field path search inputs are normalized by API before matching
 
 ---
 
@@ -73,10 +81,10 @@ The UI provides two distinct search views optimized for different use cases:
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
-| REQ-2.1 | Global search input | Single search box with placeholder "Search fields, metadata, or contexts...". Searches across fieldPath, metadata values, and contextId using OR logic. |
-| REQ-2.2 | Single query parameter | Uses `?q=` parameter for global search. Example: `/catalog/fields?q=Amount` matches fields where fieldPath, any metadata value, or contextId contains "Amount". |
+| REQ-2.1 | Global search input | Single search box with placeholder "Search fields or contexts...". Searches across fieldPath and contextId using OR logic. |
+| REQ-2.2 | Single query parameter | Uses `?q=` parameter for global search. Example: `/catalog/fields?q=Amount` matches fields where fieldPath OR contextId contains "Amount". |
 | REQ-2.3 | Cross-context results | Results always show context column (contextId). No metadata columns since they vary by context. |
-| REQ-2.4 | Link to Advanced Search | Prominent link/button to switch to Advanced Search view for more precise filtering. |
+| REQ-2.4 | Link to Advanced Search | Prominent link/button to switch to Advanced Search view for more precise filtering (including metadata). |
 
 #### Advanced Search View
 
@@ -84,7 +92,7 @@ The UI provides two distinct search views optimized for different use cases:
 |----|-------------|---------------------|
 | REQ-2.5 | Context selector | Single-select dropdown to filter by context. When no context is selected, search returns results from all contexts. |
 | REQ-2.6 | Dynamic metadata filtering | When a context is selected, show filter inputs for all required and optional metadata fields defined by that context. Filters combine with AND logic. When no context selected, metadata filters are hidden. |
-| REQ-2.7 | Field path pattern filter | Text input for case-insensitive regex matching on fieldPath. Works with or without context selection. |
+| REQ-2.7 | Field path pattern filter | Text input for regex pattern matching on fieldPath. Works with or without context selection. **Note:** Input is treated as regex - characters like `.`, `*`, `+`, `?`, `[`, `]`, `(`, `)` have special meaning. For literal matching, the UI may need to escape these characters. |
 | REQ-2.8 | Scoped fieldPath autocomplete | When user types a path starting with `/`, show autocomplete suggestions. Suggestions scoped to selected context and metadata filters if present. |
 | REQ-2.9 | Metadata value autocomplete | Metadata filter inputs show autocomplete suggestions based on existing values, scoped to selected context. |
 | REQ-2.10 | AND filter logic | All filters combine with AND logic. Example: `contextId=deposits AND productCode=DDA AND fieldPathContains=/Account` |

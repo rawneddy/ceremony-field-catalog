@@ -104,11 +104,11 @@ The UI provides two distinct search views optimized for different use cases:
 
 ### Quick Search View (Home Page: `/`)
 
-Simple global search across all fields, metadata, and contexts using OR logic.
+Simple global search across field paths and contexts using OR logic.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  🔍 Search fields, metadata, or contexts...                 │
+│  🔍 Search fields or contexts...                            │
 │  [Amount_______________________________] [Search]           │
 │                                                             │
 │  Need more precise filtering? [Advanced Search →]           │
@@ -121,10 +121,10 @@ Results (23 matches):
 ```
 
 **Behavior:**
-- Single search input with placeholder "Search fields, metadata, or contexts..."
+- Single search input with placeholder "Search fields or contexts..."
 - Uses `?q=` parameter for global OR search
-- Searches across: fieldPath, all metadata values, contextId
-- Example: `?q=Amount` matches fields where fieldPath contains "Amount" OR any metadata value contains "Amount" OR contextId contains "Amount"
+- Searches across: fieldPath and contextId (not metadata - use Advanced Search for that)
+- Example: `?q=Amount` matches fields where fieldPath OR contextId contains "Amount"
 - Results always show context column (contextId)
 - No metadata columns (they vary by context)
 - No autocomplete suggestions (simple contains search)
@@ -392,7 +392,7 @@ The "shareable searches" feature (Phase 3, step 11) encodes search parameters in
 
 **Quick Search Page (Home):**
 1. Build `QuickSearchPage` - simple global search form + results
-2. Build `QuickSearchForm` - single input with "Search fields, metadata, or contexts..." placeholder
+2. Build `QuickSearchForm` - single input with "Search fields or contexts..." placeholder
 3. Integrate with `useFieldSearch` hook using `q=` parameter for OR-based search
 4. Link to Advanced Search page
 
@@ -499,25 +499,17 @@ The `fieldPathContains` parameter now accepts both:
 - Full XPath patterns starting with `/` (e.g., `/Ceremony/Account`)
 - Plain text for contains searches (e.g., `Amount`, `FeeCode`)
 
+### Global Search (`q=`) ✅
+**Endpoint:** `GET /catalog/fields?q=searchTerm`
+
+Supports Quick Search with OR-based logic:
+- Searches `fieldPath` and `contextId` using OR logic
+- When `q` is provided, other filter parameters are ignored
+- Example: `?q=Amount` finds fields where fieldPath OR contextId contains "Amount"
+
+**Note:** Metadata value search is not included in global search due to MongoDB limitations with embedded documents. Use Advanced Search (filter mode) for metadata-specific queries.
+
 See `docs/api/API_SPECIFICATION.md` for full API documentation.
-
----
-
-## Backend Changes Required
-
-### Global Search Parameter (`q=`) - TODO
-Add support for `?q=` parameter to `/catalog/fields` endpoint for Quick Search:
-
-```java
-// GET /catalog/fields?q=Amount
-// Searches: fieldPath OR any metadata value OR contextId (OR logic)
-@RequestParam(required = false) String q
-```
-
-**Implementation notes:**
-- When `q` is present, search uses OR logic across all searchable fields
-- When traditional filters are present (contextId, metadata.*, fieldPathContains), use AND logic
-- The two modes should be mutually exclusive (use q OR use filters, not both)
 
 ---
 
@@ -543,12 +535,12 @@ Add support for `?q=` parameter to `/catalog/fields` endpoint for Quick Search:
 interface Context {
   contextId: string;
   displayName: string;
-  description?: string;
+  description: string | null;  // API returns null when not set
   requiredMetadata: string[];
   optionalMetadata: string[];
   active: boolean;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string | null;    // API returns null when not updated
 }
 
 // Extended context with field count (from GET /contexts?includeCounts=true)
@@ -709,13 +701,13 @@ This section documents the resolution of blocking and non-blocking issues identi
 | **CORS not implemented** | ✅ CORS configured in `WebConfig.java` for localhost:5173 and localhost:3000 |
 | **fieldPathContains behavior conflicts** | ✅ Backend updated to accept both full paths (`/Ceremony/...`) and plain text (`Amount`) |
 | **Error response contract mismatch** | ✅ `ErrorResponse` interface documented consistently across API spec and implementation plan |
-| **XML null vs empty semantics underspecified** | ✅ Explicit semantics added to REQUIREMENTS.md: `hasNull` is effectively always false for XML (no null concept), `hasEmpty` is true for whitespace-only or self-closing elements |
+| **XML null vs empty semantics underspecified** | ✅ Explicit semantics added to REQUIREMENTS.md: `hasNull` is true when `xsi:nil="true"` is present (existing SDKs don't implement this - known bug), `hasEmpty` is true for whitespace-only or self-closing elements |
 
 ### Non-Blocking Issues - All Addressed
 
 | Issue | Resolution |
 |-------|------------|
-| **250-result rule mechanism** | ✅ Clarified: UI requests `size=250`, backend supports up to 1000. This is a UI choice, not backend enforcement. |
+| **250-result rule mechanism** | ✅ Clarified: UI requests `size=250`, backend max is also 250. Both are aligned. |
 | **Metadata casing in UI** | ✅ Clarified in REQUIREMENTS.md: backend normalizes to lowercase, UI displays as stored |
 | **Update-context payload nuance** | ✅ Added "Implementation Notes" section explaining that requiredMetadata must be sent in PUT payloads |
 | **Accessibility acceptance criteria** | ✅ Removed - explicitly noted as not a priority for initial release |

@@ -54,31 +54,51 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
 
     @Override
     public Page<CatalogEntry> searchByCriteria(CatalogSearchCriteria criteriaDto, Pageable pageable) {
-        List<Criteria> filters = new ArrayList<>();
-
-        // Filter by context if specified
-        Optional.ofNullable(criteriaDto.contextId())
-            .ifPresent(v -> filters.add(Criteria.where("contextid").is(v)));
-
-        // Filter by metadata fields if specified
-        Optional.ofNullable(criteriaDto.metadata())
-            .ifPresent(metadata -> {
-                for (Map.Entry<String, String> entry : metadata.entrySet()) {
-                    String key = entry.getKey();
-                    String value = entry.getValue();
-                    if (value != null && !value.trim().isEmpty()) {
-                        filters.add(Criteria.where("metadata." + key).is(value));
-                    }
-                }
-            });
-
-        // Filter by field path pattern if specified (no "i" flag needed - data is lowercase)
-        Optional.ofNullable(criteriaDto.fieldPathContains())
-            .ifPresent(v -> filters.add(Criteria.where("fieldpath").regex(v)));
-
         Query query = new Query();
-        if (!filters.isEmpty()) {
-            query.addCriteria(new Criteria().andOperator(filters.toArray(new Criteria[0])));
+
+        // Check if this is a global search (q parameter)
+        if (criteriaDto.isGlobalSearch()) {
+            // Global search: OR across fieldPath and contextId
+            // Note: Metadata value search is not included in global search because MongoDB
+            // cannot efficiently regex search all values of an embedded document.
+            // Use Advanced Search (filter mode) for metadata-specific queries.
+            String searchTerm = criteriaDto.q();
+            List<Criteria> orCriteria = new ArrayList<>();
+
+            // Search in fieldPath (contains) - uses index
+            orCriteria.add(Criteria.where("fieldpath").regex(searchTerm));
+
+            // Search in contextId (contains) - uses index
+            orCriteria.add(Criteria.where("contextid").regex(searchTerm));
+
+            query.addCriteria(new Criteria().orOperator(orCriteria.toArray(new Criteria[0])));
+        } else {
+            // Filter-based search: AND logic
+            List<Criteria> filters = new ArrayList<>();
+
+            // Filter by context if specified
+            Optional.ofNullable(criteriaDto.contextId())
+                .ifPresent(v -> filters.add(Criteria.where("contextid").is(v)));
+
+            // Filter by metadata fields if specified
+            Optional.ofNullable(criteriaDto.metadata())
+                .ifPresent(metadata -> {
+                    for (Map.Entry<String, String> entry : metadata.entrySet()) {
+                        String key = entry.getKey();
+                        String value = entry.getValue();
+                        if (value != null && !value.trim().isEmpty()) {
+                            filters.add(Criteria.where("metadata." + key).is(value));
+                        }
+                    }
+                });
+
+            // Filter by field path pattern if specified (no "i" flag needed - data is lowercase)
+            Optional.ofNullable(criteriaDto.fieldPathContains())
+                .ifPresent(v -> filters.add(Criteria.where("fieldpath").regex(v)));
+
+            if (!filters.isEmpty()) {
+                query.addCriteria(new Criteria().andOperator(filters.toArray(new Criteria[0])));
+            }
         }
 
         // Apply sorting by field path by default

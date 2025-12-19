@@ -208,7 +208,7 @@ class CatalogServiceTest extends ServiceTestBase {
             new CatalogObservationDTO(metadata, "/ceremony/name", 1, false, false)
         ));
 
-        var criteria = new CatalogSearchCriteria("deposits", null, null);
+        var criteria = new CatalogSearchCriteria(null, "deposits", null, null);
         Page<CatalogEntry> results = catalogService.find(criteria, PageRequest.of(0, 10));
 
         assertThat(results.getContent()).hasSize(2);
@@ -219,7 +219,7 @@ class CatalogServiceTest extends ServiceTestBase {
     @Test
     void searchFindsByFieldPathPattern() {
         createAndVerifyContext("deposits", "productcode", "productsubcode", "action");
-        
+
         Map<String, String> metadata = Map.of(
             "productcode", "dda",
             "productsubcode", "4s",
@@ -231,7 +231,7 @@ class CatalogServiceTest extends ServiceTestBase {
             new CatalogObservationDTO(metadata, "/ceremony/amount", 1, false, false)
         ));
 
-        var criteria = new CatalogSearchCriteria(null, null, "/ceremony/feecode");
+        var criteria = new CatalogSearchCriteria(null, null, null, "/ceremony/feecode");
         Page<CatalogEntry> results = catalogService.find(criteria, PageRequest.of(0, 10));
 
         assertThat(results.getContent()).hasSize(1);
@@ -398,7 +398,7 @@ class CatalogServiceTest extends ServiceTestBase {
 
         // Search with lowercase metadata should find both
         var searchMetadata = Map.of("productcode", "dda");
-        var criteria = new CatalogSearchCriteria("deposits", searchMetadata, null);
+        var criteria = new CatalogSearchCriteria(null, "deposits", searchMetadata, null);
         Page<CatalogEntry> results = catalogService.find(criteria, PageRequest.of(0, 10));
 
         assertThat(results.getContent()).hasSize(1);

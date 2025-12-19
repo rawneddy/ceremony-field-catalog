@@ -17,7 +17,7 @@ import java.util.Set;
 public class DynamicSearchParameterResolver implements HandlerMethodArgumentResolver {
 
     private static final Set<String> KNOWN_PARAMETERS = Set.of(
-        "contextId", "fieldPathContains", "page", "size"
+        "q", "contextId", "fieldPathContains", "page", "size"
     );
 
     @Override
@@ -28,13 +28,17 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
     @Override
     public Object resolveArgument(@NonNull MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
                                 @NonNull NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) {
-        
+
         Map<String, String> metadata = new HashMap<>();
-        
+
+        // Extract global search parameter (q)
+        String q = webRequest.getParameter("q");
+        q = (q != null && !q.trim().isEmpty()) ? q : null;
+
         // Extract known parameters
         String contextId = webRequest.getParameter("contextId");
         contextId = (contextId != null && !contextId.trim().isEmpty()) ? contextId : null;
-        
+
         String fieldPathContains = webRequest.getParameter("fieldPathContains");
         fieldPathContains = (fieldPathContains != null && !fieldPathContains.trim().isEmpty()) ? fieldPathContains : null;
         
@@ -74,6 +78,6 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
         }
         
         // Create and return the immutable Record
-        return new CatalogSearchRequest(contextId, fieldPathContains, page, size, metadata);
+        return new CatalogSearchRequest(q, contextId, fieldPathContains, page, size, metadata);
     }
 }

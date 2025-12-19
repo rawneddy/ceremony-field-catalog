@@ -174,7 +174,7 @@ public class CatalogService {
             // If we have field paths to update, fetch only those entries and update them
             List<CatalogEntry> entriesToUpdate = fieldPathsToUpdate.isEmpty() ? 
                 List.of() : 
-                repository.searchByCriteria(new CatalogSearchCriteria(contextId, contextKey.metadata(), null))
+                repository.searchByCriteria(new CatalogSearchCriteria(null, contextId, contextKey.metadata(), null))
                     .stream()
                     .filter(entry -> fieldPathsToUpdate.contains(entry.getFieldPath()))
                     .peek(entry -> entry.setMinOccurs(0))
@@ -229,14 +229,18 @@ public class CatalogService {
     }
     
     private CatalogSearchCriteria sanitizeSearchCriteria(CatalogSearchCriteria criteria) {
-        String cleanedContextId = criteria.contextId() != null ? 
+        // Sanitize global search term (q)
+        String cleanedQ = criteria.q() != null ?
+            validationService.validateAndCleanFieldPath(criteria.q()) : null;
+
+        String cleanedContextId = criteria.contextId() != null ?
             validationService.validateAndCleanContextId(criteria.contextId()) : null;
         String cleanedFieldPathContains = criteria.fieldPathContains() != null ?
             validationService.validateAndCleanFieldPath(criteria.fieldPathContains()) : null;
         Map<String, String> cleanedMetadata = criteria.metadata() != null ?
             validationService.validateAndCleanMetadata(criteria.metadata()) : null;
-            
-        return new CatalogSearchCriteria(cleanedContextId, cleanedMetadata, cleanedFieldPathContains);
+
+        return new CatalogSearchCriteria(cleanedQ, cleanedContextId, cleanedMetadata, cleanedFieldPathContains);
     }
     
     private Map<String, String> filterToRequiredMetadata(Context context, Map<String, String> metadata) {

@@ -88,6 +88,9 @@ public class ContextService {
     
     public boolean deleteContext(String contextId) {
         if (repository.existsById(contextId)) {
+            // First delete all catalog entries associated with this context
+            catalogRepository.deleteByContextId(contextId);
+            // Then delete the context itself
             repository.deleteById(contextId);
             return true;
         }

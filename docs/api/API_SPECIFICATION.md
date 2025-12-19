@@ -263,24 +263,35 @@ Field identity is computed as: `hash(contextId + requiredMetadata + fieldPath)`
 
 **Purpose:** Search and retrieve cataloged fields with filtering and pagination
 
+**Two Search Modes:**
+
+1. **Global Search (`q`)**: OR-based search across fieldPath and contextId. Best for quick, exploratory searches.
+2. **Filter Search**: AND-based search with specific filters. Best for precise queries.
+
+When `q` is provided, other filter parameters are ignored.
+
 **Query Parameters:**
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `q` | string | No | Global search term - searches fieldPath and contextId using OR logic. When provided, other filters are ignored. |
 | `contextId` | string | No | Filter by context (omit for cross-context search) |
-| `fieldPathContains` | string | No | Case-insensitive pattern match on fieldPath. Accepts full paths (e.g., `/Ceremony/Account`) or plain text (e.g., `Amount`) |
+| `fieldPathContains` | string | No | Regex pattern match on fieldPath. Regex special characters (`. * + ? [ ] ( )`) are interpreted. Example: `Amount` matches any path containing "Amount"; `/account/.*id` matches paths like `/account/userid` |
 | `page` | integer | No | Page number (0-based, default: 0) |
 | `size` | integer | No | Page size (1-250, default: 50) |
 | `*` | string | No | Any other parameter treated as metadata filter |
 
-**Dynamic Metadata Filtering:**
-Any query parameter not in the standard list becomes a metadata filter:
-```
-GET /catalog/fields?contextId=deposits&productCode=DDA&productSubCode=4S
-```
-This filters for fields where `metadata.productCode = "DDA"` AND `metadata.productSubCode = "4S"`.
+**Global Search Examples:**
 
-**Example Requests:**
+```bash
+# Find fields containing "Amount" in fieldPath or contextId
+GET /catalog/fields?q=Amount
+
+# Find fields related to "deposit"
+GET /catalog/fields?q=deposit
+```
+
+**Filter Search Examples:**
 
 ```bash
 # Search within a context
@@ -295,9 +306,16 @@ GET /catalog/fields?productCode=DDA
 # Search by field path pattern
 GET /catalog/fields?fieldPathContains=WithholdingCode
 
-# Combined filters
+# Combined filters (AND logic)
 GET /catalog/fields?contextId=deposits&productCode=DDA&fieldPathContains=Account
 ```
+
+**Dynamic Metadata Filtering:**
+Any query parameter not in the standard list becomes a metadata filter:
+```
+GET /catalog/fields?contextId=deposits&productCode=DDA&productSubCode=4S
+```
+This filters for fields where `metadata.productCode = "DDA"` AND `metadata.productSubCode = "4S"`.
 
 **Response:** `200 OK`
 ```json
