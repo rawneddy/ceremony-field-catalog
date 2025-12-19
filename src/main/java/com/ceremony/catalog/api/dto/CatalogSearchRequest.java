@@ -10,7 +10,7 @@ import java.util.Map;
 @Schema(description = "Search criteria for finding catalog field entries. Supports two modes: global search (q) or filter search (contextId, fieldPathContains, metadata).")
 public record CatalogSearchRequest(
     @Schema(
-        description = "Global search term - searches fieldPath and contextId using OR logic. When provided, other filters are ignored. Note: metadata values are not searched; use filter mode for metadata queries.",
+        description = "Global search term - searches fieldPath, contextId, AND metadata values using OR logic. When provided, other filters are ignored. In string mode (useRegex=false), performs case-insensitive contains match. In regex mode (useRegex=true), treats the term as a regex pattern.",
         example = "Amount",
         requiredMode = Schema.RequiredMode.NOT_REQUIRED
     )
@@ -24,19 +24,27 @@ public record CatalogSearchRequest(
     String contextId,
 
     @Schema(
-        description = "Field path regex pattern to search for. Ignored when q is provided. Note: treated as regex - special characters like . * + ? [ ] ( ) have regex meaning.",
+        description = "Field path pattern to search for. Ignored when q is provided. When useRegex=true, treated as regex pattern. When useRegex=false (default), special characters are escaped for literal matching.",
         example = "WithholdingCode",
         requiredMode = Schema.RequiredMode.NOT_REQUIRED
     )
     String fieldPathContains,
-    
+
+    @Schema(
+        description = "When true, treat search terms (q and fieldPathContains) as regex patterns. When false (default), search terms are literal strings with special characters escaped.",
+        example = "false",
+        defaultValue = "false",
+        requiredMode = Schema.RequiredMode.NOT_REQUIRED
+    )
+    boolean useRegex,
+
     @Schema(
         description = "Page number for pagination (0-based)",
         example = "0",
         minimum = "0"
     )
     @Min(value = 0, message = "Page must be non-negative") int page,
-    
+
     @Schema(
         description = "Number of results per page",
         example = "20",
@@ -45,7 +53,7 @@ public record CatalogSearchRequest(
     )
     @Min(value = 1, message = "Size must be at least 1")
     @Max(value = 250, message = "Size cannot exceed 250") int size,
-    
+
     @Schema(
         description = "Dynamic metadata filters - any key-value pairs to filter by. Ignored when q is provided.",
         example = """
@@ -67,17 +75,17 @@ public record CatalogSearchRequest(
 
     // Constructor for filter-based search (no q parameter)
     public CatalogSearchRequest(String contextId, String fieldPathContains, int page, int size, Map<String, String> metadata) {
-        this(null, contextId, fieldPathContains, page, size, metadata);
+        this(null, contextId, fieldPathContains, false, page, size, metadata);
     }
 
     // Constructor for simple filter search
     public CatalogSearchRequest(String contextId, String fieldPathContains, int page, int size) {
-        this(null, contextId, fieldPathContains, page, size, new HashMap<>());
+        this(null, contextId, fieldPathContains, false, page, size, new HashMap<>());
     }
 
     // Default constructor equivalent
     public CatalogSearchRequest() {
-        this(null, null, null, 0, 50, new HashMap<>());
+        this(null, null, null, false, 0, 50, new HashMap<>());
     }
 
     public CatalogSearchCriteria toCriteria() {
@@ -85,7 +93,8 @@ public record CatalogSearchRequest(
             q,
             contextId,
             metadata.isEmpty() ? null : metadata,
-            fieldPathContains
+            fieldPathContains,
+            useRegex
         );
     }
 }

@@ -234,18 +234,20 @@ public class CatalogService {
     }
     
     private CatalogSearchCriteria sanitizeSearchCriteria(CatalogSearchCriteria criteria) {
-        // Sanitize global search term (q)
+        // Sanitize global search term (q) - only lowercase, don't escape regex chars
+        // The repository will handle escaping based on useRegex flag
         String cleanedQ = criteria.q() != null ?
-            validationService.validateAndCleanFieldPath(criteria.q()) : null;
+            criteria.q().toLowerCase() : null;
 
         String cleanedContextId = criteria.contextId() != null ?
             validationService.validateAndCleanContextId(criteria.contextId()) : null;
+        // Don't escape fieldPathContains - repository handles it based on useRegex
         String cleanedFieldPathContains = criteria.fieldPathContains() != null ?
-            validationService.validateAndCleanFieldPath(criteria.fieldPathContains()) : null;
+            criteria.fieldPathContains().toLowerCase() : null;
         Map<String, String> cleanedMetadata = criteria.metadata() != null ?
             validationService.validateAndCleanMetadata(criteria.metadata()) : null;
 
-        return new CatalogSearchCriteria(cleanedQ, cleanedContextId, cleanedMetadata, cleanedFieldPathContains);
+        return new CatalogSearchCriteria(cleanedQ, cleanedContextId, cleanedMetadata, cleanedFieldPathContains, criteria.useRegex());
     }
     
     private Map<String, String> filterToRequiredMetadata(Context context, Map<String, String> metadata) {

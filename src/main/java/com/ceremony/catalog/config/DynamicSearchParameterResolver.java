@@ -17,7 +17,7 @@ import java.util.Set;
 public class DynamicSearchParameterResolver implements HandlerMethodArgumentResolver {
 
     private static final Set<String> KNOWN_PARAMETERS = Set.of(
-        "q", "contextId", "fieldPathContains", "page", "size"
+        "q", "contextId", "fieldPathContains", "useRegex", "page", "size"
     );
 
     @Override
@@ -63,7 +63,14 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
                 size = 50;
             }
         }
-        
+
+        // Parse useRegex parameter (defaults to false)
+        boolean useRegex = false;
+        String useRegexParam = webRequest.getParameter("useRegex");
+        if (useRegexParam != null && !useRegexParam.trim().isEmpty()) {
+            useRegex = Boolean.parseBoolean(useRegexParam);
+        }
+
         // Handle any other parameters as metadata
         Iterator<String> paramNames = webRequest.getParameterNames();
         while (paramNames.hasNext()) {
@@ -76,8 +83,8 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
                 }
             }
         }
-        
+
         // Create and return the immutable Record
-        return new CatalogSearchRequest(q, contextId, fieldPathContains, page, size, metadata);
+        return new CatalogSearchRequest(q, contextId, fieldPathContains, useRegex, page, size, metadata);
     }
 }

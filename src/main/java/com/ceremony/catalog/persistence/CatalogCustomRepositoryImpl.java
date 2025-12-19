@@ -4,17 +4,22 @@ import com.ceremony.catalog.api.dto.CatalogSearchCriteria;
 import com.ceremony.catalog.domain.CatalogEntry;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.bson.Document;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -55,51 +60,143 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
 
     @Override
     public Page<CatalogEntry> searchByCriteria(CatalogSearchCriteria criteriaDto, Pageable pageable) {
-        Query query = new Query();
+        // Delegate to the method with activeContextIds=null (no context filtering)
+        return searchByCriteria(criteriaDto, null, pageable);
+    }
 
+    @Override
+    public Page<CatalogEntry> searchByCriteria(CatalogSearchCriteria criteriaDto, Set<String> activeContextIds, Pageable pageable) {
         // Check if this is a global search (q parameter)
         if (criteriaDto.isGlobalSearch()) {
-            // Global search: OR across fieldPath and contextId
-            // Note: Metadata value search is not included in global search because MongoDB
-            // cannot efficiently regex search all values of an embedded document.
-            // Use Advanced Search (filter mode) for metadata-specific queries.
-            String searchTerm = criteriaDto.q();
-            List<Criteria> orCriteria = new ArrayList<>();
-
-            // Search in fieldPath (contains) - uses index
-            orCriteria.add(Criteria.where("fieldpath").regex(searchTerm));
-
-            // Search in contextId (contains) - uses index
-            orCriteria.add(Criteria.where("contextid").regex(searchTerm));
-
-            query.addCriteria(new Criteria().orOperator(orCriteria.toArray(new Criteria[0])));
+            return executeGlobalSearch(criteriaDto, activeContextIds, pageable);
         } else {
-            // Filter-based search: AND logic
-            List<Criteria> filters = new ArrayList<>();
+            return executeFilterSearch(criteriaDto, activeContextIds, pageable);
+        }
+    }
 
-            // Filter by context if specified
-            Optional.ofNullable(criteriaDto.contextId())
-                .ifPresent(v -> filters.add(Criteria.where("contextid").is(v)));
+    /**
+     * Execute global search using aggregation to search fieldPath, contextId, AND metadata values.
+     * Uses MongoDB aggregation with $objectToArray to search all metadata values.
+     */
+    private Page<CatalogEntry> executeGlobalSearch(CatalogSearchCriteria criteriaDto, Set<String> activeContextIds, Pageable pageable) {
+        String searchPattern = criteriaDto.getSearchPattern();
 
-            // Filter by metadata fields if specified
-            Optional.ofNullable(criteriaDto.metadata())
-                .ifPresent(metadata -> {
-                    for (Map.Entry<String, String> entry : metadata.entrySet()) {
-                        String key = entry.getKey();
-                        String value = entry.getValue();
-                        if (value != null && !value.trim().isEmpty()) {
-                            filters.add(Criteria.where("metadata." + key).is(value));
-                        }
-                    }
-                });
+        // Build the $match stage with OR conditions for fieldPath, contextId, and metadata values
+        // The metadata value search uses $expr with $anyElementTrue to check all values in the map
+        Document matchConditions = new Document("$or", Arrays.asList(
+            // Match fieldPath
+            new Document("fieldpath", new Document("$regex", searchPattern)),
+            // Match contextId
+            new Document("contextid", new Document("$regex", searchPattern)),
+            // Match any metadata value using $expr and $objectToArray
+            new Document("$expr", new Document("$anyElementTrue",
+                new Document("$map", new Document()
+                    .append("input", new Document("$objectToArray", "$metadata"))
+                    .append("as", "m")
+                    .append("in", new Document("$regexMatch", new Document()
+                        .append("input", "$$m.v")
+                        .append("regex", searchPattern)
+                    ))
+                )
+            ))
+        ));
 
-            // Filter by field path pattern if specified (no "i" flag needed - data is lowercase)
-            Optional.ofNullable(criteriaDto.fieldPathContains())
-                .ifPresent(v -> filters.add(Criteria.where("fieldpath").regex(v)));
+        // Add active context filter
+        Document matchStage;
+        if (activeContextIds != null && !activeContextIds.isEmpty()) {
+            matchStage = new Document("$match", new Document("$and", Arrays.asList(
+                matchConditions,
+                new Document("contextid", new Document("$in", new ArrayList<>(activeContextIds)))
+            )));
+        } else {
+            matchStage = new Document("$match", matchConditions);
+        }
 
-            if (!filters.isEmpty()) {
-                query.addCriteria(new Criteria().andOperator(filters.toArray(new Criteria[0])));
+        // Build aggregation pipeline for counting
+        List<AggregationOperation> countPipeline = new ArrayList<>();
+        countPipeline.add(context -> matchStage);
+        countPipeline.add(context -> new Document("$count", "total"));
+
+        AggregationResults<Document> countResults = mongoTemplate.aggregate(
+            Aggregation.newAggregation(countPipeline),
+            "catalog_fields",
+            Document.class
+        );
+
+        long total = 0;
+        if (!countResults.getMappedResults().isEmpty()) {
+            total = countResults.getMappedResults().get(0).getInteger("total", 0);
+        }
+
+        // Build aggregation pipeline for results
+        List<AggregationOperation> resultPipeline = new ArrayList<>();
+        resultPipeline.add(context -> matchStage);
+
+        // Add sorting
+        Document sortDoc = pageable.getSort().isUnsorted()
+            ? new Document("fieldpath", 1)
+            : buildSortDocument(pageable.getSort());
+        resultPipeline.add(context -> new Document("$sort", sortDoc));
+
+        // Add pagination
+        if (pageable.isPaged()) {
+            resultPipeline.add(context -> new Document("$skip", (int) pageable.getOffset()));
+            resultPipeline.add(context -> new Document("$limit", pageable.getPageSize()));
+        }
+
+        AggregationResults<CatalogEntry> results = mongoTemplate.aggregate(
+            Aggregation.newAggregation(resultPipeline),
+            "catalog_fields",
+            CatalogEntry.class
+        );
+
+        return new PageImpl<>(results.getMappedResults(), pageable, total);
+    }
+
+    /**
+     * Execute filter-based search using Query API (more efficient for indexed fields).
+     */
+    private Page<CatalogEntry> executeFilterSearch(CatalogSearchCriteria criteriaDto, Set<String> activeContextIds, Pageable pageable) {
+        Query query = new Query();
+        List<Criteria> filters = new ArrayList<>();
+
+        // Filter by context if specified
+        if (criteriaDto.contextId() != null) {
+            // Specific context requested - verify it's in active set
+            if (activeContextIds != null && !activeContextIds.contains(criteriaDto.contextId())) {
+                // Requested context is not active - return empty results
+                return new PageImpl<>(List.of(), pageable, 0);
             }
+            filters.add(Criteria.where("contextid").is(criteriaDto.contextId()));
+        } else {
+            // No specific context - filter to active contexts only
+            if (activeContextIds != null && !activeContextIds.isEmpty()) {
+                filters.add(Criteria.where("contextid").in(activeContextIds));
+            }
+        }
+
+        // Filter by metadata fields if specified
+        Optional.ofNullable(criteriaDto.metadata())
+            .ifPresent(metadata -> {
+                for (Map.Entry<String, String> entry : metadata.entrySet()) {
+                    String key = entry.getKey();
+                    String value = entry.getValue();
+                    if (value != null && !value.trim().isEmpty()) {
+                        filters.add(Criteria.where("metadata." + key).is(value));
+                    }
+                }
+            });
+
+        // Filter by field path pattern if specified
+        // Use escaped pattern for literal matching when useRegex is false
+        Optional.ofNullable(criteriaDto.fieldPathContains())
+            .ifPresent(v -> {
+                String pattern = criteriaDto.useRegex() ? v : escapeRegex(v);
+                filters.add(Criteria.where("fieldpath").regex(pattern));
+            });
+
+        if (!filters.isEmpty()) {
+            query.addCriteria(new Criteria().andOperator(filters.toArray(new Criteria[0])));
         }
 
         // Apply sorting by field path by default
@@ -113,77 +210,24 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         return new PageImpl<>(entries, pageable, total);
     }
 
-    @Override
-    public Page<CatalogEntry> searchByCriteria(CatalogSearchCriteria criteriaDto, Set<String> activeContextIds, Pageable pageable) {
-        Query query = new Query();
+    /**
+     * Build a MongoDB sort document from Spring Data Sort.
+     */
+    private Document buildSortDocument(Sort sort) {
+        Document sortDoc = new Document();
+        sort.forEach(order -> sortDoc.append(
+            order.getProperty(),
+            order.isAscending() ? 1 : -1
+        ));
+        return sortDoc;
+    }
 
-        // Check if this is a global search (q parameter)
-        if (criteriaDto.isGlobalSearch()) {
-            // Global search: OR across fieldPath and contextId
-            String searchTerm = criteriaDto.q();
-            List<Criteria> orCriteria = new ArrayList<>();
-
-            // Search in fieldPath (contains) - uses index
-            orCriteria.add(Criteria.where("fieldpath").regex(searchTerm));
-
-            // Search in contextId (contains) - uses index
-            orCriteria.add(Criteria.where("contextid").regex(searchTerm));
-
-            query.addCriteria(new Criteria().orOperator(orCriteria.toArray(new Criteria[0])));
-
-            // For global search, always filter to active contexts only
-            if (activeContextIds != null && !activeContextIds.isEmpty()) {
-                query.addCriteria(Criteria.where("contextid").in(activeContextIds));
-            }
-        } else {
-            // Filter-based search: AND logic
-            List<Criteria> filters = new ArrayList<>();
-
-            // Filter by context if specified
-            if (criteriaDto.contextId() != null) {
-                // Specific context requested - verify it's in active set
-                if (activeContextIds != null && !activeContextIds.contains(criteriaDto.contextId())) {
-                    // Requested context is not active - return empty results
-                    return new PageImpl<>(List.of(), pageable, 0);
-                }
-                filters.add(Criteria.where("contextid").is(criteriaDto.contextId()));
-            } else {
-                // No specific context - filter to active contexts only
-                if (activeContextIds != null && !activeContextIds.isEmpty()) {
-                    filters.add(Criteria.where("contextid").in(activeContextIds));
-                }
-            }
-
-            // Filter by metadata fields if specified
-            Optional.ofNullable(criteriaDto.metadata())
-                .ifPresent(metadata -> {
-                    for (Map.Entry<String, String> entry : metadata.entrySet()) {
-                        String key = entry.getKey();
-                        String value = entry.getValue();
-                        if (value != null && !value.trim().isEmpty()) {
-                            filters.add(Criteria.where("metadata." + key).is(value));
-                        }
-                    }
-                });
-
-            // Filter by field path pattern if specified (no "i" flag needed - data is lowercase)
-            Optional.ofNullable(criteriaDto.fieldPathContains())
-                .ifPresent(v -> filters.add(Criteria.where("fieldpath").regex(v)));
-
-            if (!filters.isEmpty()) {
-                query.addCriteria(new Criteria().andOperator(filters.toArray(new Criteria[0])));
-            }
-        }
-
-        // Apply sorting by field path by default
-        if (pageable.getSort().isUnsorted()) {
-            query.with(Sort.by(Sort.Direction.ASC, "fieldpath"));
-        }
-
-        long total = mongoTemplate.count(query, CatalogEntry.class);
-        List<CatalogEntry> entries = mongoTemplate.find(query.with(pageable), CatalogEntry.class);
-
-        return new PageImpl<>(entries, pageable, total);
+    /**
+     * Escape regex special characters for literal string matching.
+     */
+    private String escapeRegex(String input) {
+        if (input == null) return null;
+        return input.replaceAll("([\\\\\\[\\](){}.*+?^$|])", "\\\\$1");
     }
 
     @Override
