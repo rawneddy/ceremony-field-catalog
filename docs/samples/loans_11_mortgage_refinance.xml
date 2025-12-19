@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100011</LoanNumber>
+    <LoanType>MORTGAGE</LoanType>
+    <LoanSubType>CONVENTIONAL</LoanSubType>
+    <LoanPurpose>RATE_TERM_REFINANCE</LoanPurpose>
+    <Term>360</Term>
+    <Amount>320000.00</Amount>
+    <InterestRate>6.625</InterestRate>
+    <APR>6.78</APR>
+    <OriginationDate>2024-06-15</OriginationDate>
+    <MaturityDate>2054-06-15</MaturityDate>
+    <MonthlyPayment>2049.62</MonthlyPayment>
+    <FirstPaymentDate>2024-08-01</FirstPaymentDate>
+    <LTV>64.00</LTV>
+    <EscrowRequired>true</EscrowRequired>
+  </LoanDetails>
+  <PriorLoan>
+    <LoanNumber>LN-2019-456789</LoanNumber>
+    <OriginalAmount>380000.00</OriginalAmount>
+    <CurrentBalance>325000.00</CurrentBalance>
+    <InterestRate>7.875</InterestRate>
+    <MonthlyPayment>2512.00</MonthlyPayment>
+    <Servicer>Wells Fargo</Servicer>
+    <PayoffAmount>325842.33</PayoffAmount>
+    <PayoffGoodThrough>2024-06-30</PayoffGoodThrough>
+  </PriorLoan>
+  <RefinanceBenefits>
+    <MonthlySavings>462.38</MonthlySavings>
+    <LifetimeSavings>166456.80</LifetimeSavings>
+    <BreakEvenMonths>8</BreakEvenMonths>
+    <RateReduction>1.25</RateReduction>
+  </RefinanceBenefits>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>Patricia</FirstName>
+        <MiddleName>Lynn</MiddleName>
+        <LastName>Vasquez</LastName>
+      </Name>
+      <SSN>666-77-8899</SSN>
+      <DateOfBirth>1972-01-30</DateOfBirth>
+      <Address>
+        <Street1>2345 Sunset Boulevard</Street1>
+        <Street2></Street2>
+        <City>Los Angeles</City>
+        <State>CA</State>
+        <ZipCode>90028</ZipCode>
+        <ResidencyType>OWN</ResidencyType>
+        <YearsAtAddress>5</YearsAtAddress>
+      </Address>
+      <Phone type="mobile">555-666-7788</Phone>
+      <Email>p.vasquez@email.com</Email>
+      <Employment>
+        <Employer>Warner Bros Entertainment</Employer>
+        <Title>Production Manager</Title>
+        <AnnualIncome>145000.00</AnnualIncome>
+        <StartDate>2014-09-01</StartDate>
+      </Employment>
+    </PrimaryBorrower>
+    <CoBorrower xsi:nil="true"/>
+  </Borrower>
+  <Collateral>
+    <Property>
+      <Address>
+        <Street1>2345 Sunset Boulevard</Street1>
+        <Street2></Street2>
+        <City>Los Angeles</City>
+        <State>CA</State>
+        <ZipCode>90028</ZipCode>
+      </Address>
+      <PropertyType>CONDO</PropertyType>
+      <Occupancy>PRIMARY_RESIDENCE</Occupancy>
+      <AppraisedValue>500000.00</AppraisedValue>
+      <OriginalPurchasePrice>425000.00</OriginalPurchasePrice>
+      <OriginalPurchaseDate>2019-03-15</OriginalPurchaseDate>
+      <YearBuilt>2008</YearBuilt>
+      <SquareFootage>1650</SquareFootage>
+      <HOA>
+        <MonthlyDues>450.00</MonthlyDues>
+        <Name>Sunset Towers HOA</Name>
+        <IncludesInsurance>false</IncludesInsurance>
+      </HOA>
+    </Property>
+  </Collateral>
+  <Fees>
+    <Fee type="origination">
+      <Amount>3200.00</Amount>
+      <Description>Loan Origination Fee</Description>
+    </Fee>
+    <Fee type="appraisal">
+      <Amount>600.00</Amount>
+      <Description>Property Appraisal</Description>
+    </Fee>
+    <Fee type="title">
+      <Amount>1400.00</Amount>
+      <Description>Title Insurance (Refinance Rate)</Description>
+    </Fee>
+    <Fee type="recording">
+      <Amount>175.00</Amount>
+      <Description>Recording Fee</Description>
+    </Fee>
+  </Fees>
+  <CashOut>
+    <Amount>0.00</Amount>
+    <Purpose xsi:nil="true"/>
+  </CashOut>
+</loan_info>

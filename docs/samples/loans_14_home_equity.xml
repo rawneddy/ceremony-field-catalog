@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100014</LoanNumber>
+    <LoanType>HOME_EQUITY</LoanType>
+    <LoanSubType>FIXED</LoanSubType>
+    <LoanPurpose>HOME_IMPROVEMENT</LoanPurpose>
+    <Term>180</Term>
+    <Amount>60000.00</Amount>
+    <InterestRate>8.25</InterestRate>
+    <APR>8.45</APR>
+    <OriginationDate>2024-06-10</OriginationDate>
+    <MaturityDate>2039-06-10</MaturityDate>
+    <MonthlyPayment>582.00</MonthlyPayment>
+    <FirstPaymentDate>2024-07-10</FirstPaymentDate>
+    <LienPosition>SECOND</LienPosition>
+    <CLTV>72.50</CLTV>
+  </LoanDetails>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>Gregory</FirstName>
+        <MiddleName>Allen</MiddleName>
+        <LastName>Foster</LastName>
+      </Name>
+      <SSN>111-22-3344</SSN>
+      <DateOfBirth>1970-09-08</DateOfBirth>
+      <Address>
+        <Street1>456 Oakwood Lane</Street1>
+        <Street2></Street2>
+        <City>Nashville</City>
+        <State>TN</State>
+        <ZipCode>37205</ZipCode>
+        <ResidencyType>OWN</ResidencyType>
+        <YearsAtAddress>18</YearsAtAddress>
+      </Address>
+      <Phone type="mobile">555-111-2233</Phone>
+      <Phone type="home">555-444-5566</Phone>
+      <Email>g.foster@email.com</Email>
+      <Employment>
+        <Employer>Vanderbilt University</Employer>
+        <Title>Professor</Title>
+        <AnnualIncome>135000.00</AnnualIncome>
+        <StartDate>2002-08-15</StartDate>
+        <TenureStatus>TENURED</TenureStatus>
+      </Employment>
+    </PrimaryBorrower>
+    <CoBorrower>
+      <Name>
+        <FirstName>Michelle</FirstName>
+        <MiddleName>Anne</MiddleName>
+        <LastName>Foster</LastName>
+      </Name>
+      <SSN>222-33-4455</SSN>
+      <DateOfBirth>1973-04-22</DateOfBirth>
+      <Employment>
+        <Employer>Foster Interior Design</Employer>
+        <Title>Owner</Title>
+        <AnnualIncome>95000.00</AnnualIncome>
+        <EmploymentType>SELF_EMPLOYED</EmploymentType>
+      </Employment>
+    </CoBorrower>
+  </Borrower>
+  <Collateral>
+    <Property>
+      <Address>
+        <Street1>456 Oakwood Lane</Street1>
+        <Street2></Street2>
+        <City>Nashville</City>
+        <State>TN</State>
+        <ZipCode>37205</ZipCode>
+      </Address>
+      <PropertyType>SINGLE_FAMILY</PropertyType>
+      <Occupancy>PRIMARY_RESIDENCE</Occupancy>
+      <AppraisedValue>550000.00</AppraisedValue>
+      <YearBuilt>1995</YearBuilt>
+      <SquareFootage>3200</SquareFootage>
+      <FirstMortgage>
+        <Holder>Chase Bank</Holder>
+        <Balance>278750.00</Balance>
+        <MonthlyPayment>1856.00</MonthlyPayment>
+        <InterestRate>3.25</InterestRate>
+        <MaturityDate>2045-03-01</MaturityDate>
+      </FirstMortgage>
+      <EquityPosition>
+        <MarketValue>550000.00</MarketValue>
+        <FirstMortgageBalance>278750.00</FirstMortgageBalance>
+        <ProposedSecondBalance>60000.00</ProposedSecondBalance>
+        <TotalEncumbrance>338750.00</TotalEncumbrance>
+        <EquityRemaining>211250.00</EquityRemaining>
+      </EquityPosition>
+    </Property>
+  </Collateral>
+  <ProjectDetails>
+    <Description>Kitchen and master bathroom renovation</Description>
+    <EstimatedCost>55000.00</EstimatedCost>
+    <Contractor>
+      <Name>Music City Renovations</Name>
+      <License>TN-GC-78901</License>
+      <Phone>555-777-8899</Phone>
+    </Contractor>
+    <StartDate>2024-07-01</StartDate>
+    <EstimatedCompletion>2024-10-01</EstimatedCompletion>
+    <Permits required="true">
+      <PermitNumber>NSH-2024-4567</PermitNumber>
+      <IssueDate>2024-06-15</IssueDate>
+    </Permits>
+  </ProjectDetails>
+  <Fees>
+    <Fee type="origination">
+      <Amount>0.00</Amount>
+      <Description>No Origination Fee - Promotional</Description>
+    </Fee>
+    <Fee type="appraisal">
+      <Amount>450.00</Amount>
+      <Description>Property Appraisal</Description>
+      <Paid>true</Paid>
+      <PaidDate>2024-06-01</PaidDate>
+    </Fee>
+    <Fee type="title">
+      <Amount>750.00</Amount>
+      <Description>Title Search and Insurance</Description>
+    </Fee>
+  </Fees>
+  <Disbursement>
+    <Method>LUMP_SUM</Method>
+    <Date>2024-06-15</Date>
+    <Account>****7890</Account>
+    <Amount>60000.00</Amount>
+  </Disbursement>
+</loan_info>

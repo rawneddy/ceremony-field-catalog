@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100012</LoanNumber>
+    <LoanType>COMMERCIAL</LoanType>
+    <LoanSubType>SBA_7A</LoanSubType>
+    <LoanPurpose>BUSINESS_ACQUISITION</LoanPurpose>
+    <Term>120</Term>
+    <Amount>350000.00</Amount>
+    <InterestRate>
+      <Type>VARIABLE</Type>
+      <Index>PRIME</Index>
+      <Margin>2.75</Margin>
+      <CurrentRate>11.25</CurrentRate>
+      <AdjustmentPeriod>QUARTERLY</AdjustmentPeriod>
+    </InterestRate>
+    <SBAGuarantee>
+      <Percentage>75.00</Percentage>
+      <GuaranteeAmount>262500.00</GuaranteeAmount>
+      <GuaranteeFee>2.625</GuaranteeFee>
+    </SBAGuarantee>
+    <OriginationDate>2024-06-01</OriginationDate>
+    <MaturityDate>2034-06-01</MaturityDate>
+    <MonthlyPayment>4892.15</MonthlyPayment>
+    <FirstPaymentDate>2024-07-01</FirstPaymentDate>
+  </LoanDetails>
+  <Borrower>
+    <Business>
+      <LegalName>Coastal Coffee Roasters LLC</LegalName>
+      <DBA>Coastal Coffee</DBA>
+      <EIN>12-3456789</EIN>
+      <EntityType>LLC</EntityType>
+      <StateOfFormation>FL</StateOfFormation>
+      <DateEstablished>2024-05-01</DateEstablished>
+      <NAICS>311920</NAICS>
+      <Industry>Coffee Roasting</Industry>
+      <Address>
+        <Street1>500 Harbor Drive</Street1>
+        <Street2>Suite 100</Street2>
+        <City>Fort Lauderdale</City>
+        <State>FL</State>
+        <ZipCode>33301</ZipCode>
+      </Address>
+      <Phone>555-777-8888</Phone>
+      <Email>info@coastalcoffee.com</Email>
+      <AnnualRevenue>0.00</AnnualRevenue>
+      <Employees>0</Employees>
+      <ProjectedRevenue>850000.00</ProjectedRevenue>
+      <ProjectedEmployees>8</ProjectedEmployees>
+    </Business>
+    <Guarantors>
+      <Guarantor ownership="60">
+        <Name>
+          <FirstName>Steven</FirstName>
+          <MiddleName>Paul</MiddleName>
+          <LastName>Romano</LastName>
+        </Name>
+        <SSN>777-88-9900</SSN>
+        <DateOfBirth>1978-06-12</DateOfBirth>
+        <CreditScore>745</CreditScore>
+        <NetWorth>650000.00</NetWorth>
+        <LiquidAssets>125000.00</LiquidAssets>
+        <PersonalGuarantee>UNLIMITED</PersonalGuarantee>
+      </Guarantor>
+      <Guarantor ownership="40">
+        <Name>
+          <FirstName>Linda</FirstName>
+          <MiddleName xsi:nil="true"/>
+          <LastName>Romano</LastName>
+        </Name>
+        <SSN>888-99-0011</SSN>
+        <DateOfBirth>1980-03-25</DateOfBirth>
+        <CreditScore>738</CreditScore>
+        <NetWorth>650000.00</NetWorth>
+        <LiquidAssets>125000.00</LiquidAssets>
+        <PersonalGuarantee>UNLIMITED</PersonalGuarantee>
+      </Guarantor>
+    </Guarantors>
+  </Borrower>
+  <Collateral>
+    <BusinessAssets>
+      <Equipment>
+        <Description>Coffee roasting equipment</Description>
+        <Value>180000.00</Value>
+      </Equipment>
+      <Inventory>
+        <Description>Green coffee beans and packaging</Description>
+        <Value>25000.00</Value>
+      </Inventory>
+      <Goodwill>
+        <Description>Existing customer base and brand</Description>
+        <Value>75000.00</Value>
+      </Goodwill>
+    </BusinessAssets>
+    <RealEstate xsi:nil="true"/>
+    <PersonalAssets>
+      <Description>Personal residence</Description>
+      <Type>REAL_ESTATE</Type>
+      <Address>456 Palm Avenue, Coral Springs, FL 33065</Address>
+      <Value>550000.00</Value>
+      <ExistingLiens>280000.00</ExistingLiens>
+    </PersonalAssets>
+  </Collateral>
+  <UseOfFunds>
+    <Item purpose="ACQUISITION">
+      <Amount>275000.00</Amount>
+      <Description>Purchase of existing coffee roasting business</Description>
+    </Item>
+    <Item purpose="WORKING_CAPITAL">
+      <Amount>50000.00</Amount>
+      <Description>Initial inventory and operating expenses</Description>
+    </Item>
+    <Item purpose="EQUIPMENT">
+      <Amount>25000.00</Amount>
+      <Description>Additional equipment upgrades</Description>
+    </Item>
+  </UseOfFunds>
+  <Fees>
+    <Fee type="origination">
+      <Amount>3500.00</Amount>
+      <Description>Loan Origination Fee</Description>
+    </Fee>
+    <Fee type="sba_guarantee">
+      <Amount>9187.50</Amount>
+      <Description>SBA Guarantee Fee</Description>
+      <Financed>true</Financed>
+    </Fee>
+    <Fee type="packaging">
+      <Amount>2500.00</Amount>
+      <Description>SBA Loan Packaging Fee</Description>
+    </Fee>
+  </Fees>
+  <Covenants>
+    <FinancialCovenant type="DSCR">
+      <Minimum>1.25</Minimum>
+      <Frequency>ANNUAL</Frequency>
+    </FinancialCovenant>
+    <ReportingRequirement>
+      <Type>ANNUAL_FINANCIALS</Type>
+      <DueDate>Within 120 days of fiscal year end</DueDate>
+    </ReportingRequirement>
+  </Covenants>
+</loan_info>

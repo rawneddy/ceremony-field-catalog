@@ -58,8 +58,12 @@ const MetadataInput = ({
           {suggestions.map((suggestion) => (
             <button
               key={suggestion}
+              type="button"
               className="w-full text-left px-3 py-2 text-xs hover:bg-paper transition-colors font-medium border-b border-steel/50 last:border-0"
-              onClick={() => onChange(suggestion)}
+              onClick={() => {
+                onChange(suggestion);
+                setShowSuggestions(false);
+              }}
             >
               {suggestion}
             </button>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100002</LoanNumber>
+    <LoanType>AUTO</LoanType>
+    <LoanSubType>USED</LoanSubType>
+    <Term>36</Term>
+    <Amount>12000.00</Amount>
+    <InterestRate>7.99</InterestRate>
+    <APR>8.25</APR>
+    <OriginationDate>2024-06-10</OriginationDate>
+    <MaturityDate>2027-06-10</MaturityDate>
+    <MonthlyPayment>375.82</MonthlyPayment>
+    <FirstPaymentDate>2024-07-10</FirstPaymentDate>
+  </LoanDetails>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>Rachel</FirstName>
+        <MiddleName>Ann</MiddleName>
+        <LastName>Kim</LastName>
+      </Name>
+      <SSN>222-33-4444</SSN>
+      <DateOfBirth>1988-11-25</DateOfBirth>
+      <Address>
+        <Street1>890 Pine Street</Street1>
+        <Street2>Unit 5</Street2>
+        <City>Seattle</City>
+        <State>WA</State>
+        <ZipCode>98101</ZipCode>
+      </Address>
+      <Phone type="mobile">555-222-3333</Phone>
+      <Phone type="work">555-444-5555</Phone>
+      <Email>rachel.kim@email.com</Email>
+      <Employment>
+        <Employer>Pacific Healthcare</Employer>
+        <Title>Nurse Practitioner</Title>
+        <AnnualIncome>92000.00</AnnualIncome>
+        <StartDate>2016-05-15</StartDate>
+      </Employment>
+    </PrimaryBorrower>
+    <CoBorrower xsi:nil="true"/>
+  </Borrower>
+  <Collateral>
+    <Vehicle>
+      <Make>Subaru</Make>
+      <Model>Outback</Model>
+      <Year>2021</Year>
+      <VIN>4S4BTACC5M3123456</VIN>
+      <EstimatedValue>24000.00</EstimatedValue>
+      <Mileage>35420</Mileage>
+      <Color>Green</Color>
+      <Condition>EXCELLENT</Condition>
+      <PurchaseSource>DEALER</PurchaseSource>
+    </Vehicle>
+  </Collateral>
+  <Fees>
+    <Fee type="origination">
+      <Amount>150.00</Amount>
+      <Description>Loan Origination Fee</Description>
+    </Fee>
+    <Fee type="gap_insurance">
+      <Amount>450.00</Amount>
+      <Description>GAP Insurance Premium</Description>
+      <Financed>true</Financed>
+    </Fee>
+  </Fees>
+  <Insurance>
+    <AutoInsurance>
+      <Provider>GEICO</Provider>
+      <PolicyNumber>AUTO-789456</PolicyNumber>
+      <ExpirationDate>2025-06-10</ExpirationDate>
+    </AutoInsurance>
+  </Insurance>
+</loan_info>

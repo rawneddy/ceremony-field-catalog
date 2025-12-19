@@ -10,7 +10,7 @@ import MetadataFilters from '../components/search/MetadataFilters';
 import { useFieldSearch } from '../hooks/useFieldSearch';
 import { useFacets } from '../hooks/useFacets';
 import { useContexts } from '../hooks/useContexts';
-import { useSuggest } from '../hooks/useSuggest';
+import { useDebounce } from '../hooks/useDebounce';
 import type { CatalogEntry } from '../types';
 
 const DiscoveryPage: React.FC = () => {
@@ -19,31 +19,22 @@ const DiscoveryPage: React.FC = () => {
   const [fieldPath, setFieldPath] = useState('');
   const [isRegex, setIsRegex] = useState(false);
   const [selectedRow, setSelectedRow] = useState<CatalogEntry | null>(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
 
-  // Suggestions in Discovery mode search across all elements (discovery mode)
-  // Only enabled in string mode
-  const suggestions = useSuggest('discovery', fieldPath, contextId || undefined, metadata);
-
-  // State for the actual search being executed
-  const [searchParams, setSearchParams] = useState({
-    contextId: '',
-    metadata: {} as Record<string, string>,
-    fieldPath: '',
-    useRegex: false
-  });
+  // Debounce the text-based search parameters
+  const debouncedFieldPath = useDebounce(fieldPath, 500);
+  const debouncedMetadata = useDebounce(metadata, 500);
 
   const { data: contexts } = useContexts();
   const selectedContext = contexts?.find(c => c.contextId === contextId);
 
+  // Search is ALWAYS enabled for instant results
   const { data, isLoading, error } = useFieldSearch({
-    q: searchParams.fieldPath || undefined,
-    contextId: searchParams.contextId || undefined,
-    metadata: Object.keys(searchParams.metadata).length > 0 ? searchParams.metadata : undefined,
-    useRegex: searchParams.useRegex,
+    q: debouncedFieldPath || undefined,
+    contextId: contextId || undefined,
+    metadata: Object.keys(debouncedMetadata).length > 0 ? debouncedMetadata : undefined,
+    useRegex: isRegex,
     size: 250
-  }, hasSearched);
+  }, true);
 
   const {
     facets,
@@ -53,17 +44,6 @@ const DiscoveryPage: React.FC = () => {
     clearFacet,
     clearAllFacets
   } = useFacets(data?.content);
-
-  const handleSearch = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    setHasSearched(true);
-    setSearchParams({
-      contextId,
-      metadata: { ...metadata }, // Copy metadata object
-      fieldPath,
-      useRegex: isRegex
-    });
-  };
 
   const handleContextChange = (newContextId: string) => {
     setContextId(newContextId);
@@ -77,29 +57,10 @@ const DiscoveryPage: React.FC = () => {
     }));
   };
 
-  const highlightMatch = (text: string) => {
-    if (!fieldPath || fieldPath.length < 1 || isRegex) return text;
-    
-    // Remove leading / for highlight if it's there
-    const cleanQuery = fieldPath.startsWith('/') ? fieldPath.substring(1) : fieldPath;
-    if (!cleanQuery) return text;
-
-    try {
-      const parts = text.split(new RegExp(`(${cleanQuery})`, 'gi'));
-      return parts.map((part, i) => 
-        part.toLowerCase() === cleanQuery.toLowerCase() ? (
-          <mark key={i} className="bg-mint/40 text-ink rounded-sm px-0.5">{part}</mark>
-        ) : part
-      );
-    } catch (e) {
-      return text;
-    }
-  };
-
   return (
     <Layout>
       <div className="bg-paper border-b border-steel p-6 shrink-0">
-        <form onSubmit={handleSearch} className="max-w-6xl mx-auto grid grid-cols-12 gap-6">
+        <form onSubmit={(e) => e.preventDefault()} className="max-w-6xl mx-auto grid grid-cols-12 gap-6">
           <div className="col-span-3">
             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Context Scope</label>
             <ContextSelector 
@@ -118,37 +79,9 @@ const DiscoveryPage: React.FC = () => {
                   type="text"
                   value={fieldPath}
                   onChange={(e) => setFieldPath(e.target.value)}
-                  onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   placeholder="Type anything to discover fields... (e.g. DDA, Fulfillment, /Ceremony)"
                   className="w-full bg-white border border-steel rounded px-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ceremony/20 focus:border-ceremony transition-all font-medium font-mono"
                 />
-
-                {showSuggestions && !isRegex && fieldPath.length > 0 && suggestions.length > 0 && (
-                  <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-steel rounded-md shadow-2xl max-h-64 overflow-y-auto">
-                    {suggestions.map((suggestion) => (
-                      <button
-                        key={suggestion}
-                        type="button"
-                        className="w-full text-left px-4 py-2 text-xs hover:bg-paper transition-colors font-mono border-b border-steel/50 last:border-0"
-                        onClick={() => {
-                          const val = suggestion;
-                          setFieldPath(val);
-                          setShowSuggestions(false);
-                          setHasSearched(true);
-                          setSearchParams({ 
-                            contextId, 
-                            metadata: { ...metadata }, 
-                            fieldPath: val, 
-                            useRegex: isRegex 
-                          });
-                        }}
-                      >
-                        {highlightMatch(suggestion)}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
               <div className="flex items-center bg-white border border-steel rounded px-1">
                 <button
@@ -166,12 +99,6 @@ const DiscoveryPage: React.FC = () => {
                   Regex
                 </button>
               </div>
-              <button
-                type="submit"
-                className="bg-ceremony text-paper px-6 py-2.5 rounded text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-sm"
-              >
-                Discover
-              </button>
             </div>
           </div>
 

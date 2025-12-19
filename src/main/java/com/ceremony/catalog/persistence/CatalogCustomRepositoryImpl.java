@@ -146,9 +146,9 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         List<AggregationOperation> resultPipeline = new ArrayList<>();
         resultPipeline.add(context -> matchStage);
 
-        // Add sorting
+        // Add sorting - default to lastobservedat DESC
         Document sortDoc = pageable.getSort().isUnsorted()
-            ? new Document("fieldpath", 1)
+            ? new Document("lastobservedat", -1)
             : buildSortDocument(pageable.getSort());
         resultPipeline.add(context -> new Document("$sort", sortDoc));
 
@@ -213,9 +213,9 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
             query.addCriteria(new Criteria().andOperator(filters.toArray(new Criteria[0])));
         }
 
-        // Apply sorting by field path by default
+        // Apply sorting by lastobservedat DESC by default
         if (pageable.getSort().isUnsorted()) {
-            query.with(Sort.by(Sort.Direction.ASC, "fieldpath"));
+            query.with(Sort.by(Sort.Direction.DESC, "lastobservedat"));
         }
 
         long total = mongoTemplate.count(query, CatalogEntry.class);
@@ -323,55 +323,60 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
 
     @Override
     public List<String> suggestValues(String field, String prefix, String contextId, Map<String, String> metadata, Set<String> activeContextIds, int limit) {
-        Query query = new Query();
+        // Build match criteria
+        List<Criteria> filters = new ArrayList<>();
 
-        // Add context filter if provided
+        // Add context filter
         if (contextId != null && !contextId.trim().isEmpty()) {
-            // Verify the specified context is active
             if (activeContextIds != null && !activeContextIds.contains(contextId)) {
-                return List.of(); // Context is not active, return empty suggestions
+                return List.of();
             }
-            query.addCriteria(Criteria.where("contextid").is(contextId));
-        } else {
-            // No specific context - filter to active contexts only
-            if (activeContextIds != null && !activeContextIds.isEmpty()) {
-                query.addCriteria(Criteria.where("contextid").in(activeContextIds));
-            }
+            filters.add(Criteria.where("contextid").is(contextId));
+        } else if (activeContextIds != null && !activeContextIds.isEmpty()) {
+            filters.add(Criteria.where("contextid").in(activeContextIds));
         }
 
-        // Add metadata filters if provided
+        // Add metadata filters
         if (metadata != null && !metadata.isEmpty()) {
             for (Map.Entry<String, String> entry : metadata.entrySet()) {
                 String key = entry.getKey();
                 String value = entry.getValue();
                 if (key != null && !key.trim().isEmpty() && value != null && !value.trim().isEmpty()) {
-                    query.addCriteria(Criteria.where("metadata." + key).is(value));
+                    filters.add(Criteria.where("metadata." + key).is(value));
                 }
             }
         }
 
-        // Normalize field name to lowercase for MongoDB query
+        // Add prefix filter
         String normalizedField = field.toLowerCase();
-
-        // Add prefix filter (no "i" flag needed - data and prefix are lowercase)
         if (prefix != null && !prefix.trim().isEmpty()) {
-            // Escape regex special characters in prefix
             String escapedPrefix = prefix.replaceAll("([\\\\\\[\\](){}.*+?^$|])", "\\\\$1");
-            query.addCriteria(Criteria.where(normalizedField).regex("^" + escapedPrefix));
+            filters.add(Criteria.where(normalizedField).regex("^" + escapedPrefix));
         }
 
-        // Project only the field we need
-        query.fields().include(normalizedField);
+        // Use aggregation to group by value and sort by newest first
+        List<AggregationOperation> pipeline = new ArrayList<>();
+        if (!filters.isEmpty()) {
+            pipeline.add(Aggregation.match(new Criteria().andOperator(filters.toArray(new Criteria[0]))));
+        }
+        
+        pipeline.add(Aggregation.project(normalizedField, "lastobservedat"));
+        pipeline.add(Aggregation.group(normalizedField).max("lastobservedat").as("latestSeen"));
+        pipeline.add(Aggregation.sort(Sort.Direction.DESC, "latestSeen"));
+        pipeline.add(Aggregation.limit(limit));
 
-        // Execute query and extract distinct values
-        List<CatalogEntry> results = mongoTemplate.find(query, CatalogEntry.class);
+        AggregationResults<Document> results = mongoTemplate.aggregate(
+            Aggregation.newAggregation(pipeline),
+            "catalog_fields",
+            Document.class
+        );
 
-        return results.stream()
-            .map(entry -> extractFieldValue(entry, normalizedField))
-            .filter(value -> value != null && !value.trim().isEmpty())
-            .distinct()
-            .sorted()
-            .limit(limit)
+        return results.getMappedResults().stream()
+            .map(doc -> {
+                Object id = doc.get("_id");
+                return id != null ? id.toString() : null;
+            })
+            .filter(val -> val != null && !val.trim().isEmpty())
             .collect(Collectors.toList());
     }
 
@@ -427,12 +432,12 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
             matchStage = new Document("$match", discoveryConditions);
         }
 
-        // Aggregation pipeline: Match -> Project fieldPath -> Group (distinct) -> Sort -> Limit
+        // Aggregation pipeline: Match -> Project fieldPath -> Group (distinct) -> Sort by latest seen -> Limit
         List<AggregationOperation> pipeline = new ArrayList<>();
         pipeline.add(context -> matchStage);
-        pipeline.add(Aggregation.project("fieldpath"));
-        pipeline.add(Aggregation.group("fieldpath"));
-        pipeline.add(Aggregation.sort(Sort.Direction.ASC, "_id"));
+        pipeline.add(Aggregation.project("fieldpath", "lastobservedat"));
+        pipeline.add(Aggregation.group("fieldpath").max("lastobservedat").as("latestSeen"));
+        pipeline.add(Aggregation.sort(Sort.Direction.DESC, "latestSeen"));
         pipeline.add(Aggregation.limit(limit));
 
         AggregationResults<Document> results = mongoTemplate.aggregate(

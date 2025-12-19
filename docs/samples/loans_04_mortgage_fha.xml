@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100004</LoanNumber>
+    <LoanType>MORTGAGE</LoanType>
+    <LoanSubType>FHA</LoanSubType>
+    <LoanPurpose>PURCHASE</LoanPurpose>
+    <Term>360</Term>
+    <Amount>285000.00</Amount>
+    <InterestRate>6.50</InterestRate>
+    <APR>7.35</APR>
+    <OriginationDate>2024-06-05</OriginationDate>
+    <MaturityDate>2054-06-05</MaturityDate>
+    <MonthlyPayment>1801.12</MonthlyPayment>
+    <FirstPaymentDate>2024-08-01</FirstPaymentDate>
+    <LTV>96.50</LTV>
+    <EscrowRequired>true</EscrowRequired>
+    <FHACaseNumber>123-4567890</FHACaseNumber>
+  </LoanDetails>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>Maria</FirstName>
+        <MiddleName>Elena</MiddleName>
+        <LastName>Gonzalez</LastName>
+      </Name>
+      <SSN>555-66-7777</SSN>
+      <DateOfBirth>1990-09-14</DateOfBirth>
+      <CitizenshipStatus>PERMANENT_RESIDENT</CitizenshipStatus>
+      <FirstTimeHomeBuyer>true</FirstTimeHomeBuyer>
+      <Address>
+        <Street1>1200 Apartment Complex</Street1>
+        <Street2>Building C, Unit 8</Street2>
+        <City>Phoenix</City>
+        <State>AZ</State>
+        <ZipCode>85004</ZipCode>
+        <ResidencyType>RENT</ResidencyType>
+        <MonthlyRent>1350.00</MonthlyRent>
+      </Address>
+      <Phone type="mobile">555-555-6666</Phone>
+      <Email>m.gonzalez@email.com</Email>
+      <Employment>
+        <Employer>Arizona Medical Center</Employer>
+        <Title>Medical Assistant</Title>
+        <AnnualIncome>48000.00</AnnualIncome>
+        <StartDate>2018-11-01</StartDate>
+      </Employment>
+      <CreditScore>
+        <Score>680</Score>
+        <Bureau>TRANSUNION</Bureau>
+        <Date>2024-05-20</Date>
+      </CreditScore>
+    </PrimaryBorrower>
+    <CoBorrower xsi:nil="true"/>
+  </Borrower>
+  <Collateral>
+    <Property>
+      <Address>
+        <Street1>4521 Desert Rose Lane</Street1>
+        <Street2></Street2>
+        <City>Phoenix</City>
+        <State>AZ</State>
+        <ZipCode>85032</ZipCode>
+      </Address>
+      <PropertyType>CONDO</PropertyType>
+      <Occupancy>PRIMARY_RESIDENCE</Occupancy>
+      <AppraisedValue>295000.00</AppraisedValue>
+      <PurchasePrice>295000.00</PurchasePrice>
+      <YearBuilt>2020</YearBuilt>
+      <SquareFootage>1150</SquareFootage>
+      <Bedrooms>2</Bedrooms>
+      <Bathrooms>2</Bathrooms>
+      <HOA>
+        <MonthlyDues>225.00</MonthlyDues>
+        <Name>Desert Rose HOA</Name>
+      </HOA>
+    </Property>
+  </Collateral>
+  <Fees>
+    <Fee type="origination">
+      <Amount>2850.00</Amount>
+      <Description>Loan Origination Fee</Description>
+    </Fee>
+    <Fee type="appraisal">
+      <Amount>500.00</Amount>
+      <Description>FHA Appraisal</Description>
+    </Fee>
+    <Fee type="upfront_mip">
+      <Amount>4987.50</Amount>
+      <Description>Upfront Mortgage Insurance Premium (1.75%)</Description>
+      <Financed>true</Financed>
+    </Fee>
+  </Fees>
+  <Insurance>
+    <Hazard>
+      <Provider>Liberty Mutual</Provider>
+      <PolicyNumber>HO-345678</PolicyNumber>
+      <AnnualPremium>1450.00</AnnualPremium>
+    </Hazard>
+    <MIP>
+      <AnnualRate>0.55</AnnualRate>
+      <MonthlyAmount>130.63</MonthlyAmount>
+      <Duration>LIFE_OF_LOAN</Duration>
+    </MIP>
+  </Insurance>
+  <DownPayment>
+    <Amount>10325.00</Amount>
+    <Percentage>3.50</Percentage>
+    <Source>SAVINGS</Source>
+    <GiftFunds xsi:nil="true"/>
+  </DownPayment>
+</loan_info>
