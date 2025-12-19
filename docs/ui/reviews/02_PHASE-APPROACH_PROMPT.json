@@ -1,0 +1,115 @@
+{
+  "task": "Propose Implementation Phasing Strategy",
+  "context": {
+    "project": "Ceremony Field Catalog UI",
+    "documents_to_review": [
+      "docs/ui/REQUIREMENTS.md",
+      "docs/ui/IMPLEMENTATION.md"
+    ],
+    "objective": "Propose how YOU would break down the UI implementation into phases. We want a differential analysis comparing your approach to what's currently documented.",
+    "constraints": {
+      "phase_count": "Between 3 and 7 phases",
+      "phase_criteria": "Each phase boundary should be a natural stopping point where the UI has USABLE functionality - even if some features are mocked or hardcoded pending backend integration",
+      "tech_stack": "React 18, TypeScript, Vite, shadcn/ui, Tailwind CSS, React Query, Axios"
+    },
+    "current_approach_summary": {
+      "phase_1": "Project Foundation - Vite setup, dependencies, Tailwind theme, shadcn/ui components",
+      "phase_2": "Core Infrastructure - TypeScript types, API service, Layout/Header, React Router, React Query",
+      "phase_3": "Field Search - Quick Search, Advanced Search, Results Table, Faceted Filtering sidebar, Detail Panel, Export",
+      "phase_4": "Context Management - CRUD for contexts with field counts",
+      "phase_5": "XML Upload - Parser, drag-drop, metadata form, progress tracking",
+      "phase_6": "Autocomplete Integration - Wire up /catalog/suggest endpoint",
+      "phase_7": "Polish & Testing - Error boundaries, empty states, tests, responsive tweaks"
+    },
+    "backend_status": "Fully implemented. All API endpoints exist and are tested: GET/POST/PUT/DELETE contexts, POST observations, GET fields with search/filtering, GET suggest for autocomplete."
+  },
+  "your_task": {
+    "step_1": {
+      "action": "Propose your phasing",
+      "requirements": [
+        "Define 3-7 phases with clear boundaries",
+        "Each phase must end with demonstrable, usable functionality",
+        "Specify what would be 'mocked' vs 'real' at each phase boundary",
+        "Consider dependencies - what must exist before other features can work?"
+      ]
+    },
+    "step_2": {
+      "action": "Justify your approach",
+      "questions_to_answer": [
+        "Why did you group features this way?",
+        "What is the 'minimum viable demo' phase - the earliest point where a stakeholder could see value?",
+        "Which features are 'vertical slices' (end-to-end) vs 'horizontal layers' (infrastructure)?",
+        "How does your phasing minimize rework and throwaway code?"
+      ]
+    },
+    "step_3": {
+      "action": "Compare to current approach",
+      "analysis_points": [
+        "Where does your phasing differ from the documented approach?",
+        "What are the tradeoffs of each approach?",
+        "Are there features in the current phasing that you would move earlier or later? Why?",
+        "Does the current Phase 3 (Field Search) try to do too much in one phase?"
+      ]
+    }
+  },
+  "considerations": {
+    "user_value_milestones": [
+      "When can a user first SEARCH for fields?",
+      "When can a user first SEE field details?",
+      "When can a user first FILTER results?",
+      "When can a user first MANAGE contexts?",
+      "When can a user first UPLOAD XML?"
+    ],
+    "technical_dependencies": [
+      "API client must exist before any data fetching",
+      "Types must exist before components that use them",
+      "Layout/routing must exist before pages",
+      "Search must work before faceted filtering makes sense",
+      "Context list should probably exist before context CRUD forms"
+    ],
+    "mock_opportunities": [
+      "Hardcoded context list before API integration",
+      "Fake search results before real API",
+      "Disabled autocomplete before suggest endpoint wired",
+      "Static facet values before dynamic computation",
+      "File parsing without actual submission"
+    ],
+    "risk_areas": [
+      "Faceted filtering is complex - when should it be tackled?",
+      "XML parser is standalone logic - could it be done in parallel?",
+      "Autocomplete enhances UX but isn't blocking - when to integrate?",
+      "Context management is somewhat independent - earlier or later?"
+    ]
+  },
+  "output_format": {
+    "your_phases": {
+      "format": "For each phase provide: (1) Name, (2) Features included, (3) What's mocked vs real, (4) Demo scenario - what can a user do at this point?",
+      "example": {
+        "phase_name": "Phase 2: Basic Search",
+        "features": [
+          "QuickSearchPage",
+          "FieldTable",
+          "API integration"
+        ],
+        "mocked": [
+          "Faceted filtering disabled",
+          "Export disabled"
+        ],
+        "real": [
+          "Search API calls",
+          "Results display",
+          "Column sorting"
+        ],
+        "demo": "User can type a search term and see matching fields from the real backend"
+      }
+    },
+    "comparison_table": "Provide a side-by-side comparison of your phases vs the documented phases",
+    "recommendation": "Conclude with whether you recommend changes to the current phasing and why"
+  },
+  "reviewer_notes": [
+    "The goal is to have multiple stopping points where we could pause and have something usable",
+    "Earlier phases having real functionality (even if limited) is better than infrastructure-only phases",
+    "Consider what would make a good 'demo checkpoint' for stakeholder review",
+    "The backend is ready - no need to mock API responses unless strategically useful for parallel development"
+  ]
+}
