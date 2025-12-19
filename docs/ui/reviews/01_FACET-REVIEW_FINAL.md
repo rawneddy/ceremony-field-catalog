@@ -336,6 +336,63 @@ Quick Search uses `q=` parameter (contains search across fieldPath + contextId),
 
 ---
 
+### Q6: Tooltip/Help Text for Loaded Results Scope
+
+**Source:** GPT Codex High, GPT XHigh (R4 follow-up)
+
+Facet counts are based on the loaded 250-result maximum, not global database counts. How should this be communicated to users?
+
+**Options:**
+1. Tooltip on facet section header: "Counts reflect loaded results"
+2. Subtle "(of loaded)" suffix on counts
+3. Help icon with explanation text
+
+---
+
+### Q7: Advanced Sidebar UX for Many Keys
+
+**Source:** Gemini Pro, GPT XHigh (R6 follow-up)
+
+With many metadata keys (10+), sidebar needs additional UX:
+- Should active facets be pinned to top?
+- Should there be a "Search facets..." input to filter the key list?
+
+**Suggested Default:** Pin active facets to top. Add search input if > 10 keys.
+
+---
+
+### Q8: Popover Min/Max Width
+
+**Source:** AMP (R8 follow-up)
+
+The plan specifies 300px max height but not width constraints:
+- Min width: 220px (readable at default zoom)?
+- Max width: 350px (don't overflow narrow screens)?
+
+---
+
+### Q9: Export Button Text When Filters Active
+
+**Source:** AMP (Edge Case)
+
+When user has facet filters active, export should only include filtered subset. Should the button indicate this?
+
+**Example:** "Export (8 of 250 results)" vs just "Export"
+
+---
+
+### Q10: Data Model Implication for Match Mode
+
+**Source:** Gemini Flash (validation insight)
+
+The backend `CatalogEntry` uses `Map<String, String>` - each entry has exactly ONE value per metadata key. This means:
+- "Require one" mode = user picks THE value that must match
+- "Include any" mode = user picks multiple values; entry matches if its single value is in the set
+
+This validates the terminology change but should be documented to prevent developer confusion about "AND" semantics.
+
+---
+
 ## Summary of Source Attribution
 
 | Issue | AMP | Gemini Pro | Gemini Flash | GPT Codex | GPT XHigh |

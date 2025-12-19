@@ -41,6 +41,11 @@ Update REQUIREMENTS.md and IMPLEMENTATION.md to address all issues raised in the
 | Facet value sort order | Alphabetical (A-Z) |
 | Property filters location | Move to table column headers for Null?/Empty? only (Min/Max just need sorting) |
 | Export format toggle | Same toggle style as String/Regex |
+| Loaded results scope (Q6) | Tooltip on sidebar header: "Filtering X loaded results" |
+| Many keys UX (Q7) | Pin active facets to top; add search input if > 10 keys |
+| Popover dimensions (Q8) | Min-width: 220px, max-width: 350px, max-height: 300px |
+| Export button text (Q9) | Dynamic: "Export (X of Y)" when filters active, "Export (X)" when not |
+| Data model note (Q10) | Document that metadata is single-valued per key in useFacets section |
 
 ---
 
@@ -98,7 +103,7 @@ Update REQUIREMENTS.md and IMPLEMENTATION.md to address all issues raised in the
    - Update terminology to "Include any" / "Require one"
    - Add mode-switching warning behavior
    - Add Clear button scope clarification
-   - Add popover constraints (300px max height, search input for many values)
+   - Add popover constraints (min-width: 220px, max-width: 350px, max-height: 300px, search input for many values)
    - Add facet sort order (alphabetical)
    - Document contextId as built-in facet
 
@@ -113,6 +118,8 @@ Update REQUIREMENTS.md and IMPLEMENTATION.md to address all issues raised in the
 5. **Export section:**
    - Document column order
    - Document format toggle styling
+   - Export button shows count: "Export (X of Y)" when filters active, "Export (X)" when not
+   - Note: Export includes metadata even though table doesn't show it
 
 6. **Page States section:**
    - Add zero-results behavior: keep facet filters visible
@@ -120,6 +127,9 @@ Update REQUIREMENTS.md and IMPLEMENTATION.md to address all issues raised in the
 7. **Sidebar behavior:**
    - Document manual collapse toggle
    - Add scrollable container requirement
+   - Pin active facets to top
+   - Add "Search facets..." input if > 10 keys
+   - Add header with tooltip: "Filtering X loaded results"
 
 8. **Requirements Traceability:**
    - Fix SearchForm.tsx → should be QuickSearchForm.tsx and AdvancedSearchForm.tsx
@@ -127,7 +137,10 @@ Update REQUIREMENTS.md and IMPLEMENTATION.md to address all issues raised in the
    - Verify all REQ mappings are correct
 
 9. **Core TypeScript Interfaces section:**
-   - Add useFacets hook interface:
+   - Add useFacets hook interface
+   - Document that metadata is single-valued per key (Map<String, String>), so:
+     - "Require one" = entry's value must equal selected value
+     - "Include any" = entry's value must be in selected set
    ```typescript
    interface FacetValue {
      value: string
