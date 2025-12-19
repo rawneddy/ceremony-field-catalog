@@ -118,31 +118,30 @@ The UI provides two distinct search views optimized for different use cases.
 When a result row is selected, the complete layout shows all three panels:
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│  🔍 [Amount_________________________] [String ▼] [Search]              [Advanced Search →]               │
-├──────────────────┬────────────────────────────────────────────────────────────────┬──────────────────────┤
-│                  │                                                                │                      │
-│  METADATA        │  Results (23 of 250)                         [Export (23)]    │  METADATA DETAIL     │
-│  FACETS          │                                                                │                      │
-│  (Filter)        │  ┌─────────────────────┬──────────┬─────┬─────┬──────┬──────┐ │  Field Path:         │
-│                  │  │ Field Path      ↕   │ Context↕ │ Min │ Max │Null?▼│Empty?▼│ │  /ceremony/account/  │
-│  Filtering 23    │  │ [🔍 _____________ ] │ [All  ▼] │     │     │      │      │ │  amt          [📋]   │
-│                  │  ├─────────────────────┼──────────┼─────┼─────┼──────┼──────┤ │                      │
-│  productCode (4) │  │ /ceremony/acct/amt  │ deposits │  1  │  1  │ No   │ No   │ │  Context: deposits   │
-│  action      (2) │  │ /ceremony/cust/id   │ loans    │  0  │  1  │ Yes  │ No   │ │                      │
-│                  │  │►/ceremony/req/type  │ ondemand │  1  │  1  │ No   │ No   │◄│  Metadata:           │
-│  ──────────────  │  └─────────────────────┴──────────┴─────┴─────┴──────┴──────┘ │    productCode: DDA  │
-│                  │                                                                │    action: Fulfillment│
-│  [Clear All]     │                                                                │                      │
-│                  │                                                                │  Statistics:         │
-│                  │                                                                │    Occurs: 1-1       │
-│                  │                                                                │    Null: No          │
-│                  │                                                                │    Empty: No         │
-└──────────────────┴────────────────────────────────────────────────────────────────┴──────────────────────┘
-     ↑                                        ↑                                              ↑
-  LEFT SIDEBAR                             TABLE                                      RIGHT PANEL
-  Metadata FILTER                    Data + Column Filters                         Metadata DETAIL
-  "Filter by metadata"             "Filter by column values"                   "View all metadata"
+┌────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│  🔍 [Amount____________________] [String ▼] [Search]                    [Advanced Search →]        │
+├────────────────┬───────────────────────────────────────────────────────────────┬───────────────────┤
+│                │                                                               │                   │
+│  METADATA      │  Results (23 of 250)                        [Export (23)]    │  METADATA DETAIL  │
+│  FACETS        │                                                               │                   │
+│  (Filter)      │  ┌───────────────────┬──────────┬─────┬─────┬──────┬───────┐ │  Context:         │
+│                │  │ Field Path    ↕   │ Context↕ │Min↕ │Max↕ │Null?↕│Empty?↕│ │  deposits         │
+│  Filtering 23  │  │ [🔍 ___________]  │ [All  ▼] │     │     │  ▼   │  ▼    │ │                   │
+│                │  ├───────────────────┼──────────┼─────┼─────┼──────┼───────┤ │  Metadata:        │
+│  productCode(4)│  │ /ceremony/ac/amt  │ deposits │  1  │  1  │ No   │ No    │ │  productCode: DDA │
+│  action    (2) │  │ /ceremony/cu/id   │ loans    │  0  │  1  │ Yes  │ No    │ │  action: Fulfill  │
+│                │  │►/ceremony/rq/type │ ondemand │  1  │  1  │ No   │ No    │◄│                   │
+│  ────────────  │  └───────────────────┴──────────┴─────┴─────┴──────┴───────┘ │  Statistics:      │
+│                │                                                               │  Occurs: 1-1      │
+│  [Clear All]   │                                                               │  Null: No         │
+│                │                                                               │  Empty: No        │
+│                │                                                               │                   │
+│                │                                                               │                   │
+│                │                                                               │                   │
+└────────────────┴───────────────────────────────────────────────────────────────┴───────────────────┘
+       ↑                                       ↑                                         ↑
+   LEFT SIDEBAR                             TABLE                                   RIGHT PANEL
+   Metadata FILTER                   Data + Column Filters                        Metadata DETAIL
 ```
 
 **Design principle:** Clean separation of concerns:
@@ -164,7 +163,7 @@ Simple global search across field paths and contexts using OR logic.
 │ [≡] METADATA      │  Results (23 of 250)                       [Export (23)]    │
 │ Filtering 23      │                                                              │
 │                   │  ┌─────────────────────────┬───────────┬─────┬─────┬──────┬──────┐
-│ productCode ● 2/4 │  │ Field Path          ↕   │ Context ↕ │ Min │ Max │Null?▼│Empty?▼
+│ productCode ● 2/4 │  │ Field Path          ↕   │ Context ↕ │Min ↕│Max ↕│Null?↕▼│Empty?↕▼
 │ action        (2) │  │ [🔍 _________________ ] │ [All   ▼] │     │     │      │      │
 │                   │  ├─────────────────────────┼───────────┼─────┼─────┼──────┼──────┤
 │ ────────────────  │  │ /ceremony/account/amt   │ deposits  │  1  │  1  │ No   │ No   │
@@ -216,7 +215,7 @@ Filter-based search with AND logic for precise queries. Adds server-side metadat
 │ [≡] METADATA      │  Results (156 of 250)              [Export (156)]            │
 │ Filtering 156     │                                                              │
 │                   │  ┌─────────────────────────┬───────────┬─────┬─────┬──────┬──────┐
-│ productCode ● 1/4 │  │ Field Path          ↕   │ Context ↕ │ Min │ Max │Null?▼│Empty?▼
+│ productCode ● 1/4 │  │ Field Path          ↕   │ Context ↕ │Min ↕│Max ↕│Null?↕▼│Empty?↕▼
 │ action        (2) │  │ [🔍 _________________ ] │ [All   ▼] │     │     │      │      │
 │                   │  ├─────────────────────────┼───────────┼─────┼─────┼──────┼──────┤
 │ ────────────────  │  │ /ceremony/account/amt   │ deposits  │  1  │  1  │ No   │ No   │
@@ -394,7 +393,7 @@ Metadata values are shown in the detail panel only, not in the table. This ensur
 **Column header filters:**
 ```
 ┌─────────────────────────────┬─────────────────┬───────┬───────┬──────────┬──────────┐
-│ Field Path              ↕   │ Context     ↕   │ Min ↕ │ Max ↕ │ Null? ▼  │ Empty? ▼ │
+│ Field Path              ↕   │ Context     ↕   │ Min ↕ │ Max ↕ │ Null? ↕▼ │ Empty? ↕▼│
 │ [🔍 ____________________ ]  │ [All        ▼]  │       │       │ ○ All    │ ○ All    │
 │                             │ ○ All           │       │       │ ○ Yes    │ ○ Yes    │
 │                             │ ○ deposits      │       │       │ ○ No     │ ○ No     │
@@ -409,8 +408,10 @@ Metadata values are shown in the detail panel only, not in the table. This ensur
 | Context | Dropdown (distinct values) | Few values, users can see what's available |
 | Min | Sortable only | Sort ascending to find optional (minOccurs=0) |
 | Max | Sortable only | Sort descending to find repeating (maxOccurs>1) |
-| Null? | Dropdown (All/Yes/No) | Boolean filter |
-| Empty? | Dropdown (All/Yes/No) | Boolean filter |
+| Null? | Dropdown (All/Yes/No) + sortable | Boolean filter, sortable to group Yes/No |
+| Empty? | Dropdown (All/Yes/No) + sortable | Boolean filter, sortable to group Yes/No |
+
+**Note:** All columns are sortable with three-state toggle: ascending → descending → original order.
 
 **Sortable columns:**
 - Click column header → sort ascending
@@ -426,27 +427,28 @@ Metadata values are shown in the detail panel only, not in the table. This ensur
 
 ### Field Detail Panel (Slide-out)
 
+Shows context, all metadata, and statistics for the selected row. Field path is already visible in the selected table row, so it's not repeated here.
+
 ```
-┌─ Field Details ─────────────────────────────────────────────┐
-│ Path: /Ceremony/Account/FeeCode/Amount          [📋 Copy]   │
-│ Context: deposits                                           │
-│                                                             │
-│ Metadata:                                                   │
-│   productCode: DDA                                          │
-│   productSubCode: 4S                                        │
-│   action: Fulfillment                                       │
-│                                                             │
-│ Statistics:                                                 │
-│   Occurrences: 0-5 per document                             │
-│   Allows null: Yes                                          │
-│   Allows empty: No                                          │
-└─────────────────────────────────────────────────────────────┘
+┌─ Field Details ─────────────────────────────────┐
+│ Context: deposits                               │
+│                                                 │
+│ Metadata:                                       │
+│   productCode: DDA                              │
+│   productSubCode: 4S                            │
+│   action: Fulfillment                           │
+│                                                 │
+│ Statistics:                                     │
+│   Occurrences: 0-5 per document                 │
+│   Allows null: Yes                              │
+│   Allows empty: No                              │
+└─────────────────────────────────────────────────┘
 ```
 
 ### Additional Search Page Features
 
 **Copy Field Path:**
-- Copy button on each row (icon) + in detail panel
+- Copy button on each table row (icon)
 - Copies full fieldPath to clipboard
 - Toast notification: "Copied to clipboard"
 
@@ -669,7 +671,7 @@ The "shareable searches" feature (Phase 3, step 11) encodes search parameters in
 15. Build `HighlightText` - utility component to highlight search matches in fieldPath
 16. Add keyboard navigation (↑/↓ arrows to navigate rows)
 17. Add column sorting (click header: asc → desc → original)
-18. Add copy fieldPath button (row icon + detail panel)
+18. Add copy fieldPath button (row icon)
 19. Add export functionality (CSV/JSON, all/filtered)
 20. Wrap results in `FieldResults` with view toggle placeholder (Table active, Tree disabled)
 
@@ -968,7 +970,7 @@ This section maps implementation components to requirements defined in `REQUIREM
 | `TruncationWarning.tsx` | REQ-3.2 (truncation warning banner) |
 | `FieldTable.tsx` | REQ-3.1 (sortable table, column filters), REQ-3.5 (keyboard nav) |
 | `FieldRow.tsx` | REQ-3.1 (display), REQ-3.7 (highlight matches) |
-| `FieldDetailPanel.tsx` | REQ-3.4 (detail panel with copy, shows all metadata) |
+| `FieldDetailPanel.tsx` | REQ-3.4 (detail panel showing context, all metadata, statistics) |
 | `HighlightText.tsx` | REQ-3.7 (highlight matching text) |
 | `ExportButton.tsx` | REQ-3.6 (CSV/JSON export with column order) |
 | `ColumnFilter.tsx` | REQ-3.1 (Null?/Empty? header filter dropdowns) |
