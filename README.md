@@ -55,61 +55,89 @@ winget install Apache.Maven
 | [docs/ui/](docs/ui/) | UI requirements and implementation plan |
 | [tests/CatalogSmokeTests.http](tests/CatalogSmokeTests.http) | REST Client test file for manual API testing |
 
-## Getting Started
+## Full Stack Quick Start
 ---
-### Option A: Docker Compose (Recommended)
 
-Start everything with a single command:
+The Ceremony Field Catalog consists of a **Java/Spring Boot API**, a **MongoDB database**, and a **React/TypeScript UI**.
 
+### 1. Start the Backend (API & MongoDB)
+
+The easiest way to run the backend infrastructure is using Docker Compose.
+
+**First-time start / Rebuild everything:**
+Use this command the first time you run the project or whenever you pull changes to the backend code.
 ```sh
-docker-compose up --build
-```
-
-This starts both:
-- **MongoDB** on port 27017
-- **API** on port 8080
-
-The API will be available at [http://localhost:8080](http://localhost:8080).
-
-Data is persisted in a Docker volume (`mongodb-data`), so it survives restarts.
-
-#### Docker Compose Commands
-
-```sh
-# Start everything
-docker-compose up --build
-
-# Start in background
 docker-compose up -d --build
-
-# Stop everything
-docker-compose down
-
-# Stop and remove data volume
-docker-compose down -v
-
-# View logs
-docker-compose logs -f
-
-# View API logs only
-docker-compose logs -f app
 ```
 
-### Option B: Run Locally with Maven (Development)
-
-For local development with hot-reload:
-
-**1. Start MongoDB via Docker Compose:**
+**Subsequent starts:**
+If you haven't changed the backend code and just want to start the containers.
 ```sh
-docker-compose up mongodb
+docker-compose up -d
 ```
 
-**2. Run the API locally:**
+**Force Rebuild & Restart:**
+If you want to ensure a clean slate and rebuild the API image from source.
 ```sh
-mvn spring-boot:run
+docker-compose down && docker-compose up -d --build
 ```
 
-The API will be available at [http://localhost:8080](http://localhost:8080).
+- **API URL:** [http://localhost:8080](http://localhost:8080)
+- **Swagger UI:** [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+- **MongoDB:** `localhost:27017`
+
+---
+
+### 2. Start the UI (React Dev Server)
+
+The UI is built with Vite and runs locally for the best development experience.
+
+```sh
+# Navigate to the UI directory
+cd ui
+
+# Install dependencies (first time only)
+npm install
+
+# Start the development server
+npm run dev
+```
+
+- **UI URL:** [http://localhost:5173](http://localhost:5173)
+
+---
+
+### 3. Verification
+
+Once everything is running:
+1. Open the **UI** in your browser.
+2. Navigate to the **Context Management** page to verify the API connection.
+3. Use the **Upload** page to ingest sample XMLs from `docs/samples/`.
+
+## Alternative Development Workflows
+---
+### Running API Locally (without Docker)
+
+If you are developing the Java API and want hot-reload/debugger support:
+
+1. **Start ONLY MongoDB via Docker:**
+   ```sh
+   docker-compose up -d mongodb
+   ```
+
+2. **Run the API with Maven:**
+   ```sh
+   mvn spring-boot:run
+   ```
+
+### UI Production Build
+
+To test the production build of the UI:
+```sh
+cd ui
+npm run build
+npm run preview
+```
 
 ## API Endpoints
 ---
