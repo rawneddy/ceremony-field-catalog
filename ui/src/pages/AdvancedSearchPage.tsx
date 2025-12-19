@@ -112,7 +112,7 @@ const AdvancedSearchPage: React.FC = () => {
                         onClick={() => {
                           setFieldPath(suggestion);
                           setShowSuggestions(false);
-                          setSearchParams(prev => ({ ...prev, fieldPath: suggestion, isRegex: false }));
+                          setSearchParams(prev => ({ ...prev, fieldPath: suggestion, isRegex }));
                         }}
                       >
                         {suggestion}

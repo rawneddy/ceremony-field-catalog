@@ -8,7 +8,14 @@ export const useSuggest = (field: string, prefix: string, contextId?: string, me
   const debouncedPrefix = useDebounce(prefix, config.AUTOCOMPLETE_DEBOUNCE_MS);
 
   useEffect(() => {
-    if (!debouncedPrefix || debouncedPrefix.length < 2) {
+    if (!debouncedPrefix) {
+      setSuggestions([]);
+      return;
+    }
+
+    // Trigger immediately for / (start of fieldPath), or after 2 chars for other fields
+    const isPathStart = field === 'fieldPath' && debouncedPrefix === '/';
+    if (debouncedPrefix.length < 2 && !isPathStart) {
       setSuggestions([]);
       return;
     }

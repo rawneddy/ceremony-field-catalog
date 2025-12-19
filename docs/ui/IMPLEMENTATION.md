@@ -179,7 +179,7 @@ Simple global search across field paths and contexts using OR logic.
 
 **String Mode (default):**
 - Without `/` at start: Searches ALL values (contextId, fieldPath, metadata values) using OR logic. No autocomplete suggestions.
-- With `/` at start: Activates fieldPath-only search mode with autocomplete. Shows hint text below input: "Searching field paths only".
+- With `/` at start: Activates fieldPath-only search mode with autocomplete **starting immediately on the first '/' character**. Shows hint text below input: "Searching field paths only".
 - Example: `Amount` matches entries where any value contains "Amount"
 - Example: `/ceremony/account` matches only fieldPath with autocomplete
 
@@ -231,7 +231,7 @@ Filter-based search with AND logic for precise queries. Adds server-side metadat
 - When no context selected: hide metadata filters, show results from all active contexts
 - All server-side filters combine with AND logic
 - FieldPath filter supports string/regex toggle (see REQ-2.11)
-- FieldPath autocomplete when input starts with `/` (scoped to context + metadata if selected)
+- FieldPath autocomplete when input starts with `/` **(starts immediately on first '/')**, scoped to context + metadata if selected
 - Metadata value autocomplete (scoped to selected context)
 - Results table shows: Field Path, Context, Min, Max, Null?, Empty? (no metadata columns)
 - Facet sidebar on left for additional client-side refinement of loaded results

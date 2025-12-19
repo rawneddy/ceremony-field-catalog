@@ -78,7 +78,7 @@ const QuickSearchPage: React.FC = () => {
                         onClick={() => {
                           setQuery(suggestion);
                           setShowSuggestions(false);
-                          setSearchParams({ q: suggestion, isRegex: false });
+                          setSearchParams({ q: suggestion, isRegex });
                         }}
                       >
                         {suggestion}
