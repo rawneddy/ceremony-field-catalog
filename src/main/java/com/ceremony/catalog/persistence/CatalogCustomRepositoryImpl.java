@@ -323,6 +323,9 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
 
     @Override
     public List<String> suggestValues(String field, String prefix, String contextId, Map<String, String> metadata, Set<String> activeContextIds, int limit) {
+        String normalizedField = field.toLowerCase();
+        boolean isFieldPath = "fieldpath".equals(normalizedField);
+
         // Build match criteria
         List<Criteria> filters = new ArrayList<>();
 
@@ -348,21 +351,44 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         }
 
         // Add prefix filter
-        String normalizedField = field.toLowerCase();
         if (prefix != null && !prefix.trim().isEmpty()) {
             String escapedPrefix = prefix.replaceAll("([\\\\\\[\\](){}.*+?^$|])", "\\\\$1");
-            filters.add(Criteria.where(normalizedField).regex("^" + escapedPrefix));
+            // If checking fieldPath, we check for containment anywhere if it doesn't start with /
+            // If it starts with /, we anchor to start (prefix match)
+            if (isFieldPath && !prefix.startsWith("/")) {
+                filters.add(Criteria.where(normalizedField).regex(escapedPrefix));
+            } else {
+                filters.add(Criteria.where(normalizedField).regex("^" + escapedPrefix));
+            }
         }
 
-        // Use aggregation to group by value and sort by newest first
         List<AggregationOperation> pipeline = new ArrayList<>();
         if (!filters.isEmpty()) {
             pipeline.add(Aggregation.match(new Criteria().andOperator(filters.toArray(new Criteria[0]))));
         }
+
+        pipeline.add(Aggregation.project(normalizedField));
         
-        pipeline.add(Aggregation.project(normalizedField, "lastobservedat"));
-        pipeline.add(Aggregation.group(normalizedField).max("lastobservedat").as("latestSeen"));
-        pipeline.add(Aggregation.sort(Sort.Direction.DESC, "latestSeen"));
+        // Group by the value to get distinct results
+        pipeline.add(Aggregation.group(normalizedField));
+
+        // For fieldPath, calculate depth (slash count) for sorting
+        if (isFieldPath) {
+            pipeline.add(Aggregation.project()
+                .and("_id").as("value")
+                .and(context -> new Document("$subtract", Arrays.asList(
+                    new Document("$strLenCP", "$_id"),
+                    new Document("$strLenCP", new Document("$replaceAll", new Document("input", "$_id").append("find", "/").append("replacement", "")))
+                ))).as("depth")
+            );
+            // Sort by depth ASC, then value ASC
+            pipeline.add(Aggregation.sort(Sort.Direction.ASC, "depth"));
+            pipeline.add(Aggregation.sort(Sort.Direction.ASC, "value"));
+        } else {
+            // For metadata, sort by value ASC
+            pipeline.add(Aggregation.sort(Sort.Direction.ASC, "_id"));
+        }
+
         pipeline.add(Aggregation.limit(limit));
 
         AggregationResults<Document> results = mongoTemplate.aggregate(
@@ -373,8 +399,8 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
 
         return results.getMappedResults().stream()
             .map(doc -> {
-                Object id = doc.get("_id");
-                return id != null ? id.toString() : null;
+                Object val = isFieldPath ? doc.get("value") : doc.get("_id");
+                return val != null ? val.toString() : null;
             })
             .filter(val -> val != null && !val.trim().isEmpty())
             .collect(Collectors.toList());
