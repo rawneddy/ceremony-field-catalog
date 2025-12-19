@@ -19,14 +19,22 @@ const AdvancedSearchPage: React.FC = () => {
   const [isRegex, setIsRegex] = useState(false);
   const [selectedRow, setSelectedRow] = useState<CatalogEntry | null>(null);
 
+  // State for the actual search being executed
+  const [searchParams, setSearchParams] = useState({
+    contextId: '',
+    metadata: {} as Record<string, string>,
+    fieldPath: '',
+    isRegex: false
+  });
+
   const { data: contexts } = useContexts();
   const selectedContext = contexts?.find(c => c.contextId === contextId);
 
   const { data, isLoading } = useFieldSearch({
-    contextId: contextId || undefined,
-    fieldPathContains: fieldPath || undefined,
-    metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-    regex: isRegex,
+    contextId: searchParams.contextId || undefined,
+    fieldPathContains: searchParams.fieldPath || undefined,
+    metadata: Object.keys(searchParams.metadata).length > 0 ? searchParams.metadata : undefined,
+    regex: searchParams.isRegex,
     size: 250
   });
 
@@ -38,6 +46,16 @@ const AdvancedSearchPage: React.FC = () => {
     clearFacet,
     clearAllFacets
   } = useFacets(data?.content);
+
+  const handleSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setSearchParams({
+      contextId,
+      metadata,
+      fieldPath,
+      isRegex
+    });
+  };
 
   const handleContextChange = (newContextId: string) => {
     setContextId(newContextId);
@@ -54,7 +72,7 @@ const AdvancedSearchPage: React.FC = () => {
   return (
     <Layout>
       <div className="bg-paper border-b border-steel p-6 shrink-0">
-        <div className="max-w-6xl mx-auto grid grid-cols-12 gap-6">
+        <form onSubmit={handleSearch} className="max-w-6xl mx-auto grid grid-cols-12 gap-6">
           <div className="col-span-3">
             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Context</label>
             <ContextSelector 
@@ -79,12 +97,14 @@ const AdvancedSearchPage: React.FC = () => {
               </div>
               <div className="flex items-center bg-white border border-steel rounded px-1">
                 <button
+                  type="button"
                   onClick={() => setIsRegex(false)}
                   className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${!isRegex ? 'bg-ink text-paper' : 'text-slate-400 hover:text-ink'}`}
                 >
                   String
                 </button>
                 <button
+                  type="button"
                   onClick={() => setIsRegex(true)}
                   className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${isRegex ? 'bg-ink text-paper' : 'text-slate-400 hover:text-ink'}`}
                 >
@@ -92,6 +112,7 @@ const AdvancedSearchPage: React.FC = () => {
                 </button>
               </div>
               <button
+                type="submit"
                 className="bg-ceremony text-paper px-6 py-2.5 rounded text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-sm"
               >
                 Search
@@ -112,7 +133,7 @@ const AdvancedSearchPage: React.FC = () => {
               />
             </div>
           )}
-        </div>
+        </form>
       </div>
 
       <div className="flex-1 flex overflow-hidden">

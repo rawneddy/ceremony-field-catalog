@@ -15,9 +15,15 @@ const QuickSearchPage: React.FC = () => {
   const [isRegex, setIsRegex] = useState(false);
   const [selectedRow, setSelectedRow] = useState<CatalogEntry | null>(null);
 
+  // State for the actual search being executed
+  const [searchParams, setSearchParams] = useState({
+    q: '',
+    isRegex: false
+  });
+
   const { data, isLoading } = useFieldSearch({
-    q: query || undefined,
-    regex: isRegex,
+    q: searchParams.q || undefined,
+    regex: searchParams.isRegex,
     size: 250
   });
 
@@ -32,7 +38,10 @@ const QuickSearchPage: React.FC = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Search is handled by reactive hook, but we could add manual trigger if needed
+    setSearchParams({
+      q: query,
+      isRegex
+    });
   };
 
   const isFieldPathMode = !isRegex && query.startsWith('/');
@@ -119,7 +128,7 @@ const QuickSearchPage: React.FC = () => {
               isLoading={isLoading}
               selectedId={selectedRow?.id}
               onSelectRow={setSelectedRow}
-              query={isFieldPathMode || isRegex ? query : ''}
+              query={query}
             />
           </div>
         </div>
