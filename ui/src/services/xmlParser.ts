@@ -51,7 +51,7 @@ export const parseXmlToObservations = (xmlString: string, metadata: Record<strin
     } else {
       observations.set(fieldPath, {
         fieldPath,
-        metadata,
+        metadata: { ...metadata },
         count: 1,
         hasNull: isNil,
         hasEmpty: isEmpty

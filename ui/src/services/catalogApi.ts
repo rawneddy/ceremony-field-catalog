@@ -58,6 +58,6 @@ export const catalogApi = {
 
   // Observations
   submitObservations: async (contextId: string, observations: CatalogObservation[]): Promise<void> => {
-    await api.post(`/catalog/observations/${contextId}`, observations);
+    await api.post(`/catalog/contexts/${contextId}/observations`, observations);
   },
 };
