@@ -50,8 +50,6 @@ const QuickSearchPage: React.FC = () => {
     });
   };
 
-  const isFieldPathMode = !isRegex && query.startsWith('/');
-
   return (
     <Layout>
       <div className="bg-paper border-b border-steel p-6 shrink-0">
