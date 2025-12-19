@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-005678</LoanNumber>
+    <LoanType>MORTGAGE</LoanType>
+    <Term>360</Term>
+    <Amount>450000.00</Amount>
+    <InterestRate>7.25</InterestRate>
+    <OriginationDate>2024-02-28</OriginationDate>
+    <MaturityDate>2054-02-28</MaturityDate>
+    <LTV>80.00</LTV>
+    <EscrowRequired>true</EscrowRequired>
+  </LoanDetails>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>Sarah</FirstName>
+        <MiddleName>Elizabeth</MiddleName>
+        <LastName>Johnson</LastName>
+      </Name>
+      <SSN>987-65-4321</SSN>
+      <DateOfBirth>1978-11-03</DateOfBirth>
+      <Address>
+        <Street1>456 Oak Avenue</Street1>
+        <Street2>Apt 2B</Street2>
+        <City>Chicago</City>
+        <State>IL</State>
+        <ZipCode>60601</ZipCode>
+      </Address>
+      <Phone type="mobile">555-234-5678</Phone>
+      <Email>sarah.johnson@email.com</Email>
+      <Employment>
+        <Employer>First National Bank</Employer>
+        <Title>Vice President</Title>
+        <AnnualIncome>185000.00</AnnualIncome>
+        <StartDate>2012-03-15</StartDate>
+      </Employment>
+    </PrimaryBorrower>
+    <CoBorrower>
+      <Name>
+        <FirstName>Michael</FirstName>
+        <MiddleName xsi:nil="true"/>
+        <LastName>Johnson</LastName>
+      </Name>
+      <SSN>456-78-9012</SSN>
+      <DateOfBirth>1976-04-18</DateOfBirth>
+      <Employment>
+        <Employer>City Hospital</Employer>
+        <Title>Physician</Title>
+        <AnnualIncome>220000.00</AnnualIncome>
+        <StartDate>2008-07-01</StartDate>
+      </Employment>
+    </CoBorrower>
+  </Borrower>
+  <Collateral>
+    <Property>
+      <Address>
+        <Street1>789 Elm Street</Street1>
+        <Street2></Street2>
+        <City>Evanston</City>
+        <State>IL</State>
+        <ZipCode>60201</ZipCode>
+      </Address>
+      <PropertyType>SINGLE_FAMILY</PropertyType>
+      <AppraisedValue>562500.00</AppraisedValue>
+      <YearBuilt>2015</YearBuilt>
+      <SquareFootage>2850</SquareFootage>
+    </Property>
+  </Collateral>
+  <Fees>
+    <Fee type="origination">
+      <Amount>4500.00</Amount>
+      <Description>Loan Origination Fee</Description>
+    </Fee>
+    <Fee type="appraisal">
+      <Amount>550.00</Amount>
+      <Description>Property Appraisal</Description>
+    </Fee>
+    <Fee type="title">
+      <Amount>1200.00</Amount>
+      <Description>Title Insurance</Description>
+    </Fee>
+    <Fee type="recording">
+      <Amount>125.00</Amount>
+      <Description>Recording Fee</Description>
+    </Fee>
+  </Fees>
+  <Insurance>
+    <Hazard>
+      <Provider>State Farm</Provider>
+      <PolicyNumber>HO-123456</PolicyNumber>
+      <AnnualPremium>2400.00</AnnualPremium>
+    </Hazard>
+    <PMI xsi:nil="true"/>
+  </Insurance>
+</loan_info>

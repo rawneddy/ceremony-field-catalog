@@ -81,7 +81,7 @@ The UI provides two distinct search views optimized for different use cases:
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
-| REQ-2.1 | Global search input | Single search box with placeholder "Search fields or contexts...". Searches across fieldPath and contextId using OR logic. |
+| REQ-2.1 | Global search input | Single search box with placeholder "Search fields or contexts...". Searches across fieldPath and contextId using OR logic. Includes string/regex toggle (see REQ-2.11). |
 | REQ-2.2 | Single query parameter | Uses `?q=` parameter for global search. Example: `/catalog/fields?q=Amount` matches fields where fieldPath OR contextId contains "Amount". |
 | REQ-2.3 | Cross-context results | Results always show context column (contextId). No metadata columns since they vary by context. |
 | REQ-2.4 | Link to Advanced Search | Prominent link/button to switch to Advanced Search view for more precise filtering (including metadata). |
@@ -92,10 +92,11 @@ The UI provides two distinct search views optimized for different use cases:
 |----|-------------|---------------------|
 | REQ-2.5 | Context selector | Single-select dropdown to filter by context. **Only active contexts are shown** (inactive contexts are managed exclusively in Context Management). When no context is selected, search returns results from all active contexts. |
 | REQ-2.6 | Dynamic metadata filtering | When a context is selected, show filter inputs for all required and optional metadata fields defined by that context. Filters combine with AND logic. When no context selected, metadata filters are hidden. |
-| REQ-2.7 | Field path pattern filter | Text input for regex pattern matching on fieldPath. Works with or without context selection. **Note:** Input is treated as regex - characters like `.`, `*`, `+`, `?`, `[`, `]`, `(`, `)` have special meaning. For literal matching, the UI may need to escape these characters. |
-| REQ-2.8 | Scoped fieldPath autocomplete | When user types a path starting with `/`, show autocomplete suggestions. Suggestions scoped to selected context and metadata filters if present. |
+| REQ-2.7 | Field path pattern filter | Text input for fieldPath matching. Includes string/regex toggle (see REQ-2.11). Works with or without context selection. |
+| REQ-2.8 | Scoped fieldPath autocomplete | In **string mode only**: when user types a path starting with `/`, show autocomplete suggestions. Suggestions scoped to selected context and metadata filters if present. Autocomplete is disabled in regex mode. |
 | REQ-2.9 | Metadata value autocomplete | Metadata filter inputs show autocomplete suggestions based on existing values, scoped to selected context. |
 | REQ-2.10 | AND filter logic | All filters combine with AND logic. Example: `contextId=deposits AND productCode=DDA AND fieldPathContains=/Account` |
+| REQ-2.11 | String/Regex toggle | Field path inputs (Quick Search and Advanced Search fieldPath) include a toggle between **String** (default) and **Regex** modes. In String mode: input is treated as literal text, special characters are auto-escaped, autocomplete is enabled. In Regex mode: input is treated as regex pattern, no autocomplete. Toggle only appears on field path inputs, not on context or metadata filters. |
 
 ### REQ-3: Results Display
 

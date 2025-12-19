@@ -81,6 +81,12 @@ public class ContextService {
     public List<Context> getActiveContexts() {
         return repository.findByActiveTrue();
     }
+
+    public Set<String> getActiveContextIds() {
+        return repository.findByActiveTrue().stream()
+            .map(Context::getContextId)
+            .collect(java.util.stream.Collectors.toSet());
+    }
     
     public Optional<Context> getContext(String contextId) {
         return repository.findById(contextId);

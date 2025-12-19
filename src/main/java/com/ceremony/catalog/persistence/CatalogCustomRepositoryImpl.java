@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Repository
@@ -113,6 +114,79 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
     }
 
     @Override
+    public Page<CatalogEntry> searchByCriteria(CatalogSearchCriteria criteriaDto, Set<String> activeContextIds, Pageable pageable) {
+        Query query = new Query();
+
+        // Check if this is a global search (q parameter)
+        if (criteriaDto.isGlobalSearch()) {
+            // Global search: OR across fieldPath and contextId
+            String searchTerm = criteriaDto.q();
+            List<Criteria> orCriteria = new ArrayList<>();
+
+            // Search in fieldPath (contains) - uses index
+            orCriteria.add(Criteria.where("fieldpath").regex(searchTerm));
+
+            // Search in contextId (contains) - uses index
+            orCriteria.add(Criteria.where("contextid").regex(searchTerm));
+
+            query.addCriteria(new Criteria().orOperator(orCriteria.toArray(new Criteria[0])));
+
+            // For global search, always filter to active contexts only
+            if (activeContextIds != null && !activeContextIds.isEmpty()) {
+                query.addCriteria(Criteria.where("contextid").in(activeContextIds));
+            }
+        } else {
+            // Filter-based search: AND logic
+            List<Criteria> filters = new ArrayList<>();
+
+            // Filter by context if specified
+            if (criteriaDto.contextId() != null) {
+                // Specific context requested - verify it's in active set
+                if (activeContextIds != null && !activeContextIds.contains(criteriaDto.contextId())) {
+                    // Requested context is not active - return empty results
+                    return new PageImpl<>(List.of(), pageable, 0);
+                }
+                filters.add(Criteria.where("contextid").is(criteriaDto.contextId()));
+            } else {
+                // No specific context - filter to active contexts only
+                if (activeContextIds != null && !activeContextIds.isEmpty()) {
+                    filters.add(Criteria.where("contextid").in(activeContextIds));
+                }
+            }
+
+            // Filter by metadata fields if specified
+            Optional.ofNullable(criteriaDto.metadata())
+                .ifPresent(metadata -> {
+                    for (Map.Entry<String, String> entry : metadata.entrySet()) {
+                        String key = entry.getKey();
+                        String value = entry.getValue();
+                        if (value != null && !value.trim().isEmpty()) {
+                            filters.add(Criteria.where("metadata." + key).is(value));
+                        }
+                    }
+                });
+
+            // Filter by field path pattern if specified (no "i" flag needed - data is lowercase)
+            Optional.ofNullable(criteriaDto.fieldPathContains())
+                .ifPresent(v -> filters.add(Criteria.where("fieldpath").regex(v)));
+
+            if (!filters.isEmpty()) {
+                query.addCriteria(new Criteria().andOperator(filters.toArray(new Criteria[0])));
+            }
+        }
+
+        // Apply sorting by field path by default
+        if (pageable.getSort().isUnsorted()) {
+            query.with(Sort.by(Sort.Direction.ASC, "fieldpath"));
+        }
+
+        long total = mongoTemplate.count(query, CatalogEntry.class);
+        List<CatalogEntry> entries = mongoTemplate.find(query.with(pageable), CatalogEntry.class);
+
+        return new PageImpl<>(entries, pageable, total);
+    }
+
+    @Override
     public List<String> findFieldPathsByContextAndMetadata(String contextId, Map<String, String> metadata) {
         Query query = new Query();
 
@@ -151,6 +225,60 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         // Add context filter if provided
         if (contextId != null && !contextId.trim().isEmpty()) {
             query.addCriteria(Criteria.where("contextid").is(contextId));
+        }
+
+        // Add metadata filters if provided
+        if (metadata != null && !metadata.isEmpty()) {
+            for (Map.Entry<String, String> entry : metadata.entrySet()) {
+                String key = entry.getKey();
+                String value = entry.getValue();
+                if (key != null && !key.trim().isEmpty() && value != null && !value.trim().isEmpty()) {
+                    query.addCriteria(Criteria.where("metadata." + key).is(value));
+                }
+            }
+        }
+
+        // Normalize field name to lowercase for MongoDB query
+        String normalizedField = field.toLowerCase();
+
+        // Add prefix filter (no "i" flag needed - data and prefix are lowercase)
+        if (prefix != null && !prefix.trim().isEmpty()) {
+            // Escape regex special characters in prefix
+            String escapedPrefix = prefix.replaceAll("([\\\\\\[\\](){}.*+?^$|])", "\\\\$1");
+            query.addCriteria(Criteria.where(normalizedField).regex("^" + escapedPrefix));
+        }
+
+        // Project only the field we need
+        query.fields().include(normalizedField);
+
+        // Execute query and extract distinct values
+        List<CatalogEntry> results = mongoTemplate.find(query, CatalogEntry.class);
+
+        return results.stream()
+            .map(entry -> extractFieldValue(entry, normalizedField))
+            .filter(value -> value != null && !value.trim().isEmpty())
+            .distinct()
+            .sorted()
+            .limit(limit)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> suggestValues(String field, String prefix, String contextId, Map<String, String> metadata, Set<String> activeContextIds, int limit) {
+        Query query = new Query();
+
+        // Add context filter if provided
+        if (contextId != null && !contextId.trim().isEmpty()) {
+            // Verify the specified context is active
+            if (activeContextIds != null && !activeContextIds.contains(contextId)) {
+                return List.of(); // Context is not active, return empty suggestions
+            }
+            query.addCriteria(Criteria.where("contextid").is(contextId));
+        } else {
+            // No specific context - filter to active contexts only
+            if (activeContextIds != null && !activeContextIds.isEmpty()) {
+                query.addCriteria(Criteria.where("contextid").in(activeContextIds));
+            }
         }
 
         // Add metadata filters if provided

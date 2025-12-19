@@ -40,7 +40,7 @@ ui/
 │   │   │   ├── AdvancedSearchForm.tsx # Context selector + metadata filters
 │   │   │   ├── ContextSelector.tsx    # Single-select context dropdown
 │   │   │   ├── MetadataFilters.tsx   # Dynamic filters with autocomplete
-│   │   │   ├── FieldPathInput.tsx    # Input with autocomplete (when starts with /)
+│   │   │   ├── FieldPathInput.tsx    # Input with string/regex toggle and autocomplete
 │   │   │   ├── ResultsFilter.tsx     # Client-side filter (path, metadata, context)
 │   │   │   ├── TruncationWarning.tsx # Warning banner when results exceed max
 │   │   │   ├── FieldResults.tsx      # Wrapper with view toggle (Table/Tree)
@@ -191,6 +191,24 @@ Results (156 matches):
 - Arrow keys (↑/↓) navigate between rows instantly
 - Selected row stays highlighted, detail panel updates
 
+### Server-Side vs Client-Side Filtering
+
+The search system has two filtering layers with distinct purposes:
+
+| Filter | Location | Rationale |
+|--------|----------|-----------|
+| Context (single-select) | Server-side (search form) | Determines which metadata fields to show, reduces data volume significantly |
+| Metadata values | Server-side (search form) | Uses indexes, reduces data volume |
+| FieldPath pattern (string/regex) | Server-side (search form) | Uses indexes, can match millions of records |
+| Text filter on path | Client-side (results) | Instant refinement of loaded results |
+| Text filter on metadata | Client-side (results) | Instant refinement of loaded results |
+| Context multi-select | Client-side (results) | Only useful in cross-context mode, toggles visibility of results by context |
+| has-null, has-empty, optional, repeating | Client-side (results) | Property filters, work on loaded data |
+
+**Key distinction:**
+- **Server-side**: Changes the API request, uses database indexes, affects what data is fetched
+- **Client-side**: No API call, instant show/hide of already-loaded rows
+
 **Client-Side Filtering (instant, no API calls):**
 ```
 ┌─ Refine Results ────────────────────────────────────────────┐
@@ -281,6 +299,22 @@ Results (showing 1 of 40):                        ↓ click header to sort
 - Architecture allows swapping between `FieldTable` and `FieldTree` renderers
 - Tree view would show hierarchical path structure (future enhancement)
 
+### Page States (REQ-5.3)
+
+Each page should handle these states:
+
+| State | When | UX Pattern |
+|-------|------|------------|
+| **Loading** | API request in progress | Loading indicator (spinner, skeleton, or similar) |
+| **Empty** | No results / no data | Friendly message with guidance (e.g., "No fields found. Try a different search.") |
+| **Error** | API failure | Error message with option to retry |
+| **Success** | Data loaded successfully | Display the content |
+
+Apply these patterns per page:
+- **Search pages**: Loading during search, empty when no results match, error if API fails
+- **Context list**: Loading on initial fetch, empty if no contexts exist, error if API fails
+- **Upload page**: Loading during parse/submit, error if submission fails, success summary on completion
+
 ---
 
 ## Context Page Design
@@ -340,6 +374,36 @@ Inactive contexts are **only visible in the Context Management view**. They do n
 
 This prevents users from attempting to search or upload to contexts that are no longer active. To reactivate a context, use the Context Management view.
 
+### String/Regex Toggle (REQ-2.11)
+
+Field path inputs include a toggle between **String** (default) and **Regex** modes:
+
+```
+┌─ Field Path ──────────────────────────────────────────────┐
+│ [/ceremony/account_______________] [String ▼]             │
+│                                    └── or [Regex]         │
+└───────────────────────────────────────────────────────────┘
+```
+
+**String Mode (default):**
+- Input treated as literal text
+- Special regex characters (`. * + ? [ ] ( )`) are auto-escaped before sending to API
+- Autocomplete enabled when input starts with `/`
+- Use for: "Find fields containing `/account/balance`"
+
+**Regex Mode:**
+- Input treated as regex pattern
+- Special characters have regex meaning
+- Autocomplete disabled (patterns can match anything)
+- Use for: "Find fields matching `/account/.*/amount`"
+
+**Implementation:**
+- `FieldPathInput` component manages toggle state
+- In string mode, escape input before API call: `input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')`
+- Toggle state can be encoded in URL as `regex=true` for shareable links
+- Only applies to Quick Search input and Advanced Search fieldPath input
+- Context and metadata filters always use literal matching (no toggle)
+
 ---
 
 ## Implementation Notes
@@ -361,6 +425,7 @@ The "shareable searches" feature (Phase 3, step 11) encodes search parameters in
 **Parameters encoded in URL:**
 - `contextId` - selected context
 - `fieldPathContains` - search pattern
+- `regex` - true if regex mode enabled (omit for string mode)
 - Metadata filter values (e.g., `productCode=dda`)
 
 **Parameters NOT encoded in URL:**
@@ -404,7 +469,7 @@ The "shareable searches" feature (Phase 3, step 11) encodes search parameters in
 6. Build `AdvancedSearchForm` container component
 7. Build `ContextSelector` - single-select dropdown with active contexts only (no selection = all active contexts)
 8. Build `MetadataFilters` - dynamic inputs based on selected context with autocomplete
-9. Build `FieldPathInput` - input with autocomplete when starts with `/`
+9. Build `FieldPathInput` - input with string/regex toggle (see below) and autocomplete in string mode
 10. Integrate with `useFieldSearch` hook using AND-based filter parameters
 
 **Shared Components:**
@@ -670,6 +735,7 @@ This section maps implementation components to requirements defined in `REQUIREM
 | `SearchForm.tsx` | REQ-2.1 (context search), REQ-2.4 (cross-context) |
 | `ContextSelector.tsx` | REQ-2.1 (context dropdown) |
 | `MetadataFilters.tsx` | REQ-2.2 (dynamic metadata), REQ-2.6 (autocomplete) |
+| `FieldPathInput.tsx` | REQ-2.7 (field path filter), REQ-2.8 (autocomplete), REQ-2.11 (string/regex toggle) |
 | `QuickFindInput.tsx` | REQ-2.3 (path search), REQ-2.5 (autocomplete) |
 | **Results Components** | |
 | `TruncationWarning.tsx` | REQ-3.2 (truncation warning banner) |
@@ -758,3 +824,109 @@ This section documents the resolution of blocking and non-blocking issues identi
 | Export large result sets? | **Client-side only** - exports only what's loaded (up to `MAX_RESULTS_PER_PAGE`). No server-side bulk export. |
 | Keyboard navigation scope? | **Both** - arrow keys work in results table AND autocomplete dropdowns. Enter selects suggestion. |
 | Detail panel animation timing? | **100ms** - instant feel, no perceptible delay. Defined in `config.ts`. |
+
+---
+
+## Appendix: XML Explorer Enhancement (Future Consideration)
+
+This appendix describes a potential enhancement to the Upload page that would transform it from a simple submission form into an **XML Explorer + Optional Catalog Submission** tool.
+
+### The Insight
+
+Users upload XML files for two distinct reasons:
+
+1. **Exploration**: "What fields are in this XML?" - Developer debugging a production file, analyst understanding document structure
+2. **Contribution**: "Add these observations to the catalog" - QA tester feeding real-world data into the system
+
+The current design only addresses #2. This enhancement addresses both.
+
+### Proposed Flow
+
+```
+┌─ Upload ─────────────────────────────────────────────────────┐
+│                                                              │
+│  PHASE 1: EXPLORE (no server interaction)                    │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │        Drag XML files here to explore                │    │
+│  │              their field structure                   │    │
+│  └──────────────────────────────────────────────────────┘    │
+│                                                              │
+│                    ↓ (parse client-side)                     │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │ 156 fields found across 3 files           [Export ▼] │    │
+│  ├──────────────────────────────────────────────────────┤    │
+│  │ fieldPath              │ Count │ Null? │ Empty?      │    │
+│  │ /Ceremony/Account/...  │   3   │  No   │  No         │    │
+│  │ /Ceremony/Customer/... │   1   │  Yes  │  No         │    │
+│  │ ... (same results view as Search page)               │    │
+│  └──────────────────────────────────────────────────────┘    │
+│                                                              │
+│  PHASE 2: SUBMIT TO CATALOG (optional)                       │
+│  ┌──────────────────────────────────────────────────────┐    │
+│  │ Add these observations to the catalog?               │    │
+│  │                                                       │    │
+│  │ Context: [deposits ▼]                                │    │
+│  │ productCode: [DDA____]  action: [FULFILLMENT_]       │    │
+│  │                                                       │    │
+│  │                              [Submit to Catalog]      │    │
+│  └──────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Key Benefits
+
+| Benefit | Description |
+|---------|-------------|
+| **Immediate value** | User sees field structure without any server interaction |
+| **"What's in this file?"** | Answers the question directly, no catalog pollution |
+| **Preview before commit** | Verify observations look correct before submitting |
+| **Reuses existing components** | Same `FieldTable`, `FieldDetailPanel`, `ResultsFilter` as Search page |
+
+### Implementation Considerations
+
+**Phase 1 (Explore):**
+- `xmlParser.ts` already produces observations client-side
+- Display observations using existing results components
+- No API calls needed - pure client-side exploration
+- Export to CSV/JSON works on parsed data (no submission required)
+
+**Phase 2 (Submit):**
+- Only shown after files are parsed
+- Context + metadata selection (same as current design)
+- Submits the already-parsed observations to API
+- Shows success/error feedback
+
+**Component reuse:**
+- `FieldTable` / `FieldRow` / `FieldDetailPanel` - identical to Search page
+- `ResultsFilter` - client-side filtering of parsed fields
+- New: `ParsedFieldsView` wrapper that displays observations before submission
+
+### Future Vision: Document Provenance
+
+A natural extension of this feature is **tracking which documents contributed to each catalog entry**.
+
+**The idea:**
+- Store original XML documents in blob storage (S3, Azure Blob)
+- Link each observation to its source document ID
+- Enable: "Click a field → see documents containing this field → download example"
+
+**Current architecture compatibility:**
+
+| Aspect | Current State | Future-Ready? |
+|--------|---------------|---------------|
+| Field identity (FieldKey) | Stable hash of contextId + requiredMetadata + fieldPath | ✅ Yes - can add source tracking without changing identity |
+| Observation merge | Multiple uploads update same entry's statistics | ⚠️ Would need separate `ObservationSources` collection to track document origins |
+| Backend storage | MongoDB only | ✅ Can add blob storage integration (Spring Boot supports S3/Azure easily) |
+| API contracts | No document reference fields | ✅ Can extend response DTOs without breaking existing clients |
+
+**No major architectural blockers.** The key requirements for future compatibility:
+1. Keep FieldKey stable (already done)
+2. Don't assume observations are untraceable
+3. Consider adding `uploadBatchId` to observations for grouping (optional, would help track which files were uploaded together)
+
+### Decision
+
+**For Phase 1 (POC):** Keep current upload design (direct submission).
+
+**For future consideration:** This enhancement could be added as a Phase 7+ feature or as a standalone improvement. The architecture supports it without breaking changes.

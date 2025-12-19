@@ -189,7 +189,9 @@ public class CatalogService {
     public Page<CatalogEntry> find(CatalogSearchCriteria criteria, Pageable pageable) {
         // Sanitize search criteria
         CatalogSearchCriteria sanitizedCriteria = sanitizeSearchCriteria(criteria);
-        return repository.searchByCriteria(sanitizedCriteria, pageable);
+        // Get active context IDs to filter results - inactive contexts are invisible to searches
+        Set<String> activeContextIds = contextService.getActiveContextIds();
+        return repository.searchByCriteria(sanitizedCriteria, activeContextIds, pageable);
     }
 
     public List<String> suggestValues(String field, String prefix, String contextId, Map<String, String> metadata, int limit) {
@@ -217,7 +219,10 @@ public class CatalogService {
         // Ensure limit is reasonable
         int safeLimit = Math.max(1, Math.min(limit, 100));
 
-        return repository.suggestValues(normalizedField, cleanedPrefix, cleanedContextId, cleanedMetadata, safeLimit);
+        // Get active context IDs - suggestions only come from active contexts
+        Set<String> activeContextIds = contextService.getActiveContextIds();
+
+        return repository.suggestValues(normalizedField, cleanedPrefix, cleanedContextId, cleanedMetadata, activeContextIds, safeLimit);
     }
 
     public long countFieldsByContextId(String contextId) {

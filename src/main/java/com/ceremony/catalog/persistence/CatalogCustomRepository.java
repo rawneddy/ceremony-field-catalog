@@ -6,10 +6,23 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface CatalogCustomRepository {
     List<CatalogEntry> searchByCriteria(CatalogSearchCriteria criteria);
     Page<CatalogEntry> searchByCriteria(CatalogSearchCriteria criteria, Pageable pageable);
+
+    /**
+     * Search with active context filtering.
+     * When no specific contextId is in criteria, results are filtered to only include
+     * entries from active contexts.
+     *
+     * @param criteria search criteria
+     * @param activeContextIds set of active context IDs to filter by
+     * @param pageable pagination parameters
+     * @return page of matching entries from active contexts only
+     */
+    Page<CatalogEntry> searchByCriteria(CatalogSearchCriteria criteria, Set<String> activeContextIds, Pageable pageable);
 
     /**
      * Optimized query to find field paths by context and metadata.
@@ -33,6 +46,21 @@ public interface CatalogCustomRepository {
      * @return list of distinct values matching the prefix
      */
     List<String> suggestValues(String field, String prefix, String contextId, Map<String, String> metadata, int limit);
+
+    /**
+     * Suggest values with active context filtering.
+     * When no specific contextId is provided, suggestions are filtered to only include
+     * values from active contexts.
+     *
+     * @param field the field to suggest for ("fieldPath" or "metadata.{name}")
+     * @param prefix the prefix to match (case-insensitive)
+     * @param contextId optional context to scope the search
+     * @param metadata optional metadata filters to scope the search
+     * @param activeContextIds set of active context IDs to filter by
+     * @param limit maximum number of suggestions to return
+     * @return list of distinct values matching the prefix from active contexts only
+     */
+    List<String> suggestValues(String field, String prefix, String contextId, Map<String, String> metadata, Set<String> activeContextIds, int limit);
 
     /**
      * Count total fields by context ID.
