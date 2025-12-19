@@ -34,7 +34,7 @@ const DiscoveryPage: React.FC = () => {
     metadata: Object.keys(debouncedMetadata).length > 0 ? debouncedMetadata : undefined,
     useRegex: isRegex,
     size: 250
-  }, true);
+  }, true, 'discovery');
 
   const {
     facets,
@@ -44,6 +44,12 @@ const DiscoveryPage: React.FC = () => {
     clearFacet,
     clearAllFacets
   } = useFacets(data?.content);
+
+  const handleSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    // In Discovery, search is reactive, but we can manually trigger if needed
+    // by clearing the debounce or similar. For now, the button just confirms.
+  };
 
   const handleContextChange = (newContextId: string) => {
     setContextId(newContextId);
@@ -60,7 +66,7 @@ const DiscoveryPage: React.FC = () => {
   return (
     <Layout>
       <div className="bg-paper border-b border-steel p-6 shrink-0">
-        <form onSubmit={(e) => e.preventDefault()} className="max-w-6xl mx-auto grid grid-cols-12 gap-6">
+        <form onSubmit={handleSearch} className="max-w-6xl mx-auto grid grid-cols-12 gap-6">
           <div className="col-span-3">
             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Context Scope</label>
             <ContextSelector 

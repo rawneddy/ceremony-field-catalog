@@ -31,7 +31,7 @@ const FieldSearchPage: React.FC = () => {
     q: searchParams.q || undefined,
     useRegex: searchParams.useRegex,
     size: 250
-  }, hasSearched);
+  }, hasSearched, 'search');
 
   const {
     facets,
@@ -130,42 +130,56 @@ const FieldSearchPage: React.FC = () => {
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        <FacetSidebar
-          facets={facets}
-          onToggleValue={toggleFacetValue}
-          onSetMode={setFacetMode}
-          onClearFacet={clearFacet}
-          onClearAll={clearAllFacets}
-          resultCount={filteredResults.length}
-        />
+        {!hasSearched ? (
+          <div className="flex-1 flex flex-col items-center justify-center bg-white text-center p-12">
+            <div className="w-20 h-20 bg-paper rounded-full flex items-center justify-center mb-6">
+              <Search className="w-10 h-10 text-slate-300" />
+            </div>
+            <h2 className="text-2xl font-black text-ink uppercase tracking-tight mb-2">Field Search</h2>
+            <p className="text-slate-500 max-w-md mx-auto font-medium">
+              Enter an XPath or search term above to explore specific field patterns across the catalog.
+            </p>
+          </div>
+        ) : (
+          <>
+            <FacetSidebar
+              facets={facets}
+              onToggleValue={toggleFacetValue}
+              onSetMode={setFacetMode}
+              onClearFacet={clearFacet}
+              onClearAll={clearAllFacets}
+              resultCount={filteredResults.length}
+            />
 
-        <div className="flex-1 flex flex-col overflow-hidden bg-white">
-          {error && (
-            <div className="m-6 p-4 bg-red-50 border border-red-200 rounded-md text-red-700 flex items-center gap-3">
-              <div className="bg-red-100 p-1.5 rounded-full">
-                <Search className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-sm font-black uppercase tracking-tight">Search Failed</div>
-                <div className="text-xs">{(error as any).response?.data?.message || error.message}</div>
+            <div className="flex-1 flex flex-col overflow-hidden bg-white">
+              {error && (
+                <div className="m-6 p-4 bg-red-50 border border-red-200 rounded-md text-red-700 flex items-center gap-3">
+                  <div className="bg-red-100 p-1.5 rounded-full">
+                    <Search className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-black uppercase tracking-tight">Search Failed</div>
+                    <div className="text-xs">{(error as any).response?.data?.message || error.message}</div>
+                  </div>
+                </div>
+              )}
+
+              {data && data.totalElements > data.size && (
+                <TruncationWarning total={data.totalElements} displayed={data.size} />
+              )}
+
+              <div className="flex-1 overflow-auto">
+                <FieldTable
+                  results={filteredResults}
+                  isLoading={isLoading}
+                  selectedId={selectedRow?.id}
+                  onSelectRow={setSelectedRow}
+                  query={query}
+                />
               </div>
             </div>
-          )}
-
-          {data && data.totalElements > data.size && (
-            <TruncationWarning total={data.totalElements} displayed={data.size} />
-          )}
-
-          <div className="flex-1 overflow-auto">
-            <FieldTable
-              results={filteredResults}
-              isLoading={isLoading}
-              selectedId={selectedRow?.id}
-              onSelectRow={setSelectedRow}
-              query={query}
-            />
-          </div>
-        </div>
+          </>
+        )}
 
         {selectedRow && (
           <FieldDetailPanel
