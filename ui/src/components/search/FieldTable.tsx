@@ -48,6 +48,33 @@ const FieldTable: React.FC<FieldTableProps> = ({
     });
   }, [results, sortField, sortOrder]);
 
+  // Keyboard navigation
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (sortedResults.length === 0) return;
+      
+      // Don't navigate if user is typing in an input
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) {
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const currentIndex = sortedResults.findIndex(r => r.id === selectedId);
+        const nextIndex = currentIndex === -1 ? 0 : Math.min(currentIndex + 1, sortedResults.length - 1);
+        onSelectRow(sortedResults[nextIndex]);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const currentIndex = sortedResults.findIndex(r => r.id === selectedId);
+        const prevIndex = currentIndex === -1 ? 0 : Math.max(currentIndex - 1, 0);
+        onSelectRow(sortedResults[prevIndex]);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [sortedResults, selectedId, onSelectRow]);
+
   const handleSort = (field: keyof CatalogEntry) => {
     if (sortField === field) {
       if (sortOrder === 'asc') setSortOrder('desc');
@@ -168,6 +195,24 @@ const FieldTable: React.FC<FieldTableProps> = ({
               <SortIcon active={sortField === 'allowsEmpty'} order={sortOrder} />
             </div>
           </th>
+          <th 
+            className="w-40 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group text-center"
+            onClick={() => handleSort('firstObservedAt')}
+          >
+            <div className="flex items-center justify-center gap-2">
+              First Seen
+              <SortIcon active={sortField === 'firstObservedAt'} order={sortOrder} />
+            </div>
+          </th>
+          <th 
+            className="w-40 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group text-center"
+            onClick={() => handleSort('lastObservedAt')}
+          >
+            <div className="flex items-center justify-center gap-2">
+              Last Seen
+              <SortIcon active={sortField === 'lastObservedAt'} order={sortOrder} />
+            </div>
+          </th>
         </tr>
       </thead>
       <tbody className="divide-y divide-steel/50">
@@ -204,11 +249,30 @@ const FieldTable: React.FC<FieldTableProps> = ({
             <td className="px-4 py-3 text-center">
               <BooleanBadge value={entry.allowsEmpty} />
             </td>
+            <td className="px-4 py-3 text-center text-[10px] font-bold text-slate-500 font-mono">
+              {formatDate(entry.firstObservedAt)}
+            </td>
+            <td className="px-4 py-3 text-center text-[10px] font-bold text-slate-500 font-mono">
+              {formatDate(entry.lastObservedAt)}
+            </td>
           </tr>
         ))}
       </tbody>
     </table>
   );
+};
+
+const formatDate = (dateString: string) => {
+  if (!dateString) return '-';
+  const date = new Date(dateString);
+  return date.toLocaleString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
 };
 
 const SortIcon = ({ active, order }: { active: boolean; order: 'asc' | 'desc' | null }) => {

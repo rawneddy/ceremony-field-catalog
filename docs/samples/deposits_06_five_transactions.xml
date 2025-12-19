@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-000006</TransactionId>
+    <Timestamp>2024-06-06T16:00:00Z</Timestamp>
+    <Channel>ONLINE</Channel>
+    <Action>FULFILLMENT</Action>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-100006</CustomerId>
+    <Name>
+      <FirstName>Lisa</FirstName>
+      <MiddleName>Marie</MiddleName>
+      <LastName>Taylor</LastName>
+    </Name>
+    <SSN>678-90-1234</SSN>
+    <DateOfBirth>1983-12-20</DateOfBirth>
+  </Customer>
+  <Accounts>
+    <Account productCode="DDA" productSubCode="4S">
+      <AccountNumber>5555555555</AccountNumber>
+      <AccountTitle>Lisa M Taylor</AccountTitle>
+      <OpenDate>2024-06-06</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>12500.00</Current>
+        <Available>12000.00</Available>
+        <Pending>500.00</Pending>
+      </Balance>
+      <Transactions>
+        <!-- 5 transactions - testing maxOccurs=5 -->
+        <Transaction>
+          <TransactionId>TR-001</TransactionId>
+          <Date>2024-06-01</Date>
+          <Amount>500.00</Amount>
+          <Type>DEPOSIT</Type>
+          <Description>Direct Deposit</Description>
+        </Transaction>
+        <Transaction>
+          <TransactionId>TR-002</TransactionId>
+          <Date>2024-06-02</Date>
+          <Amount>-50.00</Amount>
+          <Type>DEBIT</Type>
+          <Description>Coffee Shop</Description>
+        </Transaction>
+        <Transaction>
+          <TransactionId>TR-003</TransactionId>
+          <Date>2024-06-03</Date>
+          <Amount>-125.00</Amount>
+          <Type>DEBIT</Type>
+          <Description>Grocery Store</Description>
+        </Transaction>
+        <Transaction>
+          <TransactionId>TR-004</TransactionId>
+          <Date>2024-06-04</Date>
+          <Amount>1000.00</Amount>
+          <Type>TRANSFER</Type>
+          <Description>Transfer from Savings</Description>
+        </Transaction>
+        <Transaction>
+          <TransactionId>TR-005</TransactionId>
+          <Date>2024-06-05</Date>
+          <Amount>-75.00</Amount>
+          <Type>DEBIT</Type>
+          <Description>Restaurant</Description>
+        </Transaction>
+      </Transactions>
+    </Account>
+  </Accounts>
+</Ceremony>

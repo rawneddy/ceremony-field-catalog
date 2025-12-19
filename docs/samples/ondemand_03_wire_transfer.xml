@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WIRE code="WIRE" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <confirmationNumber>WR2024061512345</confirmationNumber>
+  <status>COMPLETED</status>
+  <timestamps>
+    <initiated>2024-06-15T09:23:45Z</initiated>
+    <completed>2024-06-15T09:24:12Z</completed>
+  </timestamps>
+  <originator>
+    <name>Lakeside Manufacturing LLC</name>
+    <account>****8832</account>
+    <bank>
+      <name>First National Bank</name>
+      <routing>053000196</routing>
+    </bank>
+    <reference></reference>
+  </originator>
+  <beneficiary>
+    <name>Pacific Supply Co</name>
+    <account>7744112233</account>
+    <bank>
+      <name>West Coast Federal</name>
+      <routing>121000358</routing>
+      <swift xsi:nil="true"/>
+    </bank>
+    <address>
+      <line>1500 Harbor Blvd</line>
+      <city>San Diego</city>
+      <country>USA</country>
+    </address>
+  </beneficiary>
+  <amount currency="USD">45000.00</amount>
+  <fees>
+    <domestic>25.00</domestic>
+    <correspondent xsi:nil="true"/>
+  </fees>
+  <memo>Invoice #INV-2024-0892 Payment</memo>
+  <authorization>
+    <method>TOKEN</method>
+    <approvedBy>jsmith</approvedBy>
+  </authorization>
+</WIRE>

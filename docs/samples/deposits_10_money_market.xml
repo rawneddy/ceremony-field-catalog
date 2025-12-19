@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-000010</TransactionId>
+    <Timestamp>2024-06-10T10:00:00Z</Timestamp>
+    <Channel>BRANCH</Channel>
+    <Action>FULFILLMENT</Action>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-100010</CustomerId>
+    <Name>
+      <FirstName>Patricia</FirstName>
+      <MiddleName>Ann</MiddleName>
+      <LastName>Garcia</LastName>
+    </Name>
+    <SSN>012-34-5678</SSN>
+    <DateOfBirth>1970-08-12</DateOfBirth>
+    <EmployerId>EMP-9999</EmployerId>
+    <AnnualIncome>125000.00</AnnualIncome>
+  </Customer>
+  <Accounts>
+    <Account productCode="MMA" productSubCode="PR">
+      <AccountNumber>9999999999</AccountNumber>
+      <AccountTitle>Patricia A Garcia - Money Market</AccountTitle>
+      <OpenDate>2024-06-10</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>250000.00</Current>
+        <Available>250000.00</Available>
+      </Balance>
+      <InterestRate>5.00</InterestRate>
+      <InterestAccrued>1041.67</InterestAccrued>
+      <APY>5.12</APY>
+      <MinimumBalance>10000.00</MinimumBalance>
+      <WithdrawalLimit>6</WithdrawalLimit>
+      <WithdrawalsThisMonth>2</WithdrawalsThisMonth>
+      <Tiers>
+        <Tier>
+          <MinBalance>0.00</MinBalance>
+          <MaxBalance>9999.99</MaxBalance>
+          <Rate>0.50</Rate>
+        </Tier>
+        <Tier>
+          <MinBalance>10000.00</MinBalance>
+          <MaxBalance>49999.99</MaxBalance>
+          <Rate>3.00</Rate>
+        </Tier>
+        <Tier>
+          <MinBalance>50000.00</MinBalance>
+          <MaxBalance>999999.99</MaxBalance>
+          <Rate>5.00</Rate>
+        </Tier>
+      </Tiers>
+    </Account>
+  </Accounts>
+</Ceremony>

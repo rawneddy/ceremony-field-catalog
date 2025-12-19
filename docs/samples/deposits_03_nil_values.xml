@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-000003</TransactionId>
+    <Timestamp>2024-06-03T11:30:00Z</Timestamp>
+    <Channel>MOBILE</Channel>
+    <Action>FULFILLMENT</Action>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-100003</CustomerId>
+    <Name>
+      <FirstName>Michael</FirstName>
+      <MiddleName xsi:nil="true"/>
+      <LastName>Davis</LastName>
+      <Suffix xsi:nil="true"/>
+    </Name>
+    <SSN>345-67-8901</SSN>
+    <DateOfBirth>1992-07-04</DateOfBirth>
+    <EmployerId xsi:nil="true"/>
+    <AnnualIncome xsi:nil="true"/>
+  </Customer>
+  <Accounts>
+    <Account productCode="DDA" productSubCode="4S">
+      <AccountNumber>2222222222</AccountNumber>
+      <AccountTitle>Michael Davis</AccountTitle>
+      <OpenDate>2024-06-03</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>500.00</Current>
+        <Available>500.00</Available>
+        <Pending xsi:nil="true"/>
+        <Hold xsi:nil="true"/>
+      </Balance>
+      <LinkedSavings xsi:nil="true"/>
+      <OverdraftLimit xsi:nil="true"/>
+    </Account>
+  </Accounts>
+  <Disclosures xsi:nil="true"/>
+</Ceremony>

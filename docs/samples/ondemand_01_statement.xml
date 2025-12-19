@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<STMT code="STMT" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <StatementPeriod start="2024-05-01" end="2024-05-31"/>
+  <AccountHolder>
+    <Name>Margaret Chen</Name>
+    <AccountNumber masked="true">****4521</AccountNumber>
+    <Address>
+      <Line1>892 Willow Street</Line1>
+      <Line2 xsi:nil="true"/>
+      <CityStateZip>Portland, OR 97205</CityStateZip>
+    </Address>
+  </AccountHolder>
+  <Summary>
+    <OpeningBalance>12,450.00</OpeningBalance>
+    <TotalDeposits>3,200.00</TotalDeposits>
+    <TotalWithdrawals>2,180.50</TotalWithdrawals>
+    <ClosingBalance>13,469.50</ClosingBalance>
+    <AverageBalance>12,890.25</AverageBalance>
+  </Summary>
+  <Transactions>
+    <Entry date="2024-05-03" type="DEP">
+      <Description>Direct Deposit - ACME Corp</Description>
+      <Amount>1,600.00</Amount>
+      <RunningBalance>14,050.00</RunningBalance>
+    </Entry>
+    <Entry date="2024-05-07" type="WTH">
+      <Description>ATM Withdrawal</Description>
+      <Amount>-200.00</Amount>
+      <RunningBalance>13,850.00</RunningBalance>
+    </Entry>
+    <Entry date="2024-05-15" type="CHK">
+      <Description>Check #1042</Description>
+      <Amount>-850.50</Amount>
+      <RunningBalance>12,999.50</RunningBalance>
+    </Entry>
+  </Transactions>
+  <Messages>
+    <Message priority="INFO">Your statement is now available online.</Message>
+  </Messages>
+</STMT>

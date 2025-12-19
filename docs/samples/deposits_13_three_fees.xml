@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-000013</TransactionId>
+    <Timestamp>2024-06-13T12:00:00Z</Timestamp>
+    <Channel>BRANCH</Channel>
+    <Action>FULFILLMENT</Action>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-100013</CustomerId>
+    <Name>
+      <FirstName>James</FirstName>
+      <MiddleName>Edward</MiddleName>
+      <LastName>Harris</LastName>
+    </Name>
+    <SSN>234-56-0002</SSN>
+    <DateOfBirth>1979-03-08</DateOfBirth>
+  </Customer>
+  <Accounts>
+    <Account productCode="DDA" productSubCode="BB">
+      <AccountNumber>1313131313</AccountNumber>
+      <AccountTitle>James E Harris - Basic Banking</AccountTitle>
+      <OpenDate>2024-06-13</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>250.00</Current>
+        <Available>250.00</Available>
+      </Balance>
+    </Account>
+  </Accounts>
+  <Fees>
+    <!-- 3 fee types -->
+    <Fee type="MONTHLY_SERVICE">
+      <Amount>12.00</Amount>
+      <WaiverEligible>true</WaiverEligible>
+      <WaiverCondition>Maintain $1500 minimum balance</WaiverCondition>
+    </Fee>
+    <Fee type="ATM_OUT_OF_NETWORK">
+      <Amount>3.00</Amount>
+      <WaiverEligible>false</WaiverEligible>
+      <WaiverCondition xsi:nil="true"/>
+    </Fee>
+    <Fee type="OVERDRAFT">
+      <Amount>35.00</Amount>
+      <WaiverEligible>true</WaiverEligible>
+      <WaiverCondition>First occurrence per year</WaiverCondition>
+    </Fee>
+  </Fees>
+</Ceremony>

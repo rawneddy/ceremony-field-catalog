@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document code="ADCHG" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <confirmationId>CHG-2024-887766</confirmationId>
+  <effectiveDate>2024-06-15</effectiveDate>
+  <customer>
+    <id>CUST-554433</id>
+    <name>Timothy Reeves</name>
+  </customer>
+  <previousAddress>
+    <street1>1200 Park Avenue</street1>
+    <street2>Apt 4B</street2>
+    <city>New York</city>
+    <state>NY</state>
+    <zip>10128</zip>
+  </previousAddress>
+  <newAddress verified="true" verificationSource="USPS">
+    <street1>875 Maple Drive</street1>
+    <street2></street2>
+    <city>Stamford</city>
+    <state>CT</state>
+    <zip>06902</zip>
+  </newAddress>
+  <affectedAccounts>
+    <account number="****1122" type="CHECKING" updated="true"/>
+    <account number="****3344" type="SAVINGS" updated="true"/>
+    <account number="****5566" type="CREDIT_CARD" updated="true"/>
+  </affectedAccounts>
+  <mailingPreferences unchanged="true">
+    <statements>ELECTRONIC</statements>
+    <notices>ELECTRONIC</notices>
+    <marketing>NONE</marketing>
+  </mailingPreferences>
+  <securityNote>If you did not authorize this change, contact us immediately at 1-800-555-0100.</securityNote>
+</document>

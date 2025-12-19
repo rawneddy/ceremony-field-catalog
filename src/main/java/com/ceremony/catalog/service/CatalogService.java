@@ -47,8 +47,8 @@ public class CatalogService {
             .stream()
             .collect(HashMap::new, (map, entry) -> map.put(entry.getId(), entry), HashMap::putAll);
         
-        // Process all observations and collect entries to save
         List<CatalogEntry> entriesToSave = new ArrayList<>();
+        java.time.Instant now = java.time.Instant.now();
         
         for (CatalogObservationDTO dto : cleanedObservations) {
             Map<String, String> requiredMetadata = filterToRequiredMetadata(context, dto.metadata());
@@ -63,6 +63,7 @@ public class CatalogService {
                 entry.setMinOccurs(Math.min(entry.getMinOccurs(), dto.count()));
                 entry.setAllowsNull(entry.isAllowsNull() || dto.hasNull());
                 entry.setAllowsEmpty(entry.isAllowsEmpty() || dto.hasEmpty());
+                entry.setLastObservedAt(now);
                 // Also update metadata to include any new optional metadata
                 entry.setMetadata(allowedMetadata);
                 entriesToSave.add(entry);
@@ -77,6 +78,8 @@ public class CatalogService {
                     .minOccurs(dto.count())
                     .allowsNull(dto.hasNull())
                     .allowsEmpty(dto.hasEmpty())
+                    .firstObservedAt(now)
+                    .lastObservedAt(now)
                     .build();
                 entriesToSave.add(newEntry);
             }
@@ -203,8 +206,8 @@ public class CatalogService {
         // Normalize to lowercase - all MongoDB field names are lowercase
         String normalizedField = field.toLowerCase();
 
-        if (!normalizedField.equals("fieldpath") && !normalizedField.startsWith("metadata.")) {
-            throw new IllegalArgumentException("Field must be 'fieldPath' or 'metadata.{name}'");
+        if (!normalizedField.equals("fieldpath") && !normalizedField.startsWith("metadata.") && !normalizedField.equals("discovery")) {
+            throw new IllegalArgumentException("Field must be 'fieldPath', 'metadata.{name}', or 'discovery'");
         }
 
         // Sanitize inputs - InputValidationService handles lowercasing
@@ -221,6 +224,10 @@ public class CatalogService {
 
         // Get active context IDs - suggestions only come from active contexts
         Set<String> activeContextIds = contextService.getActiveContextIds();
+
+        if ("discovery".equals(normalizedField)) {
+            return repository.discoverySuggest(cleanedPrefix, cleanedContextId, cleanedMetadata, activeContextIds, safeLimit);
+        }
 
         return repository.suggestValues(normalizedField, cleanedPrefix, cleanedContextId, cleanedMetadata, activeContextIds, safeLimit);
     }

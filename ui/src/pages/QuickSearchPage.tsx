@@ -11,27 +11,27 @@ import { useFacets } from '../hooks/useFacets';
 import { useSuggest } from '../hooks/useSuggest';
 import type { CatalogEntry } from '../types';
 
-const QuickSearchPage: React.FC = () => {
+const FieldSearchPage: React.FC = () => {
   const [query, setQuery] = useState('');
   const [isRegex, setIsRegex] = useState(false);
   const [selectedRow, setSelectedRow] = useState<CatalogEntry | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  // Suggestions only for string mode when query starts with /
-  const isFieldPathMode = !isRegex && query.startsWith('/');
+  // Suggestions for field paths (enabled in string mode)
   const suggestions = useSuggest('fieldPath', query, undefined);
 
   // State for the actual search being executed
   const [searchParams, setSearchParams] = useState({
     q: '',
-    isRegex: false
+    useRegex: false
   });
 
-  const { data, isLoading } = useFieldSearch({
+  const { data, isLoading, error } = useFieldSearch({
     q: searchParams.q || undefined,
-    regex: searchParams.isRegex,
+    useRegex: searchParams.useRegex,
     size: 250
-  });
+  }, hasSearched);
 
   const {
     facets,
@@ -44,9 +44,10 @@ const QuickSearchPage: React.FC = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setHasSearched(true);
     setSearchParams({
       q: query,
-      isRegex
+      useRegex: isRegex
     });
   };
 
@@ -64,11 +65,11 @@ const QuickSearchPage: React.FC = () => {
                   onChange={(e) => setQuery(e.target.value)}
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  placeholder="Search fields or contexts..."
+                  placeholder="Search field paths... (e.g. /Ceremony/Account or Account)"
                   className="w-full bg-white border border-steel rounded px-10 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-ceremony/20 focus:border-ceremony transition-all font-medium"
                 />
 
-                {showSuggestions && isFieldPathMode && suggestions.length > 0 && (
+                {showSuggestions && !isRegex && query.length > 0 && suggestions.length > 0 && (
                   <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-steel rounded-md shadow-2xl max-h-64 overflow-y-auto">
                     {suggestions.map((suggestion) => (
                       <button
@@ -78,7 +79,8 @@ const QuickSearchPage: React.FC = () => {
                         onClick={() => {
                           setQuery(suggestion);
                           setShowSuggestions(false);
-                          setSearchParams({ q: suggestion, isRegex });
+                          setHasSearched(true);
+                          setSearchParams({ q: suggestion, useRegex: isRegex });
                         }}
                       >
                         {suggestion}
@@ -113,19 +115,14 @@ const QuickSearchPage: React.FC = () => {
             
             <div className="mt-2 flex items-center justify-between text-xs font-medium">
               <div className="flex items-center gap-1.5 text-slate-500">
-                {isFieldPathMode ? (
-                  <>
-                    <div className="w-1.5 h-1.5 rounded-full bg-mint" />
-                    <span>Searching field paths only (autocomplete enabled)</span>
-                  </>
-                ) : isRegex ? (
-                  <span>Searching all values with regex pattern</span>
+                {isRegex ? (
+                  <span>Regex pattern matching enabled</span>
                 ) : (
-                  <span>Searching fieldPath, contextId, and metadata (OR logic)</span>
+                  <span>String contains matching on field paths</span>
                 )}
               </div>
               <Link to="/search" className="text-ceremony hover:underline flex items-center gap-1">
-                Advanced Search →
+                Switch to Discovery Engine →
               </Link>
             </div>
           </form>
@@ -143,6 +140,18 @@ const QuickSearchPage: React.FC = () => {
         />
 
         <div className="flex-1 flex flex-col overflow-hidden bg-white">
+          {error && (
+            <div className="m-6 p-4 bg-red-50 border border-red-200 rounded-md text-red-700 flex items-center gap-3">
+              <div className="bg-red-100 p-1.5 rounded-full">
+                <Search className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-sm font-black uppercase tracking-tight">Search Failed</div>
+                <div className="text-xs">{(error as any).response?.data?.message || error.message}</div>
+              </div>
+            </div>
+          )}
+
           {data && data.totalElements > data.size && (
             <TruncationWarning total={data.totalElements} displayed={data.size} />
           )}
@@ -169,4 +178,4 @@ const QuickSearchPage: React.FC = () => {
   );
 };
 
-export default QuickSearchPage;
+export default FieldSearchPage;

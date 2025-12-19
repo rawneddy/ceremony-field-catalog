@@ -81,14 +81,10 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
     private Page<CatalogEntry> executeGlobalSearch(CatalogSearchCriteria criteriaDto, Set<String> activeContextIds, Pageable pageable) {
         String searchPattern = criteriaDto.getSearchPattern();
 
-        // Build the $match stage with OR conditions for fieldPath, contextId, and metadata values
-        // The metadata value search uses $expr with $anyElementTrue to check all values in the map
-        Document matchConditions = new Document("$or", Arrays.asList(
-            // Match fieldPath
+        // Build the discovery OR conditions (match ANY field)
+        Document discoveryConditions = new Document("$or", Arrays.asList(
             new Document("fieldpath", new Document("$regex", searchPattern)),
-            // Match contextId
             new Document("contextid", new Document("$regex", searchPattern)),
-            // Match any metadata value using $expr and $objectToArray
             new Document("$expr", new Document("$anyElementTrue",
                 new Document("$map", new Document()
                     .append("input", new Document("$objectToArray", "$metadata"))
@@ -101,16 +97,34 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
             ))
         ));
 
-        // Add active context filter
-        Document matchStage;
-        if (activeContextIds != null && !activeContextIds.isEmpty()) {
-            matchStage = new Document("$match", new Document("$and", Arrays.asList(
-                matchConditions,
-                new Document("contextid", new Document("$in", new ArrayList<>(activeContextIds)))
-            )));
-        } else {
-            matchStage = new Document("$match", matchConditions);
+        List<Document> andConditions = new ArrayList<>();
+        andConditions.add(discoveryConditions);
+
+        // Add scope filters (context/metadata)
+        if (criteriaDto.contextId() != null) {
+            if (activeContextIds != null && !activeContextIds.contains(criteriaDto.contextId())) {
+                return new PageImpl<>(List.of(), pageable, 0);
+            }
+            andConditions.add(new Document("contextid", criteriaDto.contextId()));
+        } else if (activeContextIds != null && !activeContextIds.isEmpty()) {
+            andConditions.add(new Document("contextid", new Document("$in", new ArrayList<>(activeContextIds))));
         }
+
+        if (criteriaDto.metadata() != null && !criteriaDto.metadata().isEmpty()) {
+            for (Map.Entry<String, String> entry : criteriaDto.metadata().entrySet()) {
+                if (entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
+                    andConditions.add(new Document("metadata." + entry.getKey(), entry.getValue()));
+                }
+            }
+        }
+
+        // If useRegex=false and fieldPathContains is provided, it acts as an additional AND filter
+        if (criteriaDto.fieldPathContains() != null && !criteriaDto.fieldPathContains().trim().isEmpty()) {
+            String pattern = criteriaDto.useRegex() ? criteriaDto.fieldPathContains() : escapeRegex(criteriaDto.fieldPathContains());
+            andConditions.add(new Document("fieldpath", new Document("$regex", pattern)));
+        }
+
+        Document matchStage = new Document("$match", new Document("$and", andConditions));
 
         // Build aggregation pipeline for counting
         List<AggregationOperation> countPipeline = new ArrayList<>();
@@ -358,6 +372,77 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
             .distinct()
             .sorted()
             .limit(limit)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> discoverySuggest(String searchTerm, String contextId, Map<String, String> metadata, Set<String> activeContextIds, int limit) {
+        String searchPattern = escapeRegex(searchTerm.toLowerCase());
+
+        // Build the discovery match conditions (OR across all fields)
+        Document discoveryConditions = new Document("$or", Arrays.asList(
+            new Document("fieldpath", new Document("$regex", searchPattern)),
+            new Document("contextid", new Document("$regex", searchPattern)),
+            new Document("$expr", new Document("$anyElementTrue",
+                new Document("$map", new Document()
+                    .append("input", new Document("$objectToArray", "$metadata"))
+                    .append("as", "m")
+                    .append("in", new Document("$regexMatch", new Document()
+                        .append("input", "$$m.v")
+                        .append("regex", searchPattern)
+                    ))
+                )
+            ))
+        ));
+
+        List<Criteria> andFilters = new ArrayList<>();
+        
+        // Add scope filters (context/metadata) - these are ANDed with the discovery OR
+        if (contextId != null && !contextId.trim().isEmpty()) {
+            if (activeContextIds != null && !activeContextIds.contains(contextId)) {
+                return List.of();
+            }
+            andFilters.add(Criteria.where("contextid").is(contextId));
+        } else if (activeContextIds != null && !activeContextIds.isEmpty()) {
+            andFilters.add(Criteria.where("contextid").in(activeContextIds));
+        }
+
+        if (metadata != null && !metadata.isEmpty()) {
+            for (Map.Entry<String, String> entry : metadata.entrySet()) {
+                if (entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
+                    andFilters.add(Criteria.where("metadata." + entry.getKey()).is(entry.getValue()));
+                }
+            }
+        }
+
+        // Combine discovery conditions with scoped filters
+        Document matchStage;
+        if (!andFilters.isEmpty()) {
+            Document scopedFilters = new Query().addCriteria(new Criteria().andOperator(andFilters.toArray(new Criteria[0]))).getQueryObject();
+            matchStage = new Document("$match", new Document("$and", Arrays.asList(
+                discoveryConditions,
+                scopedFilters
+            )));
+        } else {
+            matchStage = new Document("$match", discoveryConditions);
+        }
+
+        // Aggregation pipeline: Match -> Project fieldPath -> Group (distinct) -> Sort -> Limit
+        List<AggregationOperation> pipeline = new ArrayList<>();
+        pipeline.add(context -> matchStage);
+        pipeline.add(Aggregation.project("fieldpath"));
+        pipeline.add(Aggregation.group("fieldpath"));
+        pipeline.add(Aggregation.sort(Sort.Direction.ASC, "_id"));
+        pipeline.add(Aggregation.limit(limit));
+
+        AggregationResults<Document> results = mongoTemplate.aggregate(
+            Aggregation.newAggregation(pipeline),
+            "catalog_fields",
+            Document.class
+        );
+
+        return results.getMappedResults().stream()
+            .map(doc -> doc.getString("_id"))
             .collect(Collectors.toList());
     }
 

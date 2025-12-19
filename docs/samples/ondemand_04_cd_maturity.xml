@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document code="CDMAT" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <noticeType>MATURITY_REMINDER</noticeType>
+  <generatedDate>2024-06-01</generatedDate>
+  <customer>
+    <id>CUST-887744</id>
+    <fullName>Eleanor Vasquez</fullName>
+    <preferredContact>EMAIL</preferredContact>
+    <email>e.vasquez@email.com</email>
+  </customer>
+  <certificate>
+    <accountNumber>CD-2023-001234</accountNumber>
+    <term months="12">12 Month CD</term>
+    <openDate>2023-07-01</openDate>
+    <maturityDate>2024-07-01</maturityDate>
+    <daysUntilMaturity>30</daysUntilMaturity>
+  </certificate>
+  <currentValue>
+    <principal>25000.00</principal>
+    <interestEarned>1125.00</interestEarned>
+    <apy>4.50</apy>
+    <projectedValue>26125.00</projectedValue>
+  </currentValue>
+  <renewalOptions>
+    <option id="1">
+      <term>12 Month</term>
+      <rate>4.75</rate>
+      <apy>4.86</apy>
+    </option>
+    <option id="2">
+      <term>24 Month</term>
+      <rate>4.25</rate>
+      <apy>4.33</apy>
+    </option>
+    <option id="3">
+      <term>Transfer to Savings</term>
+      <rate xsi:nil="true"/>
+      <apy xsi:nil="true"/>
+    </option>
+  </renewalOptions>
+  <actionRequired deadline="2024-07-01">
+    <instruction>Contact us or log in to select your renewal option. If no action is taken, your CD will automatically renew at the current 12-month rate.</instruction>
+  </actionRequired>
+</document>

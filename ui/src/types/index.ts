@@ -21,7 +21,7 @@ export interface CatalogSearchRequest {
   page?: number;
   size?: number;
   sort?: string;
-  regex?: boolean;
+  useRegex?: boolean;
 }
 
 export interface CatalogEntry {
@@ -33,6 +33,8 @@ export interface CatalogEntry {
   minOccurs: number;
   allowsNull: boolean;
   allowsEmpty: boolean;
+  firstObservedAt: string;
+  lastObservedAt: string;
 }
 
 export interface CatalogObservation {

@@ -35,4 +35,10 @@ public class CatalogEntry {
 
     @Field("allowsempty")
     private boolean allowsEmpty;
+
+    @Field("firstobservedat")
+    private java.time.Instant firstObservedAt;
+
+    @Field("lastobservedat")
+    private java.time.Instant lastObservedAt;
 }

@@ -63,6 +63,18 @@ public interface CatalogCustomRepository {
     List<String> suggestValues(String field, String prefix, String contextId, Map<String, String> metadata, Set<String> activeContextIds, int limit);
 
     /**
+     * Suggest field paths based on a global match across any field (discovery mode).
+     *
+     * @param searchTerm the term to search for across all fields
+     * @param contextId optional context to scope the search
+     * @param metadata optional metadata filters to scope the search
+     * @param activeContextIds set of active context IDs to filter by
+     * @param limit maximum number of suggestions to return
+     * @return list of distinct field path strings matching the discovery criteria
+     */
+    List<String> discoverySuggest(String searchTerm, String contextId, Map<String, String> metadata, Set<String> activeContextIds, int limit);
+
+    /**
      * Count total fields by context ID.
      *
      * @param contextId the context ID to count fields for

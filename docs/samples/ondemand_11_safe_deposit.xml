@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SDBX code="SDBX" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <invoiceNumber>SDB-2024-112233</invoiceNumber>
+  <billingPeriod from="2024-07-01" to="2025-06-30"/>
+  <boxHolder>
+    <primary>
+      <name>George Fitzgerald</name>
+      <signatureOnFile>true</signatureOnFile>
+    </primary>
+    <deputy xsi:nil="true"/>
+  </boxHolder>
+  <box>
+    <number>A-247</number>
+    <size>MEDIUM</size>
+    <dimensions>
+      <width inches="5">5"</width>
+      <height inches="5">5"</height>
+      <depth inches="22">22"</depth>
+    </dimensions>
+    <branch>
+      <name>Downtown Branch</name>
+      <address>100 Main Street</address>
+      <vaultHours>Mon-Fri 9AM-4PM</vaultHours>
+    </branch>
+  </box>
+  <rental>
+    <annualFee>125.00</annualFee>
+    <keyDeposit>25.00</keyDeposit>
+    <dueDate>2024-07-01</dueDate>
+    <autopay enrolled="true" account="****6677"/>
+  </rental>
+  <accessLog lastEntry="2024-05-22T11:34:00Z">
+    <entry date="2024-05-22" time="11:34">
+      <visitor>George Fitzgerald</visitor>
+      <duration minutes="15"/>
+    </entry>
+    <entry date="2024-03-11" time="14:22">
+      <visitor>George Fitzgerald</visitor>
+      <duration minutes="8"/>
+    </entry>
+  </accessLog>
+  <keys>
+    <issued>2</issued>
+    <replacementFee>75.00</replacementFee>
+  </keys>
+</SDBX>

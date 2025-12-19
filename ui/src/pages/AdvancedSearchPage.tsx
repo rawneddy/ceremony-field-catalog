@@ -13,35 +13,37 @@ import { useContexts } from '../hooks/useContexts';
 import { useSuggest } from '../hooks/useSuggest';
 import type { CatalogEntry } from '../types';
 
-const AdvancedSearchPage: React.FC = () => {
+const DiscoveryPage: React.FC = () => {
   const [contextId, setContextId] = useState('');
   const [metadata, setMetadata] = useState<Record<string, string>>({});
   const [fieldPath, setFieldPath] = useState('');
   const [isRegex, setIsRegex] = useState(false);
   const [selectedRow, setSelectedRow] = useState<CatalogEntry | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  // Suggestions scoped to context and metadata
-  const suggestions = useSuggest('fieldPath', fieldPath, contextId || undefined, metadata);
+  // Suggestions in Discovery mode search across all elements (discovery mode)
+  // Only enabled in string mode
+  const suggestions = useSuggest('discovery', fieldPath, contextId || undefined, metadata);
 
   // State for the actual search being executed
   const [searchParams, setSearchParams] = useState({
     contextId: '',
     metadata: {} as Record<string, string>,
     fieldPath: '',
-    isRegex: false
+    useRegex: false
   });
 
   const { data: contexts } = useContexts();
   const selectedContext = contexts?.find(c => c.contextId === contextId);
 
-  const { data, isLoading } = useFieldSearch({
+  const { data, isLoading, error } = useFieldSearch({
+    q: searchParams.fieldPath || undefined,
     contextId: searchParams.contextId || undefined,
-    fieldPathContains: searchParams.fieldPath || undefined,
     metadata: Object.keys(searchParams.metadata).length > 0 ? searchParams.metadata : undefined,
-    regex: searchParams.isRegex,
+    useRegex: searchParams.useRegex,
     size: 250
-  });
+  }, hasSearched);
 
   const {
     facets,
@@ -54,11 +56,12 @@ const AdvancedSearchPage: React.FC = () => {
 
   const handleSearch = (e?: React.FormEvent) => {
     e?.preventDefault();
+    setHasSearched(true);
     setSearchParams({
       contextId,
-      metadata,
+      metadata: { ...metadata }, // Copy metadata object
       fieldPath,
-      isRegex
+      useRegex: isRegex
     });
   };
 
@@ -74,12 +77,31 @@ const AdvancedSearchPage: React.FC = () => {
     }));
   };
 
+  const highlightMatch = (text: string) => {
+    if (!fieldPath || fieldPath.length < 1 || isRegex) return text;
+    
+    // Remove leading / for highlight if it's there
+    const cleanQuery = fieldPath.startsWith('/') ? fieldPath.substring(1) : fieldPath;
+    if (!cleanQuery) return text;
+
+    try {
+      const parts = text.split(new RegExp(`(${cleanQuery})`, 'gi'));
+      return parts.map((part, i) => 
+        part.toLowerCase() === cleanQuery.toLowerCase() ? (
+          <mark key={i} className="bg-mint/40 text-ink rounded-sm px-0.5">{part}</mark>
+        ) : part
+      );
+    } catch (e) {
+      return text;
+    }
+  };
+
   return (
     <Layout>
       <div className="bg-paper border-b border-steel p-6 shrink-0">
         <form onSubmit={handleSearch} className="max-w-6xl mx-auto grid grid-cols-12 gap-6">
           <div className="col-span-3">
-            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Context</label>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Context Scope</label>
             <ContextSelector 
               value={contextId} 
               onChange={handleContextChange} 
@@ -88,7 +110,7 @@ const AdvancedSearchPage: React.FC = () => {
           </div>
 
           <div className="col-span-9">
-            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Field Path Pattern</label>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Discovery (Match any metadata, context, or path)</label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -98,11 +120,11 @@ const AdvancedSearchPage: React.FC = () => {
                   onChange={(e) => setFieldPath(e.target.value)}
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  placeholder="e.g. /Ceremony/Account/Amount"
+                  placeholder="Type anything to discover fields... (e.g. DDA, Fulfillment, /Ceremony)"
                   className="w-full bg-white border border-steel rounded px-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ceremony/20 focus:border-ceremony transition-all font-medium font-mono"
                 />
 
-                {showSuggestions && !isRegex && suggestions.length > 0 && (
+                {showSuggestions && !isRegex && fieldPath.length > 0 && suggestions.length > 0 && (
                   <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-steel rounded-md shadow-2xl max-h-64 overflow-y-auto">
                     {suggestions.map((suggestion) => (
                       <button
@@ -110,12 +132,19 @@ const AdvancedSearchPage: React.FC = () => {
                         type="button"
                         className="w-full text-left px-4 py-2 text-xs hover:bg-paper transition-colors font-mono border-b border-steel/50 last:border-0"
                         onClick={() => {
-                          setFieldPath(suggestion);
+                          const val = suggestion;
+                          setFieldPath(val);
                           setShowSuggestions(false);
-                          setSearchParams(prev => ({ ...prev, fieldPath: suggestion, isRegex }));
+                          setHasSearched(true);
+                          setSearchParams({ 
+                            contextId, 
+                            metadata: { ...metadata }, 
+                            fieldPath: val, 
+                            useRegex: isRegex 
+                          });
                         }}
                       >
-                        {suggestion}
+                        {highlightMatch(suggestion)}
                       </button>
                     ))}
                   </div>
@@ -141,7 +170,7 @@ const AdvancedSearchPage: React.FC = () => {
                 type="submit"
                 className="bg-ceremony text-paper px-6 py-2.5 rounded text-xs font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-sm"
               >
-                Search
+                Discover
               </button>
             </div>
           </div>
@@ -150,7 +179,7 @@ const AdvancedSearchPage: React.FC = () => {
             <div className="col-span-12">
               <div className="flex items-center gap-2 mb-3">
                 <Filter className="w-3 h-3 text-ceremony" />
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Metadata Filters for {selectedContext.displayName}</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Fixed Metadata Filters for {selectedContext.displayName}</h3>
               </div>
               <MetadataFilters 
                 context={selectedContext} 
@@ -173,6 +202,18 @@ const AdvancedSearchPage: React.FC = () => {
         />
 
         <div className="flex-1 flex flex-col overflow-hidden bg-white">
+          {error && (
+            <div className="m-6 p-4 bg-red-50 border border-red-200 rounded-md text-red-700 flex items-center gap-3">
+              <div className="bg-red-100 p-1.5 rounded-full">
+                <Search className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-sm font-black uppercase tracking-tight">Discovery Failed</div>
+                <div className="text-xs">{(error as any).response?.data?.message || error.message}</div>
+              </div>
+            </div>
+          )}
+
           {data && data.totalElements > data.size && (
             <TruncationWarning total={data.totalElements} displayed={data.size} />
           )}
@@ -199,4 +240,4 @@ const AdvancedSearchPage: React.FC = () => {
   );
 };
 
-export default AdvancedSearchPage;
+export default DiscoveryPage;

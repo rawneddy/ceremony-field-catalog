@@ -157,7 +157,7 @@ public class CatalogController {
 
     @Operation(
         summary = "Suggest values for autocomplete",
-        description = "Get autocomplete suggestions for fieldPath or metadata values. Supports optional scoping by context and metadata filters."
+        description = "Get autocomplete suggestions for fieldPath, metadata values, or discovery mode (global cross-field search). Supports optional scoping by context and metadata filters."
     )
     @ApiResponses({
         @ApiResponse(
@@ -188,7 +188,7 @@ public class CatalogController {
     @GetMapping("/suggest")
     public List<String> suggest(
             @Parameter(
-                description = "Field to suggest values for: 'fieldPath' or 'metadata.{name}' (e.g., 'metadata.productCode')",
+                description = "Field to suggest values for: 'fieldPath', 'metadata.{name}', or 'discovery' (cross-field matching)",
                 example = "fieldPath",
                 required = true
             )

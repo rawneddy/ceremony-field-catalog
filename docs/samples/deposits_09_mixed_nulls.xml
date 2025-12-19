@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-000009</TransactionId>
+    <Timestamp>2024-06-09T13:45:00Z</Timestamp>
+    <Channel>MOBILE</Channel>
+    <Action>FULFILLMENT</Action>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-100009</CustomerId>
+    <Name>
+      <FirstName>Christopher</FirstName>
+      <MiddleName xsi:nil="true"/>
+      <LastName>Lee</LastName>
+    </Name>
+    <SSN>901-23-4567</SSN>
+    <DateOfBirth>1995-01-05</DateOfBirth>
+    <Address>
+      <Street1>100 Main Street</Street1>
+      <Street2 xsi:nil="true"/>
+      <City>Boston</City>
+      <State>MA</State>
+      <ZipCode>02101</ZipCode>
+      <Country></Country>
+    </Address>
+    <Contact>
+      <Email>chris.lee@email.com</Email>
+      <Phone type="mobile">555-111-2222</Phone>
+      <Phone type="home" xsi:nil="true"/>
+      <Fax>   </Fax>
+    </Contact>
+  </Customer>
+  <Accounts>
+    <Account productCode="DDA" productSubCode="4S">
+      <AccountNumber>8888888888</AccountNumber>
+      <AccountTitle>Christopher Lee</AccountTitle>
+      <OpenDate>2024-06-09</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>7500.00</Current>
+        <Available>7200.00</Available>
+        <Pending>300.00</Pending>
+        <Hold xsi:nil="true"/>
+      </Balance>
+      <LinkedSavings></LinkedSavings>
+      <Beneficiary xsi:nil="true"/>
+    </Account>
+  </Accounts>
+</Ceremony>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-000001</TransactionId>
+    <Timestamp>2024-06-01T09:00:00Z</Timestamp>
+    <Channel>BRANCH</Channel>
+    <Action>FULFILLMENT</Action>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-100001</CustomerId>
+    <Name>
+      <FirstName>John</FirstName>
+      <MiddleName>Robert</MiddleName>
+      <LastName>Smith</LastName>
+    </Name>
+    <SSN>123-45-6789</SSN>
+    <DateOfBirth>1985-03-22</DateOfBirth>
+  </Customer>
+  <Accounts>
+    <Account productCode="DDA" productSubCode="4S">
+      <AccountNumber>9876543210</AccountNumber>
+      <AccountTitle>John R Smith</AccountTitle>
+      <OpenDate>2024-06-01</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>2500.00</Current>
+        <Available>2500.00</Available>
+      </Balance>
+    </Account>
+  </Accounts>
+</Ceremony>

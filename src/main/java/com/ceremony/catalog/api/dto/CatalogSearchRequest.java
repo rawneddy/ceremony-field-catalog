@@ -7,24 +7,24 @@ import jakarta.validation.constraints.Min;
 import java.util.HashMap;
 import java.util.Map;
 
-@Schema(description = "Search criteria for finding catalog field entries. Supports two modes: global search (q) or filter search (contextId, fieldPathContains, metadata).")
+@Schema(description = "Search criteria for finding catalog field entries. Supports global search (q), specific filter search, or a combination of both (scoped discovery).")
 public record CatalogSearchRequest(
     @Schema(
-        description = "Global search term - searches fieldPath, contextId, AND metadata values using OR logic. When provided, other filters are ignored. In string mode (useRegex=false), performs case-insensitive contains match. In regex mode (useRegex=true), treats the term as a regex pattern.",
+        description = "Global search term - searches fieldPath, contextId, AND metadata values using OR logic. In string mode (useRegex=false), performs case-insensitive contains match. In regex mode (useRegex=true), treats the term as a regex pattern.",
         example = "Amount",
         requiredMode = Schema.RequiredMode.NOT_REQUIRED
     )
     String q,
 
     @Schema(
-        description = "Context ID to filter results (optional - leave empty for cross-context search). Ignored when q is provided.",
+        description = "Context ID to filter results (optional - leave empty for cross-context search).",
         example = "deposits",
         requiredMode = Schema.RequiredMode.NOT_REQUIRED
     )
     String contextId,
 
     @Schema(
-        description = "Field path pattern to search for. Ignored when q is provided. When useRegex=true, treated as regex pattern. When useRegex=false (default), special characters are escaped for literal matching.",
+        description = "Field path pattern to search for. When useRegex=true, treated as regex pattern. When useRegex=false (default), special characters are escaped for literal matching.",
         example = "WithholdingCode",
         requiredMode = Schema.RequiredMode.NOT_REQUIRED
     )
@@ -55,7 +55,7 @@ public record CatalogSearchRequest(
     @Max(value = 250, message = "Size cannot exceed 250") int size,
 
     @Schema(
-        description = "Dynamic metadata filters - any key-value pairs to filter by. Ignored when q is provided.",
+        description = "Dynamic metadata filters - any key-value pairs to filter by.",
         example = """
         {
           "productCode": "DDA",

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<T1099 code="T1099" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" taxYear="2023">
+  <payer>
+    <name>First National Bank</name>
+    <tin>12-3456789</tin>
+    <address>100 Main Street, Charlotte, NC 28202</address>
+    <phone>1-800-555-0100</phone>
+  </payer>
+  <recipient>
+    <name>
+      <first>Sandra</first>
+      <middle>K</middle>
+      <last>Petrov</last>
+    </name>
+    <tin masked="true">***-**-4455</tin>
+    <address>
+      <street>445 Oak Lane</street>
+      <apt>   </apt>
+      <city>Austin</city>
+      <state>TX</state>
+      <zip>78701</zip>
+    </address>
+  </recipient>
+  <interestIncome>
+    <box1 description="Interest Income">842.56</box1>
+    <box2 description="Early Withdrawal Penalty" xsi:nil="true"/>
+    <box3 description="Interest on US Savings Bonds">0.00</box3>
+    <box4 description="Federal Tax Withheld">0.00</box4>
+  </interestIncome>
+  <accountBreakdown>
+    <account type="SAVINGS" number="****2211">
+      <interest>523.44</interest>
+    </account>
+    <account type="MONEY_MARKET" number="****3322">
+      <interest>319.12</interest>
+    </account>
+    <account type="CD" number="****4433">
+      <interest>0.00</interest>
+      <note>Matured in 2024</note>
+    </account>
+  </accountBreakdown>
+  <corrections xsi:nil="true"/>
+  <generated>2024-01-25</generated>
+</T1099>

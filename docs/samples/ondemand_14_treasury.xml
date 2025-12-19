@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document code="TRSRY" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <reportType>TREASURY_MANAGEMENT_SUMMARY</reportType>
+  <reportDate>2024-06-15</reportDate>
+  <reportingPeriod from="2024-05-01" to="2024-05-31"/>
+  <company>
+    <name>Midwest Distribution Corp</name>
+    <treasuryId>TM-445566</treasuryId>
+    <relationshipManager>
+      <name>David Chen</name>
+      <phone>555-777-8899</phone>
+      <email>d.chen@bank.com</email>
+    </relationshipManager>
+  </company>
+  <accountActivity>
+    <operatingAccount number="****1100">
+      <openingBalance>1245000.00</openingBalance>
+      <closingBalance>1567000.00</closingBalance>
+      <totalCredits>4523000.00</totalCredits>
+      <totalDebits>4201000.00</totalDebits>
+      <averageLedgerBalance>1389000.00</averageLedgerBalance>
+    </operatingAccount>
+    <payrollAccount number="****2200">
+      <openingBalance>50000.00</openingBalance>
+      <closingBalance>50000.00</closingBalance>
+      <totalCredits>385000.00</totalCredits>
+      <totalDebits>385000.00</totalDebits>
+    </payrollAccount>
+  </accountActivity>
+  <services>
+    <service name="ACH_ORIGINATION">
+      <volume>847</volume>
+      <dollarAmount>2156000.00</dollarAmount>
+      <returns>3</returns>
+    </service>
+    <service name="POSITIVE_PAY">
+      <checksIssued>234</checksIssued>
+      <exceptionItems>2</exceptionItems>
+      <fraudPrevented>1</fraudPrevented>
+      <amountSaved>4500.00</amountSaved>
+    </service>
+    <service name="REMOTE_DEPOSIT">
+      <deposits>156</deposits>
+      <totalDeposited>892000.00</totalDeposited>
+      <averageFloat days="1.2"/>
+    </service>
+    <service name="LOCKBOX" xsi:nil="true"/>
+  </services>
+  <fees>
+    <analysisCharge>245.00</analysisCharge>
+    <earningsCredit>-312.00</earningsCredit>
+    <netCharge>0.00</netCharge>
+    <note>Earnings credit offset all fees this period</note>
+  </fees>
+</document>

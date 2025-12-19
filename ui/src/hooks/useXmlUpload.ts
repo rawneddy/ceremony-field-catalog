@@ -37,9 +37,14 @@ export const useXmlUpload = () => {
     setStatuses(prev => prev.map(s => s.fileName === fileName ? { ...s, ...update } : s));
   };
 
+  const clearStatuses = () => {
+    setStatuses([]);
+  };
+
   return {
     uploadFiles,
     statuses,
+    clearStatuses,
     isUploading: statuses.some(s => s.status === 'parsing' || s.status === 'submitting'),
   };
 };

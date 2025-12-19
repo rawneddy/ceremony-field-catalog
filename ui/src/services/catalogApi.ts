@@ -34,10 +34,18 @@ export const catalogApi = {
   // Catalog Entries
   searchFields: async (request: CatalogSearchRequest): Promise<PagedResponse<CatalogEntry>> => {
     const { metadata, ...params } = request;
+    
+    const metadataParams: Record<string, string> = {};
+    if (metadata) {
+      Object.entries(metadata).forEach(([key, value]) => {
+        metadataParams[`metadata.${key}`] = value;
+      });
+    }
+
     const response = await api.get<PagedResponse<CatalogEntry>>(`/catalog/fields`, {
       params: {
         ...params,
-        ...metadata, // Flatten metadata filters into query params
+        ...metadataParams, // Flatten prefixed metadata filters into query params
       },
     });
     return response.data;

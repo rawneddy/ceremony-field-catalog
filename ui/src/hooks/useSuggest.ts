@@ -13,13 +13,6 @@ export const useSuggest = (field: string, prefix: string, contextId?: string, me
       return;
     }
 
-    // Trigger immediately for / (start of fieldPath), or after 2 chars for other fields
-    const isPathStart = field === 'fieldPath' && debouncedPrefix === '/';
-    if (debouncedPrefix.length < 2 && !isPathStart) {
-      setSuggestions([]);
-      return;
-    }
-
     const fetchSuggestions = async () => {
       try {
         const results = await catalogApi.suggest(field, debouncedPrefix, contextId, metadata);

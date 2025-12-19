@@ -13,7 +13,7 @@ const UploadPage: React.FC = () => {
 
   const { data: contexts } = useContexts();
   const selectedContext = contexts?.find(c => c.contextId === contextId);
-  const { uploadFiles, statuses, isUploading } = useXmlUpload();
+  const { uploadFiles, statuses, clearStatuses, isUploading } = useXmlUpload();
 
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -35,9 +35,20 @@ const UploadPage: React.FC = () => {
   const isMetadataComplete = selectedContext?.requiredMetadata.every(key => metadata[key]?.trim().length > 0);
 
   const resetUpload = () => {
+    clearStatuses();
     setStep(1);
     setContextId('');
-    setMetadata({});
+    // We don't clear metadata here because we want to keep it if they pick the same context again
+  };
+
+  const handleContextChange = (val: string) => {
+    if (val !== contextId) {
+      setMetadata({}); // ONLY clear metadata if the context actually changed
+    }
+    setContextId(val);
+    if (val) {
+      setStep(2);
+    }
   };
 
   return (
@@ -49,20 +60,28 @@ const UploadPage: React.FC = () => {
             <p className="text-slate-500 mt-1 font-medium">Extract field usage patterns from existing documents.</p>
           </div>
           <div className="flex items-center gap-4">
-             <div className={`flex flex-col items-center ${step >= 1 ? 'text-ceremony' : 'text-slate-300'}`}>
+             <button onClick={() => setStep(1)} className={`flex flex-col items-center transition-colors hover:opacity-80 ${step >= 1 ? 'text-ceremony' : 'text-slate-300'}`}>
                 <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-black mb-1 ${step >= 1 ? 'border-ceremony' : 'border-slate-200'}`}>1</div>
                 <span className="text-[10px] font-black uppercase">Context</span>
-             </div>
+             </button>
              <div className="w-8 h-px bg-steel mt-[-16px]" />
-             <div className={`flex flex-col items-center ${step >= 2 ? 'text-ceremony' : 'text-slate-300'}`}>
+             <button 
+                onClick={() => contextId && setStep(2)} 
+                disabled={!contextId}
+                className={`flex flex-col items-center transition-colors hover:opacity-80 disabled:cursor-not-allowed ${step >= 2 ? 'text-ceremony' : 'text-slate-300'}`}
+             >
                 <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-black mb-1 ${step >= 2 ? 'border-ceremony' : 'border-slate-200'}`}>2</div>
                 <span className="text-[10px] font-black uppercase">Metadata</span>
-             </div>
+             </button>
              <div className="w-8 h-px bg-steel mt-[-16px]" />
-             <div className={`flex flex-col items-center ${step >= 3 ? 'text-ceremony' : 'text-slate-300'}`}>
+             <button 
+                onClick={() => contextId && isMetadataComplete && setStep(3)}
+                disabled={!contextId || !isMetadataComplete}
+                className={`flex flex-col items-center transition-colors hover:opacity-80 disabled:cursor-not-allowed ${step >= 3 ? 'text-ceremony' : 'text-slate-300'}`}
+             >
                 <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-black mb-1 ${step >= 3 ? 'border-ceremony' : 'border-slate-200'}`}>3</div>
                 <span className="text-[10px] font-black uppercase">Upload</span>
-             </div>
+             </button>
           </div>
         </div>
       </div>
@@ -79,7 +98,7 @@ const UploadPage: React.FC = () => {
               <label className="block text-xs font-bold uppercase tracking-tight text-ink mb-2">Select Target Context</label>
               <ContextSelector 
                 value={contextId} 
-                onChange={(val) => { setContextId(val); setMetadata({}); setStep(val ? 2 : 1); }} 
+                onChange={handleContextChange} 
                 contexts={contexts || []} 
               />
               <p className="mt-4 text-xs text-slate-400 italic">Only active contexts are available for new observations.</p>

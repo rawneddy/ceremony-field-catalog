@@ -1,6 +1,6 @@
 import React from 'react';
 import type { CatalogEntry } from '../../types';
-import { X, Database, Info, Activity } from 'lucide-react';
+import { X, Database, Info, Activity, Clock } from 'lucide-react';
 import { config } from '../../config';
 
 interface FieldDetailPanelProps {
@@ -9,6 +9,19 @@ interface FieldDetailPanelProps {
 }
 
 const FieldDetailPanel: React.FC<FieldDetailPanelProps> = ({ entry, onClose }) => {
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   return (
     <div 
       className="w-[450px] bg-white border-l border-steel shadow-2xl flex flex-col shrink-0 overflow-hidden animate-in slide-in-from-right"
@@ -59,6 +72,17 @@ const FieldDetailPanel: React.FC<FieldDetailPanelProps> = ({ entry, onClose }) =
             <StatCard label="Occurrences" value={`${entry.minOccurs} - ${entry.maxOccurs}`} />
             <StatCard label="Allows Null" value={entry.allowsNull ? 'Yes' : 'No'} highlight={entry.allowsNull} />
             <StatCard label="Allows Empty" value={entry.allowsEmpty ? 'Yes' : 'No'} highlight={entry.allowsEmpty} />
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-center gap-2 mb-3 text-slate-400">
+            <Clock className="w-4 h-4" />
+            <h3 className="text-xs font-black uppercase tracking-widest">Discovery Timeline</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <StatCard label="First Observed" value={formatDate(entry.firstObservedAt)} />
+            <StatCard label="Last Observed" value={formatDate(entry.lastObservedAt)} />
           </div>
         </section>
 

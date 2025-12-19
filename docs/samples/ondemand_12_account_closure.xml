@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document code="ACLOS" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <confirmationType>ACCOUNT_CLOSURE</confirmationType>
+  <processedDate>2024-06-15</processedDate>
+  <closureId>CLS-2024-998877</closureId>
+  <formerAccountHolder>
+    <name>Stephanie Huang</name>
+    <customerId>CUST-776655</customerId>
+    <customerSince>2018-04-12</customerSince>
+  </formerAccountHolder>
+  <closedAccount>
+    <number>****2233</number>
+    <type>SAVINGS</type>
+    <nickname>Emergency Fund</nickname>
+    <openedDate>2020-01-15</openedDate>
+    <closedDate>2024-06-15</closedDate>
+  </closedAccount>
+  <finalBalance>
+    <amount>3847.52</amount>
+    <interestAccruedToClose>4.12</interestAccruedToClose>
+    <closureFee>0.00</closureFee>
+    <netDisbursement>3851.64</netDisbursement>
+  </finalBalance>
+  <disbursement>
+    <method>ACH_TRANSFER</method>
+    <destinationAccount>
+      <bankName>Credit Union One</bankName>
+      <routingNumber>271081528</routingNumber>
+      <accountLast4>6789</accountLast4>
+    </destinationAccount>
+    <expectedArrival>2024-06-17</expectedArrival>
+    <referenceNumber>ACH-884433221</referenceNumber>
+  </disbursement>
+  <remainingRelationship>
+    <accountsOpen>2</accountsOpen>
+    <summary>
+      <account type="CHECKING">****4455</account>
+      <account type="CD">****6677</account>
+    </summary>
+  </remainingRelationship>
+  <taxDocuments>
+    <form1099>Will be mailed by January 31, 2025 for interest earned</form1099>
+  </taxDocuments>
+</document>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CHKOR code="CHKOR" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <orderNumber>CHK-2024-556677</orderNumber>
+  <orderDate>2024-06-15</orderDate>
+  <orderStatus>PROCESSING</orderStatus>
+  <customer>
+    <name>Robert and Linda Chang</name>
+    <account>****4455</account>
+  </customer>
+  <checkDesign>
+    <style>CLASSIC_BLUE</style>
+    <customization>
+      <logo xsi:nil="true"/>
+      <extraLine></extraLine>
+    </customization>
+  </checkDesign>
+  <imprint>
+    <line1>Robert and Linda Chang</line1>
+    <line2>567 Riverside Drive</line2>
+    <line3>Sacramento, CA 95814</line3>
+    <line4>   </line4>
+  </imprint>
+  <quantity boxes="2">
+    <checksPerBox>100</checksPerBox>
+    <startingNumber>1001</startingNumber>
+    <endingNumber>1200</endingNumber>
+  </quantity>
+  <pricing>
+    <basePrice>22.95</basePrice>
+    <designUpgrade>0.00</designUpgrade>
+    <shipping method="STANDARD">0.00</shipping>
+    <tax>1.89</tax>
+    <total>24.84</total>
+  </pricing>
+  <shipping>
+    <method>STANDARD</method>
+    <estimatedDelivery>2024-06-25</estimatedDelivery>
+    <trackingNumber xsi:nil="true"/>
+    <address sameAsImprint="true"/>
+  </shipping>
+  <securityFeatures>
+    <microprinting>true</microprinting>
+    <chemicalSensitive>true</chemicalSensitive>
+    <watermark>true</watermark>
+  </securityFeatures>
+</CHKOR>

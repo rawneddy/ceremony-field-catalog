@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ESCRO code="ESCRO" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <analysisDate>2024-06-01</analysisDate>
+  <analysisYear>2024-2025</analysisYear>
+  <loan>
+    <number>MTG-2020-334455</number>
+    <property>
+      <address>1842 Elmwood Circle, Raleigh, NC 27612</address>
+      <type>SINGLE_FAMILY</type>
+    </property>
+    <borrower>
+      <name>Anthony and Rebecca Morrison</name>
+    </borrower>
+  </loan>
+  <currentPayment>
+    <principal>856.42</principal>
+    <interest>1123.58</interest>
+    <escrow>425.00</escrow>
+    <pmi xsi:nil="true"/>
+    <total>2405.00</total>
+  </currentPayment>
+  <escrowAnalysis>
+    <projectedDisbursements>
+      <item type="PROPERTY_TAX" payee="Wake County">
+        <annualAmount>4200.00</annualAmount>
+        <paymentSchedule>SEMI_ANNUAL</paymentSchedule>
+        <nextDue>2024-09-01</nextDue>
+      </item>
+      <item type="HOMEOWNERS_INSURANCE" payee="State Farm">
+        <annualAmount>1800.00</annualAmount>
+        <paymentSchedule>ANNUAL</paymentSchedule>
+        <nextDue>2024-11-15</nextDue>
+      </item>
+      <item type="FLOOD_INSURANCE" payee="NFIP">
+        <annualAmount>0.00</annualAmount>
+        <paymentSchedule xsi:nil="true"/>
+        <nextDue xsi:nil="true"/>
+      </item>
+    </projectedDisbursements>
+    <requiredBalance>
+      <minimumCushion>500.00</minimumCushion>
+      <monthlyRequired>500.00</monthlyRequired>
+    </requiredBalance>
+    <currentBalance>2847.33</currentBalance>
+    <projectedShortage xsi:nil="true"/>
+    <projectedSurplus>347.33</projectedSurplus>
+  </escrowAnalysis>
+  <newPayment effectiveDate="2024-08-01">
+    <principal>856.42</principal>
+    <interest>1123.58</interest>
+    <escrow>400.00</escrow>
+    <total>2380.00</total>
+    <change>-25.00</change>
+    <reason>Escrow surplus applied</reason>
+  </newPayment>
+</ESCRO>
