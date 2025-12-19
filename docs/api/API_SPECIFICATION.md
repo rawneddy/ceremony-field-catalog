@@ -265,10 +265,14 @@ Field identity is computed as: `hash(contextId + requiredMetadata + fieldPath)`
 
 **Two Search Modes:**
 
-1. **Global Search (`q`)**: OR-based search across fieldPath and contextId. Best for quick, exploratory searches.
+1. **Global Search (`q`)**: OR-based search across fieldPath, contextId, AND metadata values. Best for quick, exploratory searches.
 2. **Filter Search**: AND-based search with specific filters. Best for precise queries.
 
 When `q` is provided, other filter parameters are ignored.
+
+**String/Regex Mode:** The `useRegex` parameter controls how search terms are interpreted:
+- `useRegex=false` (default): Literal string matching with special characters escaped
+- `useRegex=true`: Search term treated as regex pattern
 
 **Active Context Filtering:** Results are automatically filtered to only include fields from **active contexts**. Fields belonging to inactive contexts are never returned. This applies to both search modes and autocomplete suggestions.
 
@@ -276,9 +280,10 @@ When `q` is provided, other filter parameters are ignored.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `q` | string | No | Global search term - searches fieldPath and contextId using OR logic. When provided, other filters are ignored. |
+| `q` | string | No | Global search term - searches fieldPath, contextId, AND metadata values using OR logic. When provided, other filters are ignored. |
 | `contextId` | string | No | Filter by context (omit for cross-context search) |
-| `fieldPathContains` | string | No | Regex pattern match on fieldPath. Regex special characters (`. * + ? [ ] ( )`) are interpreted. Example: `Amount` matches any path containing "Amount"; `/account/.*id` matches paths like `/account/userid` |
+| `fieldPathContains` | string | No | Pattern match on fieldPath. When `useRegex=false` (default), special characters are escaped for literal matching. When `useRegex=true`, treated as regex pattern. |
+| `useRegex` | boolean | No | When `true`, treat `q` and `fieldPathContains` as regex patterns. Default: `false` (literal string matching). |
 | `page` | integer | No | Page number (0-based, default: 0) |
 | `size` | integer | No | Page size (1-250, default: 50) |
 | `*` | string | No | Any other parameter treated as metadata filter |
@@ -286,11 +291,14 @@ When `q` is provided, other filter parameters are ignored.
 **Global Search Examples:**
 
 ```bash
-# Find fields containing "Amount" in fieldPath or contextId
+# Find fields containing "Amount" in fieldPath, contextId, or any metadata value
 GET /catalog/fields?q=Amount
 
 # Find fields related to "deposit"
 GET /catalog/fields?q=deposit
+
+# Regex search across all fields
+GET /catalog/fields?q=^/Ceremony/.*Amount&useRegex=true
 ```
 
 **Filter Search Examples:**

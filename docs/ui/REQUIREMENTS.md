@@ -84,7 +84,7 @@ The UI provides two distinct search views optimized for different use cases:
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
 | REQ-2.1 | Global search input | Single search box with placeholder "Search fields or contexts...". In **String mode**: searches fieldPath, contextId, and metadata values using OR logic; when input starts with `/`, activates fieldPath-only mode with autocomplete and shows hint text. In **Regex mode**: searches all values (fieldPath, contextId, metadata) with regex pattern, no autocomplete, no special `/` handling. Includes string/regex toggle (see REQ-2.11). |
-| REQ-2.2 | Single query parameter | Uses `?q=` parameter for global search. Example: `/catalog/fields?q=Amount` matches fields where fieldPath OR contextId contains "Amount". |
+| REQ-2.2 | Single query parameter | Uses `?q=` parameter for global search. Example: `/catalog/fields?q=Amount` matches fields where fieldPath, contextId, or any metadata value contains "Amount". |
 | REQ-2.3 | Cross-context results | Results always show context column (contextId). No metadata columns since they vary by context. |
 | REQ-2.4 | Link to Advanced Search | Prominent link/button to switch to Advanced Search view for more precise filtering (including metadata). |
 

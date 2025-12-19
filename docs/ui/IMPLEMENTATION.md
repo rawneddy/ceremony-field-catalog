@@ -824,17 +824,16 @@ The `fieldPathContains` parameter now accepts both:
 - Full XPath patterns starting with `/` (e.g., `/Ceremony/Account`)
 - Plain text for contains searches (e.g., `Amount`, `FeeCode`)
 
-### Global Search (`q=`) ✅ (metadata search pending)
+### Global Search (`q=`) ✅
 **Endpoint:** `GET /catalog/fields?q=searchTerm`
 
 Supports Quick Search with OR-based logic:
 - Searches `fieldPath`, `contextId`, AND `metadata values` using OR logic
-- String mode: case-insensitive contains match on all three
+- String mode (default): case-insensitive contains match on all three
 - Regex mode: regex pattern match on all three (when `useRegex=true`)
 - When `q` is provided, other filter parameters are ignored
 - Example: `?q=Amount` finds fields where fieldPath OR contextId OR any metadata value contains "Amount"
-
-**Backend update required:** The current backend searches only fieldPath and contextId. A backend change is needed to include metadata value search in the `q` parameter. Track this as a follow-up task.
+- Example: `?q=^/Ceremony/.*Amount&useRegex=true` uses regex pattern matching
 
 See `docs/api/API_SPECIFICATION.md` for full API documentation.
 
