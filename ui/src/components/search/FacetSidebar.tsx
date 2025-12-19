@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import type { FacetIndex } from '../../types';
 import { Filter, X, ChevronRight, Search as SearchIcon, Info } from 'lucide-react';
 
@@ -21,6 +22,7 @@ const FacetSidebar: React.FC<FacetSidebarProps> = ({
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [openFacet, setOpenFacet] = useState<string | null>(null);
+  const [popoverPos, setPopoverPos] = useState<{ top: number, left: number } | null>(null);
   const [facetSearch, setFacetSearch] = useState('');
 
   const facetKeys = Object.keys(facets).sort((a, b) => {
@@ -35,6 +37,28 @@ const FacetSidebar: React.FC<FacetSidebarProps> = ({
   const filteredKeys = facetKeys.filter(key => 
     key.toLowerCase().includes(facetSearch.toLowerCase())
   );
+
+  const handleFacetClick = (e: React.MouseEvent, key: string) => {
+    if (openFacet === key) {
+      setOpenFacet(null);
+      setPopoverPos(null);
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setPopoverPos({ top: rect.top, left: rect.right });
+      setOpenFacet(key);
+    }
+  };
+
+  // Close popover when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (openFacet && !(e.target as Element).closest('.facet-popover') && !(e.target as Element).closest('.facet-button')) {
+        setOpenFacet(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openFacet]);
 
   if (collapsed) {
     return (
@@ -94,10 +118,10 @@ const FacetSidebar: React.FC<FacetSidebarProps> = ({
           return (
             <div key={key} className="relative">
               <button
-                onClick={() => setOpenFacet(openFacet === key ? null : key)}
-                className={`w-full flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors group ${
+                onClick={(e) => handleFacetClick(e, key)}
+                className={`facet-button w-full flex items-center justify-between px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-colors group ${
                   isActive ? 'bg-ceremony/10' : ''
-                }`}
+                } ${openFacet === key ? 'bg-white/10' : ''}`}
               >
                 <div className="flex items-center gap-2 overflow-hidden">
                   {isActive && <div className="w-1.5 h-1.5 rounded-full bg-ceremony shrink-0" />}
@@ -113,14 +137,21 @@ const FacetSidebar: React.FC<FacetSidebarProps> = ({
                 </div>
               </button>
 
-              {openFacet === key && (
+              {openFacet === key && popoverPos && createPortal(
                 <FacetPopover
                   title={key}
                   facet={facet}
                   onToggleValue={(val) => onToggleValue(key, val)}
                   onSetMode={(mode) => onSetMode(key, mode)}
                   onClear={() => onClearFacet(key)}
-                />
+                  style={{ 
+                    position: 'fixed', 
+                    top: Math.min(popoverPos.top, window.innerHeight - 400), 
+                    left: popoverPos.left + 4,
+                    zIndex: 9999 
+                  }}
+                />,
+                document.body
               )}
             </div>
           );
@@ -145,6 +176,7 @@ interface FacetPopoverProps {
   onToggleValue: (val: string) => void;
   onSetMode: (mode: 'any' | 'one') => void;
   onClear: () => void;
+  style?: React.CSSProperties;
 }
 
 const FacetPopover: React.FC<FacetPopoverProps> = ({
@@ -152,7 +184,8 @@ const FacetPopover: React.FC<FacetPopoverProps> = ({
   facet,
   onToggleValue,
   onSetMode,
-  onClear
+  onClear,
+  style
 }) => {
   const [search, setSearch] = useState('');
   
@@ -161,7 +194,10 @@ const FacetPopover: React.FC<FacetPopoverProps> = ({
   );
 
   return (
-    <div className="absolute left-full top-0 ml-1 w-64 bg-white text-ink shadow-2xl rounded-md border border-steel overflow-hidden flex flex-col max-h-[400px]">
+    <div 
+      className="facet-popover w-64 bg-white text-ink shadow-2xl rounded-md border border-steel overflow-hidden flex flex-col max-h-[400px]"
+      style={style}
+    >
       <div className="p-3 border-b border-steel bg-paper flex items-center justify-between">
         <h3 className="text-sm font-black uppercase tracking-tight truncate">{title}</h3>
         <button onClick={onClear} className="text-[10px] font-bold text-ceremony hover:underline">Clear</button>
