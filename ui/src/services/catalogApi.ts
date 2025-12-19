@@ -45,12 +45,19 @@ export const catalogApi = {
 
   // Autocomplete
   suggest: async (field: string, prefix: string, contextId?: string, metadata?: Record<string, string>): Promise<string[]> => {
+    const metadataParams: Record<string, string> = {};
+    if (metadata) {
+      Object.entries(metadata).forEach(([key, value]) => {
+        metadataParams[`metadata.${key}`] = value;
+      });
+    }
+
     const response = await api.get<string[]>(`/catalog/suggest`, {
       params: {
         field,
         prefix,
         contextId,
-        ...metadata,
+        ...metadataParams,
       },
     });
     return response.data;

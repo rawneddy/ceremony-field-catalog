@@ -10,6 +10,7 @@ import MetadataFilters from '../components/search/MetadataFilters';
 import { useFieldSearch } from '../hooks/useFieldSearch';
 import { useFacets } from '../hooks/useFacets';
 import { useContexts } from '../hooks/useContexts';
+import { useSuggest } from '../hooks/useSuggest';
 import type { CatalogEntry } from '../types';
 
 const AdvancedSearchPage: React.FC = () => {
@@ -18,6 +19,10 @@ const AdvancedSearchPage: React.FC = () => {
   const [fieldPath, setFieldPath] = useState('');
   const [isRegex, setIsRegex] = useState(false);
   const [selectedRow, setSelectedRow] = useState<CatalogEntry | null>(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // Suggestions scoped to context and metadata
+  const suggestions = useSuggest('fieldPath', fieldPath, contextId || undefined, metadata);
 
   // State for the actual search being executed
   const [searchParams, setSearchParams] = useState({
@@ -91,9 +96,30 @@ const AdvancedSearchPage: React.FC = () => {
                   type="text"
                   value={fieldPath}
                   onChange={(e) => setFieldPath(e.target.value)}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   placeholder="e.g. /Ceremony/Account/Amount"
                   className="w-full bg-white border border-steel rounded px-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ceremony/20 focus:border-ceremony transition-all font-medium font-mono"
                 />
+
+                {showSuggestions && !isRegex && suggestions.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-steel rounded-md shadow-2xl max-h-64 overflow-y-auto">
+                    {suggestions.map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        className="w-full text-left px-4 py-2 text-xs hover:bg-paper transition-colors font-mono border-b border-steel/50 last:border-0"
+                        onClick={() => {
+                          setFieldPath(suggestion);
+                          setShowSuggestions(false);
+                          setSearchParams(prev => ({ ...prev, fieldPath: suggestion, isRegex: false }));
+                        }}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex items-center bg-white border border-steel rounded px-1">
                 <button
