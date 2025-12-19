@@ -126,7 +126,7 @@ When a result row is selected, the complete layout shows all three panels:
 │  FACETS        │                                                               │                   │
 │  (Filter)      │  ┌───────────────────┬──────────┬─────┬─────┬──────┬───────┐ │  Context:         │
 │                │  │ Field Path    ↕   │ Context↕ │Min↕ │Max↕ │Null?↕│Empty?↕│ │  deposits         │
-│  Filtering 23  │  │ [🔍 ___________]  │ [All  ▼] │     │     │  ▼   │  ▼    │ │                   │
+│  Filtering 23  │  │ [🔍 ___________]  │ [☑All ▼] │     │     │  ▼   │  ▼    │ │   (multi-select)  │
 │                │  ├───────────────────┼──────────┼─────┼─────┼──────┼───────┤ │  Metadata:        │
 │  productCode(4)│  │ /ceremony/ac/amt  │ deposits │  1  │  1  │ No   │ No    │ │  productCode: DDA │
 │  action    (2) │  │ /ceremony/cu/id   │ loans    │  0  │  1  │ Yes  │ No    │ │  action: Fulfill  │
@@ -164,7 +164,7 @@ Simple global search across field paths and contexts using OR logic.
 │ Filtering 23      │                                                              │
 │                   │  ┌─────────────────────────┬───────────┬─────┬─────┬──────┬──────┐
 │ productCode ● 2/4 │  │ Field Path          ↕   │ Context ↕ │Min ↕│Max ↕│Null?↕▼│Empty?↕▼
-│ action        (2) │  │ [🔍 _________________ ] │ [All   ▼] │     │     │      │      │
+│ action        (2) │  │ [🔍 _________________ ] │ [☑All  ▼] │     │     │      │      │
 │                   │  ├─────────────────────────┼───────────┼─────┼─────┼──────┼──────┤
 │ ────────────────  │  │ /ceremony/account/amt   │ deposits  │  1  │  1  │ No   │ No   │
 │                   │  │ /ceremony/customer/id   │ loans     │  0  │  1  │ Yes  │ No   │
@@ -216,7 +216,7 @@ Filter-based search with AND logic for precise queries. Adds server-side metadat
 │ Filtering 156     │                                                              │
 │                   │  ┌─────────────────────────┬───────────┬─────┬─────┬──────┬──────┐
 │ productCode ● 1/4 │  │ Field Path          ↕   │ Context ↕ │Min ↕│Max ↕│Null?↕▼│Empty?↕▼
-│ action        (2) │  │ [🔍 _________________ ] │ [All   ▼] │     │     │      │      │
+│ action        (2) │  │ [🔍 _________________ ] │ [☑All  ▼] │     │     │      │      │
 │                   │  ├─────────────────────────┼───────────┼─────┼─────┼──────┼──────┤
 │ ────────────────  │  │ /ceremony/account/amt   │ deposits  │  1  │  1  │ No   │ No   │
 │                   │  │ /ceremony/account/type  │ deposits  │  1  │  1  │ No   │ No   │
@@ -257,6 +257,35 @@ Filter-based search with AND logic for precise queries. Adds server-side metadat
 - Click row → highlight it, show detail panel on right
 - Arrow keys (↑/↓) navigate between rows instantly
 - Selected row stays highlighted, detail panel updates
+
+### Client-Side Filtering Pipeline
+
+When results load from the API, client-side filtering happens in a defined order:
+
+```
+API Results (server-side filtered)
+    │
+    ▼
+Column Filters (Field Path text, Context multi-select, Null?/Empty? dropdowns)
+    │
+    ▼
+Sidebar Facets (metadata only, managed by useFacets hook)
+    │
+    ▼
+Final Display (filtered results shown in table)
+```
+
+**Key principle:** The `useFacets` hook receives results AFTER column filters are applied. This ensures:
+- Facet counts reflect the column-filtered "universe" of results
+- Column filters and facets work together seamlessly
+- Disjunctive counting is computed correctly
+
+**Reset behavior:** When ANY server-side filter changes (context, metadata, fieldPath in Advanced Search):
+1. Execute API call
+2. On results arrival: Reset ALL client-side filters to defaults
+   - Column filters: Field Path = empty, Context = all selected, Null?/Empty? = All
+   - Sidebar facets: Clear all selections
+3. Recompute facet index from new results
 
 ### Server-Side vs Client-Side Filtering
 
@@ -345,10 +374,25 @@ The left sidebar provides powerful client-side filtering using a faceted search 
 - "Include any" = entry's single value must be in the selected set
 
 **Mode switching behavior:**
-- When switching from "Include any" → "Require one" with multiple values selected: show warning dialog "This will clear your selections. Continue?"
-- If user confirms: clear all selections, switch mode
-- If user cancels: stay in current mode
-- When switching "Require one" → "Include any" with one value: keep that value selected
+
+When switching from "Include any" → "Require one" with multiple values selected:
+
+```
+┌─ Switch Mode? ─────────────────────────────────┐
+│                                                 │
+│ ⚠️ This will clear your selections.            │
+│                                                 │
+│ "Require one" allows only a single value.      │
+│ Your 3 selected values will be cleared.        │
+│                                                 │
+│              [Cancel]  [Clear & Switch]        │
+└─────────────────────────────────────────────────┘
+```
+
+- If user clicks **Cancel**: Stay in "Include any" mode, keep selections
+- If user clicks **Clear & Switch**: Clear all selections, switch to "Require one" mode
+
+When switching "Require one" → "Include any": No warning needed, just switch. The single selected value becomes the first checkbox selection.
 
 **Cross-key logic:**
 All metadata key filters combine with AND logic:
@@ -356,22 +400,34 @@ All metadata key filters combine with AND logic:
 - `productCode = CDA AND action = Fulfillment` in "Require one" mode for productCode
 
 **Disjunctive counting (Splunk-style):**
+
 Counts are computed using disjunctive faceting - the current facet's own filter is excluded from its count calculation, while other filters apply. This shows "what would I get if I switched to this value?"
 
-Example:
+**Algorithm for facet key K:**
+1. Start with column-filtered results (after Field Path, Context, Null/Empty filters applied)
+2. Apply ALL facet filters EXCEPT K's filter
+3. Count distinct values of metadata key K in that result set
+4. Display these counts next to K's values
+
+**Example walkthrough:**
 ```
 Before filtering:                After selecting productCode = DDA:
-│ productCode      (4) │         │ productCode  ●   1/4 │  ← counts for productCode stay constant (4 total)
-│ action           (3) │    →    │ action           (2) │  ← updated: only 2 actions exist for DDA
-│ channel          (2) │         │ channel          (1) │  ← updated: only 1 channel for DDA
+│ productCode      (4) │         │ productCode  ●   1/4 │  ← counts stay at 4 (disjunctive: own filter excluded)
+│ action           (3) │    →    │ action           (2) │  ← updated: only 2 actions in DDA entries
+│ channel          (2) │         │ channel          (1) │  ← updated: only 1 channel in DDA entries
 ```
 
 After also selecting action = Fulfillment:
 ```
-│ productCode  ●   1/4 │  ← still shows 4 (other products available if user deselects DDA)
-│ action       ●   1/2 │  ← Fulfillment selected, shows 2 total actions available
-│ channel          (1) │  ← updated: only 1 channel for DDA+Fulfillment
+│ productCode  ●   1/4 │  ← still 4 (excludes productCode filter, applies action filter)
+│ action       ●   1/2 │  ← still 2 (excludes action filter, applies productCode filter)
+│ channel          (1) │  ← 1 (applies BOTH productCode AND action filters)
 ```
+
+**Special case - "Include any" (OR) mode with multiple selections:**
+If user selects productCode IN [DDA, CDA] (multiple values in Include any mode):
+- Filter applied to OTHER facets: entry.productCode IN [DDA, CDA]
+- productCode facet itself: Counts all 4 values (own filter excluded)
 
 **Instant apply:**
 - Changes take effect immediately (no "Apply" button needed)
@@ -394,24 +450,25 @@ Metadata values are shown in the detail panel only, not in the table. This ensur
 ```
 ┌─────────────────────────────┬─────────────────┬───────┬───────┬──────────┬──────────┐
 │ Field Path              ↕   │ Context     ↕   │ Min ↕ │ Max ↕ │ Null? ↕▼ │ Empty? ↕▼│
-│ [🔍 ____________________ ]  │ [All        ▼]  │       │       │ ○ All    │ ○ All    │
-│                             │ ○ All           │       │       │ ○ Yes    │ ○ Yes    │
-│                             │ ○ deposits      │       │       │ ○ No     │ ○ No     │
-│                             │ ○ loans         │       │       │          │          │
-│                             │ ○ ondemand      │       │       │          │          │
+│ [🔍 ____________________ ]  │ [☑ All      ▼]  │       │       │ ○ All    │ ○ All    │
+│ (hover for full path)       │ ☑ deposits      │       │       │ ○ Yes    │ ○ Yes    │
+│                             │ ☑ loans         │       │       │ ○ No     │ ○ No     │
+│                             │ ☐ ondemand      │       │       │          │          │
 └─────────────────────────────┴─────────────────┴───────┴───────┴──────────┴──────────┘
 ```
 
 | Column | Filter Type | Rationale |
 |--------|------------|-----------|
-| Field Path | Text input | Many unique values, text search needed |
-| Context | Dropdown (distinct values) | Few values, users can see what's available |
+| Field Path | Text input + **tooltip** | Many unique values, text search needed. **Hover shows full path** for truncated values. |
+| Context | **Multi-select checkbox dropdown** | Allows OR logic (show deposits AND loans). Default: all selected. No counts shown. |
 | Min | Sortable only | Sort ascending to find optional (minOccurs=0) |
 | Max | Sortable only | Sort descending to find repeating (maxOccurs>1) |
 | Null? | Dropdown (All/Yes/No) + sortable | Boolean filter, sortable to group Yes/No |
 | Empty? | Dropdown (All/Yes/No) + sortable | Boolean filter, sortable to group Yes/No |
 
 **Note:** All columns are sortable with three-state toggle: ascending → descending → original order.
+
+**Field Path tooltip:** When field paths are long, they truncate with `...` in the table cell. Hovering over any Field Path cell shows a tooltip with the complete path. Copy button on row copies the full path.
 
 **Sortable columns:**
 - Click column header → sort ascending
@@ -767,15 +824,17 @@ The `fieldPathContains` parameter now accepts both:
 - Full XPath patterns starting with `/` (e.g., `/Ceremony/Account`)
 - Plain text for contains searches (e.g., `Amount`, `FeeCode`)
 
-### Global Search (`q=`) ✅
+### Global Search (`q=`) ✅ (metadata search pending)
 **Endpoint:** `GET /catalog/fields?q=searchTerm`
 
 Supports Quick Search with OR-based logic:
-- Searches `fieldPath` and `contextId` using OR logic
+- Searches `fieldPath`, `contextId`, AND `metadata values` using OR logic
+- String mode: case-insensitive contains match on all three
+- Regex mode: regex pattern match on all three (when `useRegex=true`)
 - When `q` is provided, other filter parameters are ignored
-- Example: `?q=Amount` finds fields where fieldPath OR contextId contains "Amount"
+- Example: `?q=Amount` finds fields where fieldPath OR contextId OR any metadata value contains "Amount"
 
-**Note:** Metadata value search is not included in global search due to MongoDB limitations with embedded documents. Use Advanced Search (filter mode) for metadata-specific queries.
+**Backend update required:** The current backend searches only fieldPath and contextId. A backend change is needed to include metadata value search in the `q` parameter. Track this as a follow-up task.
 
 See `docs/api/API_SPECIFICATION.md` for full API documentation.
 
@@ -907,12 +966,23 @@ interface FacetIndex {
 // = entry's value is in selected set.
 
 interface useFacetsReturn {
+  // State
   facets: FacetIndex;                                       // Current facet state
   filteredResults: CatalogEntry[];                          // Results after applying facet filters
-  setFacetMode: (key: string, mode: 'any' | 'one') => void; // Switch mode (shows warning if needed)
+
+  // Accessors
+  getFacetByKey: (key: string) => FacetState | undefined;   // Get single facet for popover display
+  getActiveFacets: () => Array<{key: string; values: string[]}>; // Get active facets for pinning/UI
+  hasActiveFacets: () => boolean;                           // True if any facet has selections
+
+  // Mutations
+  setFacetMode: (key: string, mode: 'any' | 'one') => void; // Switch mode (shows warning if multiple selected)
   toggleFacetValue: (key: string, value: string) => void;   // Toggle a value selection
   clearFacet: (key: string) => void;                        // Clear one facet's selections
   clearAllFacets: () => void;                               // Clear all facet filters
+
+  // Recompute (call when column-filtered results change)
+  recomputeIndex: (newResults: CatalogEntry[]) => void;     // Rebuild facet index from new result set
 }
 ```
 
