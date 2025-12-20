@@ -47,18 +47,20 @@ public class CatalogService {
             .stream()
             .collect(HashMap::new, (map, entry) -> map.put(entry.getId(), entry), HashMap::putAll);
         
-        List<CatalogEntry> entriesToSave = new ArrayList<>();
+        // Use LinkedHashMap to dedupe entries by ID while preserving insertion order
+        Map<String, CatalogEntry> entriesToSave = new LinkedHashMap<>();
         java.time.Instant now = java.time.Instant.now();
-        
+
         for (CatalogObservationDTO dto : cleanedObservations) {
             Map<String, String> requiredMetadata = filterToRequiredMetadata(context, dto.metadata());
             Map<String, String> allowedMetadata = filterToAllowedMetadata(context, dto.metadata());
             FieldKey fieldKey = new FieldKey(cleanedContextId, requiredMetadata, dto.fieldPath());
             String id = fieldKey.toString();
-            
+
+            // Check both DB entries AND entries we've created in this batch
             CatalogEntry entry = existingEntries.get(id);
             if (entry != null) {
-                // Update existing entry
+                // Update existing entry (from DB or created earlier in this batch)
                 entry.setMaxOccurs(Math.max(entry.getMaxOccurs(), dto.count()));
                 entry.setMinOccurs(Math.min(entry.getMinOccurs(), dto.count()));
                 entry.setAllowsNull(entry.isAllowsNull() || dto.hasNull());
@@ -66,7 +68,7 @@ public class CatalogService {
                 entry.setLastObservedAt(now);
                 // Also update metadata to include any new optional metadata
                 entry.setMetadata(allowedMetadata);
-                entriesToSave.add(entry);
+                entriesToSave.put(id, entry);
             } else {
                 // Create new entry - store all allowed metadata (required + optional)
                 CatalogEntry newEntry = CatalogEntry.builder()
@@ -81,12 +83,14 @@ public class CatalogService {
                     .firstObservedAt(now)
                     .lastObservedAt(now)
                     .build();
-                entriesToSave.add(newEntry);
+                // Track new entry so duplicates later in batch will merge into it
+                existingEntries.put(id, newEntry);
+                entriesToSave.put(id, newEntry);
             }
         }
-        
+
         // Single batch save operation
-        repository.saveAll(entriesToSave);
+        repository.saveAll(entriesToSave.values());
         
         // Handle single-context cleanup
         handleSingleContextCleanup(cleanedContextId, cleanedObservations);

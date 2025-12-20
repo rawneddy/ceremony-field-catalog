@@ -145,10 +145,42 @@ class CatalogServiceTest extends ServiceTestBase {
     }
 
     @Test
+    void duplicateFieldsInSameBatchAreAggregated() {
+        // This test verifies the fix for the merge deduplication bug:
+        // If a single batch contains multiple observations for the same field identity,
+        // they should be aggregated rather than last-one-wins
+        createAndVerifyContext("deposits", "productcode", "productsubcode", "action");
+
+        Map<String, String> metadata = Map.of(
+            "productcode", "dda",
+            "productsubcode", "4s",
+            "action", "fulfillment"
+        );
+
+        // Submit a batch with duplicate field observations - different counts and flags
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(metadata, "/ceremony/amount", 5, false, false),  // count=5, no null/empty
+            new CatalogObservationDTO(metadata, "/ceremony/amount", 2, true, false),   // count=2, has null
+            new CatalogObservationDTO(metadata, "/ceremony/amount", 8, false, true)    // count=8, has empty
+        ));
+
+        // Should only create ONE entry with aggregated stats
+        var entries = catalogRepository.findAll();
+        assertThat(entries).hasSize(1);
+
+        var entry = entries.get(0);
+        assertThat(entry.getFieldPath()).isEqualTo("/ceremony/amount");
+        assertThat(entry.getMinOccurs()).isEqualTo(2);   // min of 5, 2, 8
+        assertThat(entry.getMaxOccurs()).isEqualTo(8);   // max of 5, 2, 8
+        assertThat(entry.isAllowsNull()).isTrue();       // true OR false OR false = true
+        assertThat(entry.isAllowsEmpty()).isTrue();      // false OR false OR true = true
+    }
+
+    @Test
     void failsWhenContextDoesNotExist() {
         Map<String, String> metadata = Map.of("someField", "someValue");
-        
-        assertThatThrownBy(() -> 
+
+        assertThatThrownBy(() ->
             catalogService.merge("nonexistent", List.of(
                 new CatalogObservationDTO(metadata, "/Test/Path", 1, false, false)
             ))
