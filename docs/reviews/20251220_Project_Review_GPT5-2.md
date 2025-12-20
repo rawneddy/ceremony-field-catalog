@@ -21,7 +21,7 @@ That intent is reflected in the backend design: a dynamic context model (`Contex
 The UI is visually cohesive and already productive for core flows: discovery/search, context management, and upload-based observation submission (`ui/src/pages/DiscoveryPage.tsx`, `ui/src/pages/ContextsPage.tsx`, `ui/src/pages/UploadPage.tsx`).
 The component library is small but consistent, and the app uses strict TypeScript plus React Query to keep data-fetching predictable (`ui/tsconfig.app.json`, `ui/src/hooks/useFieldSearch.ts`, `ui/src/services/catalogApi.ts`).
 
-To move from “credible POC” to “production-leaning,” the main work is correctness hardening (especially merge deduplication), contract/type alignment between API and UI, and reconciling documentation drift (API behavior, UI page taxonomy, and runtime version assumptions).
+To move from “credible POC” to “production-leaning,” the main work is correctness hardening (especially merge deduplication), contract/type alignment between API and UI, and reconciling documentation drift (notably: global-search semantics and a few implementation-vs-code mismatches in upload binning and versioning).
 
 Grade Summary (weights from the prompt)
 - Architectural Coherence (25%): B
@@ -35,7 +35,7 @@ Key Findings
 - Dynamic search parameters are handled cleanly without proliferating DTO fields (`src/main/java/com/ceremony/catalog/config/DynamicSearchParameterResolver.java`).
 - The merge path is efficient (single fetch + batch save) but has a correctness edge case when duplicate observations appear within a single batch (`src/main/java/com/ceremony/catalog/service/CatalogService.java`).
 - Frontend types assume non-null fields that the backend explicitly allows to be null (notably `optionalMetadata`), undermining strict TS guarantees (`ui/src/types/context.types.ts`, `src/test/java/com/ceremony/catalog/service/ContextServiceTest.java`).
-- Several files referenced in requirements/review prompts are absent, indicating naming/structure drift (e.g., `ui/src/pages/QuickSearchPage.tsx`, `ui/src/components/upload/SmartUploadWorkflow.tsx`, `ui/src/components/contexts/ContextForm.tsx`).
+- The UI requirements now match the implemented two-view search model (Discovery + Field Search), but the upload binning described in docs (binning by metadata combination) is not implemented in code (`docs/ui/REQUIREMENTS.md`, `docs/ui/IMPLEMENTATION.md`, `ui/src/hooks/useXmlUpload.ts`).
 
 ## Architectural Coherence (Grade: B)
 The backend follows a conventional Spring layering that maps well to the documented conceptual architecture:
@@ -62,7 +62,7 @@ Frontend architecture and data flow
 
 Primary coherence gaps
 - Documentation and behavior drift: `docs/api/API_SPECIFICATION.md` states “when `q` is provided, other filters are ignored,” but the repository treats context/metadata as scoping filters during global search (`src/main/java/com/ceremony/catalog/persistence/CatalogCustomRepositoryImpl.java`).
-- UI requirements describe “Quick Search” vs “Advanced Search,” but the implemented top-level pages are “Discovery” and “Field Search,” with overlapping semantics (`docs/ui/REQUIREMENTS.md`, `ui/src/pages/DiscoveryPage.tsx`, `ui/src/pages/FieldSearchPage.tsx`).
+- Upload binning is inconsistently specified across docs vs code: docs describe per-metadata-combination bins, while the current implementation only creates `complete` and `incomplete` bins (`docs/ui/REQUIREMENTS.md`, `docs/ui/IMPLEMENTATION.md`, `ui/src/hooks/useXmlUpload.ts`).
 
 ## Technical Implementation Quality (Grade: B-)
 The backend is solid for a POC: input normalization is centralized, query logic is thoughtfully split between aggregation and criteria queries, and tests are integration-first with Testcontainers.
@@ -101,7 +101,7 @@ Frontend type safety and hook quality
   - `ui/src/types/context.types.ts` models `optionalMetadata` as `string[]`, while the backend can return null (validated by `createContextHandlesNullOptionalMetadata` in `src/test/java/com/ceremony/catalog/service/ContextServiceTest.java`).
   - `ui/src/services/catalogApi.ts` types `getContexts` as `ContextWithCount[]` even when `includeCounts=false` returns a different shape.
 - `useSuggest` implements an `AbortController`, but the signal is not passed through to axios requests, so cancellation likely does not work as intended (`ui/src/hooks/useSuggest.ts`, `ui/src/services/apiClient.ts`).
-- `useFacets` provides client-side disjunctive counting and filtering that matches the “loaded results” constraint, but “Require One” mode does not implement the warning/clear behavior described in requirements (`ui/src/hooks/useFacets.ts`, `docs/ui/REQUIREMENTS.md`).
+- `useFacets` provides client-side disjunctive counting and filtering; the “Include any” vs “Require one” modes match the documented semantics (single value per metadata key) and the warning dialog is explicitly tracked as a future enhancement (`ui/src/hooks/useFacets.ts`, `docs/ui/REQUIREMENTS.md`, `docs/ui/IMPLEMENTATION.md`).
 - `TagInput` and `SuggestionInput` include solid keyboard support and fixed-position dropdowns to avoid clipping inside overflow containers (`ui/src/components/ui/TagInput.tsx`, `ui/src/components/ui/SuggestionInput.tsx`).
 
 Testing depth and gaps
@@ -111,7 +111,7 @@ Testing depth and gaps
 
 ## UI Consistency and Usability (Grade: B-)
 The UI has a cohesive “corporate-minimalist” visual identity, strong feedback patterns (loading/empty/error), and a notably polished upload workflow.
-The main usability gaps are requirement traceability (naming/structure drift) and a few interaction mismatches (facet mode semantics, suggestion scoping).
+The updated UI requirements largely reflect what the UI does today; remaining gaps are concentrated in upload binning (as specified) and a couple of interaction/feedback details (copy-to-clipboard toast, suggestion scoping).
 
 Visual consistency and component design
 - Central palette/typography is clearly defined and used consistently (`ui/src/index.css`).
@@ -136,9 +136,9 @@ Upload workflow UX
 - The upload page enforces a practical local limit and gives clear feedback for invalid files (`ui/src/pages/UploadPage.tsx`, `ui/src/hooks/useXmlUpload.ts`).
 
 Requirement alignment gaps (non-security)
-- The repo does not contain some files named in the prompt/requirements, suggesting the UI evolved without updating docs or naming (e.g., `ui/src/pages/QuickSearchPage.tsx`).
-- Facet mode switching does not implement the warning-and-clear behavior specified in REQ-3.8 (`docs/ui/REQUIREMENTS.md`, `ui/src/hooks/useFacets.ts`, `ui/src/components/search/FacetPopover.tsx`).
-- Metadata suggestions do not currently scope by other selected metadata filters, even though the backend suggest endpoint supports it (`ui/src/components/ui/TagInput.tsx`, `ui/src/hooks/useSuggest.ts`, `src/main/java/com/ceremony/catalog/api/CatalogController.java`).
+- Upload binning does not match REQ-4.6 / `docs/ui/IMPLEMENTATION.md`: code does not split “complete” files into bins by metadata combination, and the “incomplete” bin can become submittable after edits (`docs/ui/REQUIREMENTS.md`, `docs/ui/IMPLEMENTATION.md`, `ui/src/hooks/useXmlUpload.ts`, `ui/src/components/upload/BinRow.tsx`).
+- Copy-to-clipboard feedback is implemented as an icon swap rather than a toast notification (`docs/ui/REQUIREMENTS.md`, `ui/src/components/search/FieldTable.tsx`).
+- Metadata suggestions do not currently scope by already-selected metadata filters (the backend supports passing metadata filters to `/catalog/suggest`) (`ui/src/components/ui/TagInput.tsx`, `ui/src/hooks/useSuggest.ts`, `src/main/java/com/ceremony/catalog/api/CatalogController.java`).
 
 ## Industry Best Practices (Grade: B-)
 The codebase follows generally strong conventions (layered backend, strict TS frontend, containerized local runtime, integration tests).
@@ -153,6 +153,7 @@ Documentation quality and drift
 - Version assumptions appear inconsistent across sources (e.g., `pom.xml` uses Spring Boot `3.4.1` and Java `17`, while `Dockerfile` builds on Java `21`, and `CLAUDE.md` references different versions).
 - Aligning these will reduce onboarding and runtime surprises.
 - OpenAPI is configured and controllers are annotated, which supports discoverability and UI/API iteration (`src/main/resources/application.yml`, `src/main/java/com/ceremony/catalog/api/CatalogController.java`).
+- The UI implementation doc is much closer to the current UI model, but still contains a few concrete mismatches (e.g., React version and some referenced file paths like `api.ts` vs `apiClient.ts`) (`docs/ui/IMPLEMENTATION.md`, `ui/package.json`, `ui/src/services/apiClient.ts`).
 
 Build and runtime configuration
 - Multiple Spring profiles exist and are cleanly organized (`src/main/resources/application.yml`, `src/main/resources/application-dev.yml`, `src/main/resources/application-test.yml`, `src/main/resources/application-prod.yml`).
@@ -189,12 +190,13 @@ API versioning readiness
 - Update UI types to safely model nullable fields (especially `optionalMetadata`) and add defensive handling where needed (`ui/src/types/context.types.ts`, `ui/src/components/search/MetadataFilters.tsx`).
 - Make `useSuggest` cancellation effective by wiring `AbortController` through to axios request config (`ui/src/hooks/useSuggest.ts`, `ui/src/services/catalogApi.ts`).
 - Fix `getContexts` typing to reflect `includeCounts` and prevent accidental reliance on `fieldCount` when it is not returned (`ui/src/services/catalogApi.ts`, `ui/src/hooks/useContexts.ts`).
-- Implement requirement-specified warning behavior when switching facet modes with multiple selections (`ui/src/hooks/useFacets.ts`, `ui/src/components/search/FacetPopover.tsx`, `docs/ui/REQUIREMENTS.md`).
+- Implement upload binning by metadata combination (or adjust docs if the intended UX is “complete vs incomplete” only) so REQ-4.6 and the implementation guide match reality (`docs/ui/REQUIREMENTS.md`, `docs/ui/IMPLEMENTATION.md`, `ui/src/hooks/useXmlUpload.ts`).
+- Either add a toast on copy (to match REQ-3.5) or update the requirement to reflect the current icon-swap UX (`docs/ui/REQUIREMENTS.md`, `ui/src/components/search/FieldTable.tsx`).
 - Add a small set of repository/controller tests to lock down discovery search and suggestion semantics (`src/main/java/com/ceremony/catalog/persistence/CatalogCustomRepositoryImpl.java`, `src/main/java/com/ceremony/catalog/config/DynamicSearchParameterResolver.java`).
 - Add minimal UI tests for core hooks/components (search and upload parsing) to protect against regressions (`ui/src/hooks/useXmlUpload.ts`, `ui/src/utils/xmlParser.ts`).
-- Reconcile documentation and file naming to reduce drift (Discovery vs Quick/Advanced search; missing file references) (`docs/ui/REQUIREMENTS.md`, `ui/src/pages/DiscoveryPage.tsx`).
+- Reconcile remaining doc/code mismatches in `docs/ui/IMPLEMENTATION.md` (React version, referenced file paths) to reduce ongoing drift and onboarding friction (`docs/ui/IMPLEMENTATION.md`, `ui/package.json`).
 
 ## Conclusion
 As a POC, Ceremony Field Catalog is well-executed: the backend matches the conceptual model, the database access patterns are thoughtfully chosen, and the UI is cohesive and usable for the primary discovery and upload workflows.
-The next iteration should focus on merge correctness (deduplication), contract/type alignment between backend and UI, and tightening docs/config naming to eliminate drift.
+The next iteration should focus on merge correctness (deduplication), contract/type alignment between backend and UI, and aligning the remaining doc-vs-code mismatches (notably upload binning and version/file references).
 With those changes, the project would be on a strong trajectory toward production readiness for its intended “field knowledge via observation” mission.

@@ -14,10 +14,11 @@ Build a web-based user interface for browsing, searching, and managing the Cerem
 
 ## Core Concepts
 
-The UI must support the **dynamic Context system**:
+The UI supports the **dynamic Context system**:
 
 - **Contexts** are observation points created via API (not hardcoded)
 - Each Context has its own **required** and **optional** metadata fields
+- Contexts define **metadata extraction rules** for smart upload workflows
 - **CatalogEntries** are fields observed within a context
 - Field identity is determined by: `contextId + requiredMetadata + fieldPath`
 - Searches can filter by context, metadata fields, or field path patterns
@@ -28,13 +29,13 @@ The backend normalizes data to **lowercase** for case-insensitive matching:
 
 **Metadata normalization:**
 - All metadata keys and values are stored as lowercase
-- UI should display metadata values as stored (lowercase)
+- UI displays metadata values as stored (lowercase)
 - UI can accept any case in filter inputs (normalized by API)
 - Autocomplete suggestions appear in lowercase (as stored)
 
 **Field path normalization:**
 - All `fieldPath` values are stored as lowercase (e.g., `/ceremony/account/amount`)
-- UI should display field paths as stored (lowercase)
+- UI displays field paths as stored (lowercase)
 - Field path search inputs are normalized by API before matching
 
 ---
@@ -67,70 +68,67 @@ The backend normalizes data to **lowercase** for case-insensitive matching:
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
-| REQ-1.1 | View all contexts | Display list of all contexts showing: displayName, description, required/optional metadata fields, active/inactive status, field count |
-| REQ-1.2 | Create new context | Form to create context with: contextId, displayName, description, required metadata array, optional metadata array, active flag. Validation per API spec. |
-| REQ-1.3 | Edit existing context | Edit form allowing changes to: displayName, description, optional metadata, active flag. Required metadata is read-only after creation. |
-| REQ-1.4 | Delete context | Confirmation dialog showing context name and field count that will be deleted. Requires explicit confirmation. |
+| REQ-1.1 | View all contexts | Display card grid of all contexts showing: displayName, description, required/optional metadata fields, active/inactive status, field count. Includes filter/search input. |
+| REQ-1.2 | Create new context | Modal form to create context with: contextId, displayName, description, required metadata array, optional metadata array, metadata extraction rules with validation regex, active flag. |
+| REQ-1.3 | Edit existing context | Edit modal allowing changes to: displayName, description, optional metadata, metadata extraction rules, active flag. Required metadata is read-only after creation. |
+| REQ-1.4 | Delete context | Browser confirmation dialog showing context name and field count that will be deleted. Requires explicit confirmation. |
 | REQ-1.5 | Visual distinction for inactive contexts | Inactive contexts displayed with muted/greyed styling to indicate they are not accepting observations |
+| REQ-1.6 | Metadata extraction rules | Each metadata field can have extraction rules defining XPath patterns and optional validation regex for smart upload auto-extraction |
 
-**Note on inactive contexts:** The backend API automatically filters out fields from inactive contexts in all search and autocomplete responses. The UI only needs to hide inactive contexts from dropdowns (REQ-2.5, REQ-4.3) - no client-side result filtering is required.
+**Note on inactive contexts:** The backend API automatically filters out fields from inactive contexts in all search and autocomplete responses. The UI hides inactive contexts from dropdowns (REQ-2.3, REQ-4.2) - no client-side result filtering is required.
 
 ### REQ-2: Field Search (Two-View Model)
 
 The UI provides two distinct search views optimized for different use cases:
 
-#### Quick Search View (Home Page)
+#### Discovery View (Home Page)
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
-| REQ-2.1 | Global search input | Single search box with placeholder "Search fields or contexts...". In **String mode**: searches fieldPath, contextId, and metadata values using OR logic; when input starts with `/`, activates fieldPath-only mode with autocomplete **starting immediately on the first '/' character** and shows hint text. In **Regex mode**: searches all values (fieldPath, contextId, metadata) with regex pattern, no autocomplete, no special `/` handling. Includes string/regex toggle (see REQ-2.11). |
-| REQ-2.2 | Single query parameter | Uses `?q=` parameter for global search. Example: `/catalog/fields?q=Amount` matches fields where fieldPath, contextId, or any metadata value contains "Amount". |
-| REQ-2.3 | Cross-context results | Results always show context column (contextId). No metadata columns since they vary by context. |
-| REQ-2.4 | Link to Advanced Search | Prominent link/button to switch to Advanced Search view for more precise filtering (including metadata). |
+| REQ-2.1 | Reactive global search | Single search input with debounced reactive search. Results update automatically as user types. Uses `?q=` parameter for global search across fieldPath, contextId, and metadata values using OR logic. |
+| REQ-2.2 | Context-scoped filtering | Context selector dropdown to narrow results to specific context. When selected, displays tag-based metadata filters for that context's required and optional fields. |
+| REQ-2.3 | Multi-value metadata filters | Tag/chip-based metadata filter inputs supporting multiple values per field with OR logic within field, AND logic between fields. Results only refresh when a tag is added/removed (not while typing). |
+| REQ-2.4 | String/Regex toggle | Field path input includes toggle between String (default) and Regex modes. In String mode: input treated as literal text. In Regex mode: input treated as regex pattern. |
 
-#### Advanced Search View
+#### Field Search View
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
-| REQ-2.5 | Context selector | Single-select dropdown to filter by context. **Only active contexts are shown** (inactive contexts are managed exclusively in Context Management). When no context is selected, search returns results from all active contexts. |
-| REQ-2.6 | Dynamic metadata filtering | When a context is selected, show filter inputs for all required and optional metadata fields defined by that context. Filters combine with AND logic. When no context selected, metadata filters are hidden. |
-| REQ-2.7 | Field path pattern filter | Text input for fieldPath matching. Includes string/regex toggle (see REQ-2.11). Works with or without context selection. |
-| REQ-2.8 | Scoped fieldPath autocomplete | In **string mode only**: when user types a path starting with `/`, show autocomplete suggestions **starting immediately on the first '/' character**. Suggestions scoped to selected context and metadata filters if present. Autocomplete is disabled in regex mode. |
-| REQ-2.9 | Metadata value autocomplete | Metadata filter inputs show autocomplete suggestions based on existing values, scoped to selected context. |
-| REQ-2.10 | AND filter logic | All filters combine with AND logic. Example: `contextId=deposits AND productCode=DDA AND fieldPathContains=/Account` |
-| REQ-2.11 | String/Regex toggle | Field path inputs (Quick Search and Advanced Search fieldPath) include a toggle between **String** (default) and **Regex** modes. In String mode: input is treated as literal text, special characters are auto-escaped, autocomplete is enabled. In Regex mode: input is treated as regex pattern, no autocomplete. Toggle only appears on field path inputs, not on context or metadata filters. |
+| REQ-2.5 | Submit-based search | Search input requiring explicit Search button click to execute. Shows empty state with guidance before first search. |
+| REQ-2.6 | Field path autocomplete | In string mode, shows autocomplete suggestions for field paths. Arrow keys navigate suggestions, Enter selects, Tab partial-completes. |
+| REQ-2.7 | Cross-context results | Results always show context column (contextId). No metadata columns since they vary by context. |
+| REQ-2.8 | String/Regex toggle | Same as REQ-2.4. Toggle between literal text and regex pattern matching. |
 
 ### REQ-3: Results Display
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
-| REQ-3.1 | Results table | Display results in table with fixed columns: fieldPath, context, minOccurs, maxOccurs, allowsNull, allowsEmpty. All columns sortable with three-state toggle (ascending → descending → original order). Column header filters: Field Path (text input with **tooltip showing full path on hover**), Context (**multi-select checkbox dropdown** with distinct values from results, OR logic), Null?/Empty? (dropdown: All/Yes/No). **No metadata columns** - metadata is shown in detail panel only (scales to any number of contexts). |
-| REQ-3.2 | Single-page results | Display up to `MAX_RESULTS_PER_PAGE` results per search (see UI Configuration). If more exist, show a prominent warning banner (not subtle text) indicating results are truncated and the user should refine their search. Example: "Showing 250 of X results - please refine your search to see all matches." |
-| REQ-3.3 | Client-side filtering | Left sidebar provides instant client-side faceted metadata filtering (REQ-3.8). Table column headers provide filters for Field Path, Context, Null?, and Empty? (REQ-3.1). All filters apply instantly without API calls. **Reset behavior:** When a new server-side search executes (context, metadata, or fieldPath change in Advanced Search), ALL client-side filters reset to defaults (column filters AND sidebar facets). |
-| REQ-3.4 | Field detail panel | Clicking a row opens slide-out panel showing: context, **all metadata key-value pairs**, occurrence range, null/empty flags. Field path is already visible in the selected table row. Panel slides from right with `DETAIL_PANEL_ANIMATION_MS` timing (see UI Configuration). |
-| REQ-3.5 | Keyboard navigation | Arrow keys (up/down) navigate between result rows and autocomplete suggestions. Enter selects the highlighted autocomplete suggestion. Selected result row highlighted, detail panel updates. |
-| REQ-3.6 | Export results | Export currently loaded results to CSV or JSON format (toggle styled like String/Regex toggle). Column order: contextId, fieldPath, metadata keys (alphabetical), minOccurs, maxOccurs, allowsNull, allowsEmpty. Export button shows count: "Export (X of Y)" when filters active, "Export (X)" when not. Exports filtered subset only when filters are active. Export is client-side only. |
-| REQ-3.7 | Highlight matching text | When searching by fieldPath pattern, highlight the matched portion in the results display. |
-| REQ-3.8 | Faceted metadata filtering | Left sidebar shows metadata keys present in results (NOT contextId - that's a column header filter). Header displays "Filtering X loaded results" with tooltip explaining counts are based on loaded results (max 250), not global database. Facet values sorted alphabetically. Active facets pinned to top; add "Search facets..." input if > 10 keys. Clicking a key opens popover (min-width: 220px, max-width: 350px, max-height: 300px with scroll). Popover contains: (1) Match mode toggle - "Include any" (OR, checkboxes) or "Require one" (AND, radio buttons); **switching from "Include any" to "Require one" with multiple values selected shows warning dialog, then clears all selections** (switching back requires no warning), (2) List of values with "Search values..." input if many, (3) [Clear] button (clears only this facet). Disjunctive counting: current facet counts stay constant while other facet counts update (counts reflect column-filtered results). When filters narrow results to zero, keep filters visible so user can undo. Manual collapse toggle for sidebar. Multiple key filters combine with AND logic. |
+| REQ-3.1 | Results table | Display results in table with fixed columns: fieldPath, context, minOccurs, maxOccurs, allowsNull, allowsEmpty. All columns sortable with three-state toggle (ascending -> descending -> original order). |
+| REQ-3.2 | Single-page results | Display up to `MAX_RESULTS_PER_PAGE` results per search (see UI Configuration). If more exist, show a prominent warning banner indicating results are truncated and the user should refine their search. |
+| REQ-3.3 | Faceted metadata filtering | Left sidebar provides instant client-side faceted metadata filtering (REQ-3.8). Filters apply instantly without API calls. |
+| REQ-3.4 | Field detail panel | Clicking a row opens slide-out panel showing: context, **all metadata key-value pairs**, occurrence range, null/empty flags, observation timestamps. Panel slides from right with `DETAIL_PANEL_ANIMATION_MS` timing. |
+| REQ-3.5 | Keyboard navigation | Arrow keys (up/down) navigate between result rows. Selected result row highlighted, detail panel updates. Copy button copies field path to clipboard with toast notification. |
+| REQ-3.6 | Highlight matching text | When searching by pattern, highlight the matched portion in the results display using visual emphasis. |
+| REQ-3.7 | Truncation warning | Prominent warning banner when results exceed `MAX_RESULTS_PER_PAGE`, showing total count and guidance to refine search. |
+| REQ-3.8 | Faceted metadata filtering | Left sidebar shows metadata keys present in results (NOT contextId). Header displays result count with tooltip explaining counts are based on loaded results (max 250). Active facets pinned to top with visual indicator. Clicking a key opens popover with mode toggle ("Include any" OR vs "Require one" AND) and value checkboxes/radios. Disjunctive counting: current facet counts stay constant while other facet counts update. Sidebar is collapsible. |
 
 ### REQ-4: XML Upload
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
-| REQ-4.1 | File upload interface | Drag-and-drop zone accepting multiple XML files. Also supports click-to-browse. |
-| REQ-4.2 | XML parsing | Parse uploaded XML files to extract field observations. Logic matches existing SDK implementations (strip namespaces, extract leaf elements and attributes, track count/null/empty). See "XML Parsing Semantics" below. |
-| REQ-4.3 | Metadata input | Before upload, user selects context and provides required metadata values. **Only active contexts are shown** in the dropdown (inactive contexts cannot receive observations). Inputs have autocomplete. |
-| REQ-4.4 | Upload progress | Show progress indicator per file. Display final summary: X observations extracted from Y files, submission status. |
+| REQ-4.1 | Step-based workflow | Three-step upload process: (1) Select Context, (2) Scan Files, (3) Review & Submit. Steps are visually indicated and navigable. |
+| REQ-4.2 | Context selection | Before upload, user selects context from dropdown. **Only active contexts are shown.** Context selection loads extraction rules for smart metadata auto-extraction. |
+| REQ-4.3 | File upload interface | Drag-and-drop zone accepting multiple XML files (up to 25). Also supports click-to-browse. |
+| REQ-4.4 | Smart metadata extraction | Parse uploaded XML files and attempt to auto-extract metadata values based on context's extraction rules. Group files into "complete" (all required metadata extracted) and "incomplete" bins. |
+| REQ-4.5 | Metadata editor modal | Modal for editing metadata values per file. Uses tag-based single-value inputs with autocomplete. Shows per-row completion status with visual highlighting. Save button always enabled; shows "Save Progress" when incomplete, glowing green "Save" when all required fields filled. |
+| REQ-4.6 | Bin-based submission | Files grouped into bins by metadata combination. Each bin can be submitted independently. Shows field count, attribute count, and observation totals. |
+| REQ-4.7 | Upload progress | Show submission status per bin. Display summary: X observations extracted from Y files. Toast notifications for success/error. |
 
-#### XML Parsing Semantics (REQ-4.2 Detail)
+#### XML Parsing Semantics (REQ-4.4 Detail)
 
 **What constitutes "null" vs "empty":**
-- **hasNull = true**: When `xsi:nil="true"` is explicitly present on an element. This indicates the element is explicitly null.
-- **hasEmpty = true**: When an element contains only whitespace or is self-closing with no content (e.g., `<Amount/>`, `<Amount></Amount>`, or `<Amount>   </Amount>`).
-
-**Note:** A `hasNull` observation also implies `minOccurs = 0` for the field, since a null value indicates the field may be absent/optional.
-
-**Note:** The existing Python and C# SDKs do not currently implement `xsi:nil` detection (this is a known bug). The UI parser should implement correct behavior.
+- **hasNull = true**: When `xsi:nil="true"` is explicitly present on an element
+- **hasEmpty = true**: When an element contains only whitespace or is self-closing with no content
 
 **Parsing rules:**
 - Only **leaf elements** (elements with no child elements) are counted as fields
@@ -138,29 +136,16 @@ The UI provides two distinct search views optimized for different use cases:
 - Namespaces are stripped (use `localName` only)
 - Field paths are built hierarchically (e.g., `/Root/Parent/Child`)
 - Count represents occurrences within a single document
-- Check for `xsi:nil="true"` attribute to set `hasNull`
 
 ### REQ-5: User Experience
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
 | REQ-5.1 | Search performance | Search results display within 2 seconds for typical queries |
-| REQ-5.2 | Responsive design | UI usable on screens from 768px width and up. Tables scroll horizontally on smaller screens. |
-| REQ-5.3 | Error handling | Clear error messages for API failures. Loading indicators during API calls. Empty state messaging when no results found. |
-| REQ-5.4 | ~~Accessibility~~ | *Removed - not a priority for initial release* |
-| REQ-5.5 | Initial load performance | Application loads within 3 seconds. See "Performance Testing" below. |
-
-#### Performance Testing (REQ-5.5 Detail)
-
-**Verification approach:**
-- Bundle size measured via `vite build` output
-- Lighthouse performance audit targeting score > 90
-- Initial load measured on throttled 3G connection in DevTools
-
-**Bundle size budget:**
-- Total JavaScript: < 500KB gzipped
-- Main chunk: < 200KB gzipped
-- Lazy-loaded routes allowed for large components
+| REQ-5.2 | Responsive design | UI usable on screens from 768px width and up. Two-column grid for contexts on medium+ screens. |
+| REQ-5.3 | Error handling | Clear error banners for API failures. Loading indicators (skeleton loaders) during API calls. Empty state messaging when no results found. |
+| REQ-5.4 | Toast notifications | Success/error feedback via toast notifications (bottom-right positioned, dark theme matching sidebar). |
+| REQ-5.5 | Initial load performance | Application loads within 3 seconds. Bundle optimized via Vite. |
 
 ---
 
@@ -168,49 +153,52 @@ The UI provides two distinct search views optimized for different use cases:
 
 ### Color Scheme
 
-| Purpose | Color | Hex |
-|---------|-------|-----|
-| Primary Blue | Buttons, links, active states | #2563eb |
-| Secondary Gray | Text, borders | #6b7280 |
-| Success Green | Positive indicators | #10b981 |
-| Warning Orange | Warnings | #f59e0b |
-| Error Red | Errors | #ef4444 |
-| Main Background | Page background | #f9fafb |
-| Card Background | Panels, cards | #ffffff |
-| Table Alternate | Alternating rows | #f3f4f6 |
-| Hover State | Interactive hover | #e5e7eb |
+All colors are defined in `ui/src/index.css` `@theme` block (Tailwind v4 central palette):
+
+| Purpose | Variable | Hex |
+|---------|----------|-----|
+| Background (light) | `--color-paper` | #F8FAFC |
+| Primary text | `--color-ink` | #0F172A |
+| Borders, dividers | `--color-steel` | #E2E8F0 |
+| Dark backgrounds (sidebar) | `--color-charcoal` | #1E293B |
+| Brand blue | `--color-ceremony` | #0052FF |
+| Brand blue hover | `--color-ceremony-hover` | #0043CC |
+| Success green | `--color-mint` | #22C55E |
+| Success alt | `--color-success` | #10B981 |
+| Error red | `--color-error-500` | #EF4444 |
 
 ### Typography
 
 | Element | Font | Size | Weight |
 |---------|------|------|--------|
-| Headings | Inter | 18-24px | 600 |
-| Body Text | Inter | 14-16px | 400 |
-| Code/XPath | Monaco, Consolas | 13px | 400 (monospace) |
-| Labels | Inter | 12-14px | 500 |
+| Headings | Inter | 18-24px | 800-900 (font-black) |
+| Body Text | Inter | 14-16px | 400-500 |
+| Code/XPath | Monaco, Consolas | 12-13px | 400 (monospace) |
+| Labels | Inter | 10-12px | 700 (uppercase tracking) |
 
 ### Layout Principles
 
-- Header with navigation (Search, Contexts, Upload)
-- Main content area with filters above results
+- Fixed header with navigation (Discovery, Field Search, Contexts, Upload)
+- Main content area with optional left sidebar (facets) and right panel (details)
 - Detail panels slide out from right
-- Consistent spacing and alignment
 - Navy blue corporate-minimalist aesthetic
+- Dark sidebar with light content area contrast
+- Consistent header shadow with gradient transition
 
 ---
 
 ## UI Configuration
 
-Configurable values for the UI. These should be defined in a single location (e.g., `config.ts`) and referenced throughout the application.
+Configurable values defined in `ui/src/config.ts`:
 
 | Setting | Default | Notes |
 |---------|---------|-------|
-| `MAX_RESULTS_PER_PAGE` | 250 | Maximum results displayed per search. Must align with backend `max-page-size` setting (see `application.yml`). When exceeded, truncation warning is shown. |
-| `AUTOCOMPLETE_DEBOUNCE_MS` | 300 | Delay before autocomplete API requests fire. Balances responsiveness with API efficiency. |
-| `DETAIL_PANEL_ANIMATION_MS` | 100 | Slide-out panel animation duration. Keep fast for responsive feel. |
-| `API_BASE_URL` | (env var) | Backend API URL, configured via environment variable. |
-
-**Backend alignment note:** The `MAX_RESULTS_PER_PAGE` value must match the backend's `app.catalog.search.max-page-size` setting. Both are currently set to 250.
+| `MAX_RESULTS_PER_PAGE` | 250 | Maximum results displayed per search. Must align with backend `max-page-size` setting. |
+| `DEBOUNCE_MS` | 500 | Delay before search input triggers API request. |
+| `AUTOCOMPLETE_DEBOUNCE_MS` | 300 | Delay before autocomplete API requests fire. |
+| `COPY_FEEDBACK_MS` | 2000 | Duration of copy confirmation feedback. |
+| `DETAIL_PANEL_ANIMATION_MS` | 100 | Slide-out panel animation duration. |
+| `API_BASE_URL` | (env var) | Backend API URL, configured via `VITE_API_BASE_URL`. |
 
 ---
 
@@ -224,15 +212,14 @@ Configurable values for the UI. These should be defined in a single location (e.
 | Firefox | 88+ |
 | Safari | 14+ |
 | Edge | 90+ |
-| iOS Safari | 14+ |
-| Chrome Mobile | 90+ |
 
 ### Integration Requirements
 
 - API Base URL configurable via environment variable
-- Must work with Spring Boot CORS configuration
-- Graceful degradation when API unavailable
-- Architecture ready for future authentication integration
+- CORS configured for Vite dev server (localhost:5173)
+- React Query for server state management and caching
+- Sonner for toast notifications
+- Graceful error handling with ErrorBoundary
 
 ---
 
@@ -240,10 +227,10 @@ Configurable values for the UI. These should be defined in a single location (e.
 
 These items are out of scope for initial release but inform architectural decisions:
 
+- **Export functionality**: CSV/JSON export of search results with metadata
+- **Column header filters**: Text/dropdown filters in table column headers
 - **Tree view**: Hierarchical display of field paths
 - **Field comparison**: Compare fields across contexts or metadata variants
 - **Usage analytics**: Charts showing field usage patterns
-- **Real-time updates**: WebSocket-based live field observation
-- **XSD generation**: Generate XML schemas from catalog data
-- **Advanced search**: Regex patterns, multiple field path filters
 - **Saved searches**: Bookmark and share search queries
+- **Field path tooltips**: Hover to see full path for truncated values

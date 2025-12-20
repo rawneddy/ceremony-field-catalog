@@ -38,3 +38,4 @@ mvn test -Dtest=CatalogServiceTest  # Run a single test class
 ## Configuration & Runtime Notes
 - Default MongoDB connection is `mongodb://localhost:27017/ceremony_catalog` (see `src/main/resources/application.yml`).
 - Docker must be running for Testcontainers-based tests and for `docker-compose` workflows.
+- See `docs/MONGODB_PERFORMANCE.md` for indexing strategy and scale considerations.
