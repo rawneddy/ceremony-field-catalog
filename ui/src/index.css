@@ -5,9 +5,19 @@
   --color-paper: #F8FAFC;
   --color-ink: #0F172A;
   --color-ceremony: #0052FF;
+  --color-ceremony-hover: #0043CC;
   --color-steel: #E2E8F0;
-  --color-slate: #1E293B;
+  --color-charcoal: #1E293B;
   --color-mint: #00F5D4;
+  --color-error-50: #FEF2F2;
+  --color-error-100: #FEE2E2;
+  --color-error-200: #FECACA;
+  --color-error-300: #FCA5A5;
+  --color-error-500: #EF4444;
+  --color-error-600: #DC2626;
+  --color-error-700: #B91C1C;
+  --color-success: #10B981;
+  --color-success-700: #047857;
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-mono: "Monaco", "Consolas", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;

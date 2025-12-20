@@ -139,8 +139,8 @@ const DiscoveryPage: React.FC = () => {
 
         <div className="flex-1 flex flex-col overflow-hidden bg-white">
           {error && (
-            <div className="m-6 p-4 bg-red-50 border border-red-200 rounded-md text-red-700 flex items-center gap-3">
-              <div className="bg-red-100 p-1.5 rounded-full">
+            <div className="m-6 p-4 bg-error-50 border border-error-200 rounded-md text-error-700 flex items-center gap-3">
+              <div className="bg-error-100 p-1.5 rounded-full">
                 <Search className="w-4 h-4" />
               </div>
               <div>

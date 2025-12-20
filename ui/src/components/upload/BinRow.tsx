@@ -18,11 +18,11 @@ const BinRow: React.FC<BinRowProps> = ({ bin, context, onUpdate, onSubmit }) => 
   const isError = bin.status === 'error';
 
   return (
-    <div className={`bg-white border rounded-md p-4 shadow-sm transition-all ${isComplete ? 'border-mint bg-mint/5' : isError ? 'border-red-200' : 'border-steel'}`}>
+    <div className={`bg-white border rounded-md p-4 shadow-sm transition-all ${isComplete ? 'border-mint bg-mint/5' : isError ? 'border-error-200' : 'border-steel'}`}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded ${isComplete ? 'bg-mint/20' : 'bg-slate-100'}`}>
-            {isComplete ? <CheckCircle2 className="w-5 h-5 text-emerald-700" /> : <Layers className="w-5 h-5 text-slate-500" />}
+            {isComplete ? <CheckCircle2 className="w-5 h-5 text-success-700" /> : <Layers className="w-5 h-5 text-slate-500" />}
           </div>
           <div>
             <h3 className="font-bold text-ink">File Group ({bin.files.length})</h3>
@@ -39,7 +39,7 @@ const BinRow: React.FC<BinRowProps> = ({ bin, context, onUpdate, onSubmit }) => 
               Uploading {Math.round(bin.progress)}%
             </div>
           )}
-          {isError && <div className="text-red-500 font-bold text-xs">{bin.error}</div>}
+          {isError && <div className="text-error-500 font-bold text-xs">{bin.error}</div>}
         </div>
       </div>
 
@@ -48,13 +48,13 @@ const BinRow: React.FC<BinRowProps> = ({ bin, context, onUpdate, onSubmit }) => 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 bg-slate-50 p-4 rounded border border-steel/50">
           {[...context.requiredMetadata, ...context.optionalMetadata].map(field => (
             <div key={field}>
-              <label className={`block text-[9px] font-bold uppercase tracking-tighter mb-1 ${context.requiredMetadata.includes(field) && !bin.metadata[field] ? 'text-red-500' : 'text-slate-400'}`}>
+              <label className={`block text-[9px] font-bold uppercase tracking-tighter mb-1 ${context.requiredMetadata.includes(field) && !bin.metadata[field] ? 'text-error-500' : 'text-slate-400'}`}>
                 {field} {context.requiredMetadata.includes(field) ? '*' : ''}
               </label>
               <input
                 value={bin.metadata[field] ?? ''}
                 onChange={e => onUpdate({ ...bin.metadata, [field]: e.target.value })}
-                className={`w-full border rounded px-2 py-1.5 text-xs focus:outline-none focus:border-ceremony ${context.requiredMetadata.includes(field) && !bin.metadata[field] ? 'border-red-300 bg-red-50' : 'border-steel'}`}
+                className={`w-full border rounded px-2 py-1.5 text-xs focus:outline-none focus:border-ceremony ${context.requiredMetadata.includes(field) && !bin.metadata[field] ? 'border-error-300 bg-error-50' : 'border-steel'}`}
                 placeholder="Value..."
               />
             </div>
@@ -67,7 +67,7 @@ const BinRow: React.FC<BinRowProps> = ({ bin, context, onUpdate, onSubmit }) => 
           <button
             disabled={!isReady || isProcessing}
             onClick={onSubmit}
-            className="bg-ceremony text-paper px-6 py-2 rounded text-xs font-black uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
+            className="bg-ceremony text-paper px-6 py-2 rounded text-xs font-black uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ceremony-hover transition-colors shadow-sm flex items-center gap-2"
           >
             {isProcessing ? 'Sending...' : `Submit ${bin.files.length} Files`}
             {!isProcessing && <ArrowRight className="w-3 h-3" />}

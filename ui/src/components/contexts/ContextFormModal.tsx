@@ -135,7 +135,7 @@ const ContextFormModal: React.FC<ContextFormModalProps> = ({ context, onClose })
                 placeholder="e.g. deposits"
               />
               {errors.contextId && (
-                <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.contextId.message}</p>
+                <p className="text-[10px] text-error-500 mt-1 font-bold">{errors.contextId.message}</p>
               )}
             </div>
 
@@ -154,7 +154,7 @@ const ContextFormModal: React.FC<ContextFormModalProps> = ({ context, onClose })
                 placeholder="e.g. Deposit Accounts"
               />
               {errors.displayName && (
-                <p className="text-[10px] text-red-500 mt-1 font-bold">{errors.displayName.message}</p>
+                <p className="text-[10px] text-error-500 mt-1 font-bold">{errors.displayName.message}</p>
               )}
             </div>
 
@@ -262,7 +262,7 @@ const ContextFormModal: React.FC<ContextFormModalProps> = ({ context, onClose })
             <button
               type="submit"
               disabled={isSubmitting || isCreating || isUpdating}
-              className="bg-ink text-paper px-8 py-2 rounded text-xs font-black uppercase tracking-widest hover:bg-slate transition-all disabled:opacity-50"
+              className="bg-ink text-paper px-8 py-2 rounded text-xs font-black uppercase tracking-widest hover:bg-charcoal transition-all disabled:opacity-50"
             >
               {isSubmitting || isCreating || isUpdating ? 'Saving...' : 'Save Context'}
             </button>
@@ -319,7 +319,7 @@ const MetadataRuleEditor: React.FC<MetadataRuleEditorProps> = ({ field, rule, on
               onChange={(e) => onUpdate({ validationRegex: e.target.value })}
               className={`w-full border rounded px-2 py-1.5 text-xs font-mono focus:outline-none transition-colors ${
                 !regexIsValid
-                  ? 'border-red-500 bg-red-50 focus:border-red-600'
+                  ? 'border-error-500 bg-error-50 focus:border-error-600'
                   : regexValue
                   ? 'border-mint bg-mint/5 focus:border-ceremony'
                   : 'border-steel bg-white focus:border-ceremony'
@@ -327,14 +327,14 @@ const MetadataRuleEditor: React.FC<MetadataRuleEditorProps> = ({ field, rule, on
               placeholder="e.g. ^[A-Z]{3}$"
             />
             {!regexIsValid && (
-              <AlertTriangle className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-red-500" />
+              <AlertTriangle className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-error-500" />
             )}
             {regexIsValid && regexValue && (
-              <Check className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-emerald-600" />
+              <Check className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-success-700" />
             )}
           </div>
           {!regexIsValid && (
-            <p className="text-[9px] text-red-500 mt-1 font-bold">Invalid Regular Expression</p>
+            <p className="text-[9px] text-error-500 mt-1 font-bold">Invalid Regular Expression</p>
           )}
         </div>
       </div>

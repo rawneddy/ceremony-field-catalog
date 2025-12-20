@@ -134,7 +134,7 @@ const UploadPage: React.FC = () => {
              <div className="space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-500">
                 <div className="flex items-center justify-between">
                     <h2 className="text-xl font-black text-ink uppercase tracking-tight">Review & Submit</h2>
-                    <button onClick={resetUpload} className="text-xs text-slate-400 hover:text-red-500">Cancel & Restart</button>
+                    <button onClick={resetUpload} className="text-xs text-slate-400 hover:text-error-500">Cancel & Restart</button>
                 </div>
                 
                 {bins.length === 0 ? (

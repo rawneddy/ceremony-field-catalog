@@ -72,7 +72,7 @@ const ContextsPage: React.FC = () => {
           </div>
           <button
             onClick={handleNewContext}
-            className="bg-ceremony text-paper px-6 py-2.5 rounded text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm shrink-0"
+            className="bg-ceremony text-paper px-6 py-2.5 rounded text-sm font-bold flex items-center gap-2 hover:bg-ceremony-hover transition-colors shadow-sm shrink-0"
           >
             <Plus className="w-4 h-4" />
             New Context

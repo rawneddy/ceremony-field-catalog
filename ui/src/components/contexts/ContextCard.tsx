@@ -30,7 +30,7 @@ const ContextCard: React.FC<ContextCardProps> = ({ context, onEdit, onDelete }) 
         </div>
         <div
           className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest ${
-            context.active ? 'bg-mint/20 text-emerald-700' : 'bg-slate-100 text-slate-500'
+            context.active ? 'bg-mint/20 text-success-700' : 'bg-slate-100 text-slate-500'
           }`}
         >
           {context.active ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
@@ -77,7 +77,7 @@ const ContextCard: React.FC<ContextCardProps> = ({ context, onEdit, onDelete }) 
         </button>
         <button
           onClick={onDelete}
-          className="p-2 rounded border border-steel text-slate-400 hover:text-red-500 hover:border-red-200 transition-colors"
+          className="p-2 rounded border border-steel text-slate-400 hover:text-error-500 hover:border-error-200 transition-colors"
           aria-label={`Delete ${context.displayName}`}
         >
           <Trash2 className="w-4 h-4" />

@@ -65,7 +65,7 @@ const FacetSidebar: React.FC<FacetSidebarProps> = ({
 
   if (collapsed) {
     return (
-      <div className="w-12 bg-slate border-r border-ink flex flex-col items-center py-4 gap-4 shrink-0">
+      <div className="w-12 bg-charcoal border-r border-ink flex flex-col items-center py-4 gap-4 shrink-0">
         <button onClick={() => setCollapsed(false)} className="text-slate-400 hover:text-paper">
           <Filter className="w-5 h-5" />
         </button>
@@ -74,7 +74,7 @@ const FacetSidebar: React.FC<FacetSidebarProps> = ({
   }
 
   return (
-    <div className="w-64 bg-slate text-paper flex flex-col shrink-0 relative z-20 shadow-xl border-r border-ink sticky top-0 h-full">
+    <div className="w-64 bg-charcoal text-paper flex flex-col shrink-0 relative z-20 shadow-xl border-r border-ink sticky top-0 h-full">
       <div className="p-4 flex items-center justify-between border-b border-white/5">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-ceremony" />

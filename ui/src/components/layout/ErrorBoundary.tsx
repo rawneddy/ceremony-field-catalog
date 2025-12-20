@@ -29,7 +29,7 @@ class ErrorBoundary extends Component<Props, State> {
           <p className="text-slate-500 mb-6">We encountered an unexpected error. Please try refreshing the page.</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-ceremony text-paper px-6 py-2 rounded font-medium hover:bg-blue-700 transition-colors"
+            className="bg-ceremony text-paper px-6 py-2 rounded font-medium hover:bg-ceremony-hover transition-colors"
           >
             Refresh Page
           </button>
