@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import type { CatalogEntry } from '../../types';
 import { X, Database, Info, Activity, Clock, AlertTriangle } from 'lucide-react';
 import { config } from '../../config';
-import { getFieldWarnings, getWarningSeverityClasses, type FieldWarning } from '../../lib/schema/fieldWarnings';
+import { getFieldWarnings, getWarningSeverityClasses } from '../../lib/schema/fieldWarnings';
 
 interface FieldDetailPanelProps {
   entry: CatalogEntry;
