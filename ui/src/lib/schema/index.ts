@@ -12,3 +12,6 @@ export { generateJsonSchema, generateJsonSchemaString } from './jsonSchemaGenera
 // Policy utilities
 export { createDefaultConfig, generateFilename, validateConfig } from './policy';
 export { supportsHierarchy, getMimeType, mergeWithDefaults } from './policy';
+
+// Validation
+export * from './validator';

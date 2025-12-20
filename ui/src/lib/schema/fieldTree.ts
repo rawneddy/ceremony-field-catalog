@@ -84,10 +84,8 @@ export function buildFieldTree(entries: CatalogEntry[]): FieldTreeNode {
         childNode.isMixedContent = true;
       }
 
-      // Parent nodes are not leaves (unless mixed content)
-      if (!isLastSegment) {
-        currentNode.isLeaf = false;
-      }
+      // Current node has children, so it's not a leaf
+      currentNode.isLeaf = false;
 
       // Mark the final segment with observation data
       if (isLastSegment) {

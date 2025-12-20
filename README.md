@@ -174,6 +174,20 @@ This works for:
 
 ## Testing
 ---
+
+### Run All Tests
+
+To run both backend and frontend tests:
+```sh
+# Backend tests (requires Docker for Testcontainers)
+mvn clean test
+
+# Frontend tests
+cd ui && npm run test
+```
+
+### Backend Tests (Java/Spring)
+
 ```sh
 mvn clean test
 ```
@@ -181,6 +195,23 @@ mvn clean test
 Integration tests use Testcontainers to spin up a temporary MongoDB instance. Docker must be running.
 
 For detailed testing patterns and guidelines, see [docs/api/TESTING.md](docs/api/TESTING.md).
+
+### Frontend Tests (React/TypeScript)
+
+```sh
+cd ui
+
+# Run tests once
+npm run test
+
+# Run tests in watch mode (for development)
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+The UI tests cover schema generation (XSD, JSON Schema), field tree building, and export validation.
 
 ## Project Structure
 ---

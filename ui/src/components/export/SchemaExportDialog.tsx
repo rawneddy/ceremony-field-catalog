@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { X, Download, FileCode, FileJson, FileSpreadsheet } from 'lucide-react';
+import React, { useState, useCallback, useMemo } from 'react';
+import { X, Download, FileCode, FileJson, FileSpreadsheet, AlertTriangle, AlertCircle } from 'lucide-react';
 import PolicyOptions from './PolicyOptions';
 import type { ExportFormat, SchemaExportPolicy, XsdVersion } from '../../lib/schema/types';
 import { DEFAULT_POLICY } from '../../lib/schema/types';
@@ -8,6 +8,14 @@ import { buildFieldTreeWithPolicy } from '../../lib/schema/fieldTree';
 import { generateXsd } from '../../lib/schema/xsdGenerator';
 import { generateJsonSchemaString } from '../../lib/schema/jsonSchemaGenerator';
 import { generateFilename, getMimeType } from '../../lib/schema/policy';
+import {
+  validateEntries,
+  validateTree,
+  validateXsdOutput,
+  validateJsonSchemaOutput,
+  mergeValidationResults,
+  type ValidationResult
+} from '../../lib/schema/validator';
 
 interface SchemaExportDialogProps {
   entries: CatalogEntry[];
@@ -54,9 +62,29 @@ const SchemaExportDialog: React.FC<SchemaExportDialogProps> = ({
   const [policy, setPolicy] = useState<SchemaExportPolicy>({ ...DEFAULT_POLICY });
   const [xsdVersion, setXsdVersion] = useState<XsdVersion>('1.1');
   const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  // Pre-export validation (entries + tree structure)
+  const preValidation = useMemo((): ValidationResult => {
+    // Always validate entries
+    const entryValidation = validateEntries(entries);
+    if (!entryValidation.canExport) {
+      return entryValidation;
+    }
+
+    // For hierarchical formats, also validate the tree
+    if (format !== 'csv') {
+      const tree = buildFieldTreeWithPolicy(entries, policy);
+      const treeValidation = validateTree(tree);
+      return mergeValidationResults(entryValidation, treeValidation);
+    }
+
+    return entryValidation;
+  }, [entries, format, policy]);
 
   const handleExport = useCallback(() => {
     setIsExporting(true);
+    setExportError(null);
 
     try {
       const config = {
@@ -80,8 +108,28 @@ const SchemaExportDialog: React.FC<SchemaExportDialogProps> = ({
 
         if (format === 'xsd') {
           content = generateXsd(tree, config);
+
+          // Validate the generated XSD
+          const outputValidation = validateXsdOutput(content);
+          if (!outputValidation.canExport) {
+            const errorMsgs = outputValidation.errors.map(e => e.message).join('; ');
+            setExportError(`Generated XSD validation failed: ${errorMsgs}`);
+            console.error('XSD validation errors:', outputValidation.errors);
+            setIsExporting(false);
+            return;
+          }
         } else {
           content = generateJsonSchemaString(tree, config);
+
+          // Validate the generated JSON Schema
+          const outputValidation = validateJsonSchemaOutput(content);
+          if (!outputValidation.canExport) {
+            const errorMsgs = outputValidation.errors.map(e => e.message).join('; ');
+            setExportError(`Generated JSON Schema validation failed: ${errorMsgs}`);
+            console.error('JSON Schema validation errors:', outputValidation.errors);
+            setIsExporting(false);
+            return;
+          }
         }
         mimeType = getMimeType(format);
       }
@@ -92,11 +140,15 @@ const SchemaExportDialog: React.FC<SchemaExportDialogProps> = ({
 
       onClose();
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setExportError(`Export failed: ${message}`);
       console.error('Export failed:', error);
     } finally {
       setIsExporting(false);
     }
   }, [format, policy, xsdVersion, contextId, metadata, entries, onClose]);
+
+  const canExport = preValidation.canExport && entries.length > 0;
 
   // Handle escape key
   React.useEffect(() => {
@@ -183,6 +235,77 @@ const SchemaExportDialog: React.FC<SchemaExportDialogProps> = ({
               </p>
             </div>
           )}
+
+          {/* Validation Messages */}
+          {(preValidation.errors.length > 0 || preValidation.warnings.length > 0 || exportError) && (
+            <div className="space-y-3">
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                Validation
+              </h3>
+
+              {/* Errors - block export */}
+              {preValidation.errors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-red-800">
+                        {preValidation.errors.length} error{preValidation.errors.length > 1 ? 's' : ''} found
+                      </p>
+                      <ul className="text-xs text-red-700 space-y-1">
+                        {preValidation.errors.slice(0, 5).map((error, i) => (
+                          <li key={i}>
+                            <span className="font-mono text-[10px] text-red-500">[{error.code}]</span>{' '}
+                            {error.message}
+                          </li>
+                        ))}
+                        {preValidation.errors.length > 5 && (
+                          <li className="text-red-500">
+                            ... and {preValidation.errors.length - 5} more (check console for full list)
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Export error */}
+              {exportError && (
+                <div className="bg-red-50 border border-red-200 rounded p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-bold text-red-800">Export Error</p>
+                      <p className="text-xs text-red-700">{exportError}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Warnings - informational */}
+              {preValidation.warnings.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded p-3">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-amber-800">
+                        {preValidation.warnings.length} warning{preValidation.warnings.length > 1 ? 's' : ''}
+                      </p>
+                      <ul className="text-xs text-amber-700 space-y-1">
+                        {preValidation.warnings.map((warning, i) => (
+                          <li key={i}>
+                            <span className="font-mono text-[10px] text-amber-500">[{warning.code}]</span>{' '}
+                            {warning.message}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -197,7 +320,7 @@ const SchemaExportDialog: React.FC<SchemaExportDialogProps> = ({
           <button
             type="button"
             onClick={handleExport}
-            disabled={isExporting || entries.length === 0}
+            disabled={isExporting || !canExport}
             className="bg-ceremony text-paper px-8 py-2 rounded text-xs font-black uppercase tracking-widest hover:bg-ceremony-hover transition-all disabled:opacity-50 flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
