@@ -466,4 +466,235 @@ class ContextServiceTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Required metadata cannot be changed after context creation");
     }
+
+    // ===== METADATA RULES TESTS =====
+
+    @Test
+    void createContextWithValidMetadataRules() {
+        var rules = java.util.Map.of(
+            "productcode", List.of("/ceremony/productCode", "/header/product"),
+            "region", List.of("/address/state")
+        );
+
+        var dto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(List.of("region"))
+            .metadataRules(rules)
+            .active(true)
+            .build();
+
+        Context created = contextService.createContext(dto);
+
+        assertThat(created.getMetadataRules()).isNotNull();
+        assertThat(created.getMetadataRules()).hasSize(2);
+        assertThat(created.getMetadataRules().get("productcode"))
+            .containsExactly("/ceremony/productCode", "/header/product");
+        assertThat(created.getMetadataRules().get("region"))
+            .containsExactly("/address/state");
+    }
+
+    @Test
+    void createContextWithNullMetadataRulesIsValid() {
+        var dto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(List.of("region"))
+            .metadataRules(null)
+            .active(true)
+            .build();
+
+        Context created = contextService.createContext(dto);
+
+        assertThat(created.getMetadataRules()).isNull();
+    }
+
+    @Test
+    void updateContextWithMetadataRules() {
+        // Create initial context without rules
+        var initialDto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(List.of("region"))
+            .metadataRules(null)
+            .active(true)
+            .build();
+        contextService.createContext(initialDto);
+
+        // Update with rules
+        var rules = java.util.Map.of(
+            "productcode", List.of("/ceremony/productCode")
+        );
+        var updateDto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(List.of("region"))
+            .metadataRules(rules)
+            .active(true)
+            .build();
+
+        var updated = contextService.updateContext("test-context", updateDto);
+
+        assertThat(updated).isPresent();
+        assertThat(updated.get().getMetadataRules()).isNotNull();
+        assertThat(updated.get().getMetadataRules().get("productcode"))
+            .containsExactly("/ceremony/productCode");
+    }
+
+    @Test
+    void metadataRulesPersistedAndRetrieved() {
+        var rules = java.util.Map.of(
+            "productcode", List.of("/ceremony/productCode", "/alt/path")
+        );
+
+        var dto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(null)
+            .metadataRules(rules)
+            .active(true)
+            .build();
+
+        contextService.createContext(dto);
+
+        // Retrieve and verify
+        var retrieved = contextService.getContext("test-context");
+
+        assertThat(retrieved).isPresent();
+        assertThat(retrieved.get().getMetadataRules()).isNotNull();
+        assertThat(retrieved.get().getMetadataRules().get("productcode"))
+            .containsExactly("/ceremony/productCode", "/alt/path");
+    }
+
+    @Test
+    void metadataRulesRejectsUndeclaredField() {
+        var rules = java.util.Map.of(
+            "undeclaredfield", List.of("/some/xpath")
+        );
+
+        var dto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(List.of("region"))
+            .metadataRules(rules)
+            .active(true)
+            .build();
+
+        assertThatThrownBy(() -> contextService.createContext(dto))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("undeclaredfield")
+            .hasMessageContaining("not declared in required or optional metadata");
+    }
+
+    @Test
+    void metadataRulesRejectsEmptyXPathList() {
+        var rules = java.util.Map.of(
+            "productcode", List.<String>of()  // Empty list
+        );
+
+        var dto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(null)
+            .metadataRules(rules)
+            .active(true)
+            .build();
+
+        assertThatThrownBy(() -> contextService.createContext(dto))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("productcode")
+            .hasMessageContaining("must have at least one XPath");
+    }
+
+    @Test
+    void metadataRulesRejectsXPathNotStartingWithSlash() {
+        var rules = java.util.Map.of(
+            "productcode", List.of("ceremony/productCode")  // Missing leading /
+        );
+
+        var dto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(null)
+            .metadataRules(rules)
+            .active(true)
+            .build();
+
+        assertThatThrownBy(() -> contextService.createContext(dto))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("productcode")
+            .hasMessageContaining("must start with '/'");
+    }
+
+    @Test
+    void metadataRulesAcceptsCaseInsensitiveFieldMatch() {
+        // Field declared as lowercase, rule uses mixed case
+        var rules = java.util.Map.of(
+            "ProductCode", List.of("/ceremony/productCode")  // Mixed case key
+        );
+
+        var dto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))  // Lowercase
+            .optionalMetadata(null)
+            .metadataRules(rules)
+            .active(true)
+            .build();
+
+        // Should not throw - case insensitive matching
+        Context created = contextService.createContext(dto);
+        assertThat(created.getMetadataRules()).containsKey("ProductCode");
+    }
+
+    @Test
+    void metadataRulesValidatedOnUpdate() {
+        // Create context
+        var initialDto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(null)
+            .metadataRules(null)
+            .active(true)
+            .build();
+        contextService.createContext(initialDto);
+
+        // Try to update with invalid rules
+        var invalidRules = java.util.Map.of(
+            "undeclaredfield", List.of("/some/xpath")
+        );
+        var updateDto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(null)
+            .metadataRules(invalidRules)
+            .active(true)
+            .build();
+
+        assertThatThrownBy(() -> contextService.updateContext("test-context", updateDto))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("undeclaredfield")
+            .hasMessageContaining("not declared in required or optional metadata");
+    }
 }

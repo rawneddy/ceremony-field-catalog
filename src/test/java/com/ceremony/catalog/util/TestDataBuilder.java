@@ -92,15 +92,15 @@ public class TestDataBuilder {
         }
         
         public ContextDefinitionDTO build() {
-            return new ContextDefinitionDTO(
-                id, 
-                displayName, 
-                description, 
-                requiredMetadataFields, 
-                optionalMetadataFields, 
-                metadataRules,
-                active
-            );
+            return ContextDefinitionDTO.builder()
+                .contextId(id)
+                .displayName(displayName)
+                .description(description)
+                .requiredMetadata(requiredMetadataFields)
+                .optionalMetadata(optionalMetadataFields)
+                .metadataRules(metadataRules.isEmpty() ? null : metadataRules)
+                .active(active)
+                .build();
         }
     }
     
