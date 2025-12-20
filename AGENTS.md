@@ -6,6 +6,7 @@
 - `src/main/resources/` holds `application.yml` plus env overrides like `application-dev.yml`.
 - `docs/` includes architecture, API, testing, and SDK guidance; `sdks/` contains .NET and Python clients.
 - `tests/` stores manual REST Client scripts such as `CatalogSmokeTests.http`.
+- `ui/src/index.css` `@theme` block defines all colors, fonts, and shadows (Tailwind v4 central palette).
 - Root `docker-compose.yml` and `Dockerfile` define containerized builds and local runtime.
 
 ## Build, Test, and Development Commands

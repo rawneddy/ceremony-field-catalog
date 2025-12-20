@@ -1,14 +1,30 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
+/*
+ * =============================================================================
+ * CENTRAL COLOR PALETTE (Tailwind v4)
+ * All colors, fonts, and shadows are defined here as the single source of truth.
+ * Use these via Tailwind classes: bg-paper, text-ink, border-ceremony, etc.
+ * =============================================================================
+ */
 @theme {
-  --color-paper: #F8FAFC;
-  --color-ink: #0F172A;
+  /* Base colors */
+  --color-paper: #F8FAFC;      /* Light background */
+  --color-ink: #0F172A;        /* Primary text */
+  --color-steel: #E2E8F0;      /* Borders, dividers */
+  --color-charcoal: #1E293B;   /* Dark backgrounds (sidebar) */
+
+  /* Brand - Ceremony blue */
   --color-ceremony: #0052FF;
   --color-ceremony-hover: #0043CC;
-  --color-steel: #E2E8F0;
-  --color-charcoal: #1E293B;
-  --color-mint: #00F5D4;
+
+  /* Success - Green */
+  --color-mint: #22C55E;       /* Success indicators, completion states */
+  --color-success: #10B981;
+  --color-success-700: #047857;
+
+  /* Error - Red */
   --color-error-50: #FEF2F2;
   --color-error-100: #FEE2E2;
   --color-error-200: #FECACA;
@@ -16,12 +32,12 @@
   --color-error-500: #EF4444;
   --color-error-600: #DC2626;
   --color-error-700: #B91C1C;
-  --color-success: #10B981;
-  --color-success-700: #047857;
 
+  /* Typography */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-mono: "Monaco", "Consolas", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
+  /* Shadows */
   --shadow-header: 0 8px 24px -4px rgba(15, 23, 42, 0.3);
 }
 

@@ -74,10 +74,31 @@ const TagInput: React.FC<TagInputProps> = ({
     setInputValue('');
     setSelectedIndex(-1);
 
-    // For single-select mode, blur the input after selection
+    // For single-select mode, auto-advance to next input
     if (maxValues === 1) {
       setIsFocused(false);
-      inputRef.current?.blur();
+
+      // Find and focus the next focusable input
+      // Use setTimeout to let React update the DOM first
+      setTimeout(() => {
+        if (containerRef.current) {
+          // Get all TagInput containers, then find their inputs
+          const allContainers = Array.from(document.querySelectorAll('[data-tag-input]'));
+          const currentContainerIndex = allContainers.indexOf(containerRef.current);
+
+          // Look for the next container that has a visible input
+          for (let i = currentContainerIndex + 1; i < allContainers.length; i++) {
+            const container = allContainers[i];
+            if (container) {
+              const nextInput = container.querySelector('input:not([disabled])');
+              if (nextInput instanceof HTMLInputElement) {
+                nextInput.focus();
+                break;
+              }
+            }
+          }
+        }
+      }, 10);
     }
   };
 
@@ -139,7 +160,7 @@ const TagInput: React.FC<TagInputProps> = ({
   const hideInput = maxValues && values.length >= maxValues;
 
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
+    <div ref={containerRef} data-tag-input className={`relative ${className}`}>
       {/* Tags Container */}
       <div
         className={`flex flex-wrap gap-1 p-1.5 bg-white border rounded min-h-[34px] cursor-text transition-colors

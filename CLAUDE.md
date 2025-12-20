@@ -193,6 +193,7 @@ The UI uses strict TypeScript configuration with Nexus-level type checking:
 - **services/**: API client and catalog API functions
 - **utils/**: Pure utility functions (xmlParser, queryKeys)
 - **components/**: Organized by feature area with barrel exports
+- **Theming**: All colors, fonts, and shadows are defined in `ui/src/index.css` `@theme` block (Tailwind v4)
 
 ## Development Guidelines
 
