@@ -1,4 +1,4 @@
-import type { CatalogObservation } from '../types';
+import type { CatalogObservation, MetadataExtractionRule } from '../types';
 
 export const parseXmlToObservations = (xmlString: string, metadata: Record<string, string>): CatalogObservation[] => {
   const parser = new DOMParser();
@@ -64,4 +64,52 @@ export const parseXmlToObservations = (xmlString: string, metadata: Record<strin
   }
 
   return Array.from(observations.values());
+};
+
+export const extractMetadataFromXml = (xmlString: string, rules: Record<string, MetadataExtractionRule>): Record<string, string> => {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+  const extracted: Record<string, string> = {};
+
+  if (!rules) return extracted;
+
+  Object.entries(rules).forEach(([field, rule]) => {
+    if (!rule.xpaths) return;
+    
+    for (const xpath of rule.xpaths) {
+      try {
+        // Evaluate XPath - resultType 2 is STRING_TYPE
+        const result = xmlDoc.evaluate(
+          xpath,
+          xmlDoc,
+          null,
+          2, // XPathResult.STRING_TYPE
+          null
+        );
+        const value = result.stringValue?.trim();
+
+        if (value) {
+          // Validate regex if present
+          if (rule.validationRegex) {
+            try {
+                const regex = new RegExp(rule.validationRegex);
+                if (regex.test(value)) {
+                  extracted[field] = value;
+                  break; // Found a valid match
+                }
+            } catch (e) {
+                console.warn(`Invalid regex for field ${field}: ${rule.validationRegex}`);
+            }
+          } else {
+            extracted[field] = value;
+            break; // Found a match
+          }
+        }
+      } catch (e) {
+        // Ignore invalid XPaths
+      }
+    }
+  });
+
+  return extracted;
 };

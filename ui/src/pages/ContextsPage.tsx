@@ -3,7 +3,7 @@ import Layout from '../components/layout/Layout';
 import { Plus, Database, AlertCircle, Edit2, Trash2, CheckCircle2 } from 'lucide-react';
 import { useContexts } from '../hooks/useContexts';
 import { useContextMutations } from '../hooks/useContextMutations';
-import type { Context, ContextWithCount } from '../types';
+import type { Context, ContextWithCount, MetadataExtractionRule } from '../types';
 
 const ContextsPage: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -137,7 +137,8 @@ const ContextFormModal = ({ context, onClose }: { context: Context | null; onClo
     description: context?.description || '',
     active: context?.active ?? true,
     requiredMetadata: context?.requiredMetadata.join(', ') || '',
-    optionalMetadata: context?.optionalMetadata.join(', ') || ''
+    optionalMetadata: context?.optionalMetadata.join(', ') || '',
+    metadataRules: context?.metadataRules || {} as Record<string, MetadataExtractionRule>
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,7 +146,8 @@ const ContextFormModal = ({ context, onClose }: { context: Context | null; onClo
     const payload = {
       ...formData,
       requiredMetadata: formData.requiredMetadata.split(',').map(s => s.trim()).filter(Boolean),
-      optionalMetadata: formData.optionalMetadata.split(',').map(s => s.trim()).filter(Boolean)
+      optionalMetadata: formData.optionalMetadata.split(',').map(s => s.trim()).filter(Boolean),
+      metadataRules: formData.metadataRules
     };
 
     try {
@@ -217,6 +219,75 @@ const ContextFormModal = ({ context, onClose }: { context: Context | null; onClo
                   />
                </div>
             </div>
+
+            <div className="border-t border-steel pt-4 mt-2">
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3">Auto-Extraction Rules</h3>
+              <p className="text-[10px] text-slate-400 mb-4">
+                Define prioritized XPaths to automatically extract metadata values from uploaded XML files. 
+                Optionally add a Regex to validate the extracted value.
+              </p>
+              
+              {[
+                ...formData.requiredMetadata.split(',').map(s => s.trim()).filter(Boolean),
+                ...formData.optionalMetadata.split(',').map(s => s.trim()).filter(Boolean)
+              ].map(field => (
+                <div key={field} className="mb-4 bg-slate-50 p-3 rounded border border-steel">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-ink">{field}</span>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-tighter mb-1">XPaths (comma separated, priority order)</label>
+                      <input
+                        value={formData.metadataRules[field]?.xpaths?.join(', ') || ''}
+                        onChange={e => {
+                          const xpaths = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                          setFormData(prev => ({
+                            ...prev,
+                            metadataRules: {
+                              ...prev.metadataRules,
+                              [field]: { 
+                                ...prev.metadataRules[field], 
+                                xpaths 
+                              }
+                            }
+                          }));
+                        }}
+                        className="w-full bg-white border border-steel rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-ceremony"
+                        placeholder="/Root/Element/Path, /Another/Path"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Validation Regex (Optional)</label>
+                      <input
+                        value={formData.metadataRules[field]?.validationRegex || ''}
+                        onChange={e => {
+                          setFormData(prev => ({
+                            ...prev,
+                            metadataRules: {
+                              ...prev.metadataRules,
+                              [field]: { 
+                                ...prev.metadataRules[field], 
+                                validationRegex: e.target.value 
+                              }
+                            }
+                          }));
+                        }}
+                        className="w-full bg-white border border-steel rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-ceremony"
+                        placeholder="e.g. ^[A-Z]{3}$"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(!formData.requiredMetadata && !formData.optionalMetadata) && (
+                <div className="text-xs text-slate-400 italic text-center py-2">
+                  Add metadata fields above to configure extraction rules.
+                </div>
+              )}
+            </div>
+
             <label className="flex items-center gap-3 cursor-pointer group">
               <input
                 type="checkbox"
