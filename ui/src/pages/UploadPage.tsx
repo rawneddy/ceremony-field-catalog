@@ -22,20 +22,24 @@ const UploadPage: React.FC = () => {
     isScanning
   } = useXmlUpload();
 
-  const handleFileDrop = (e: React.DragEvent) => {
+  const handleFileDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'text/xml' || f.name.endsWith('.xml'));
     if (files.length > 0 && selectedContext) {
-      scanFiles(files, selectedContext.metadataRules || {});
-      setStep(3);
+      const validCount = await scanFiles(files, selectedContext.metadataRules || {});
+      if (validCount > 0) {
+        setStep(3);
+      }
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0 && selectedContext) {
       const files = Array.from(e.target.files);
-      scanFiles(files, selectedContext.metadataRules || {});
-      setStep(3);
+      const validCount = await scanFiles(files, selectedContext.metadataRules || {});
+      if (validCount > 0) {
+        setStep(3);
+      }
     }
   };
 

@@ -1,8 +1,25 @@
+import { toast } from 'sonner';
 import type { CatalogObservation, MetadataExtractionRule } from '../types';
 
-export const parseXmlToObservations = (xmlString: string, metadata: Record<string, string>): CatalogObservation[] => {
+/**
+ * Parses XML string and throws if invalid.
+ * DOMParser doesn't throw - it returns a doc with <parsererror> element.
+ */
+const parseXml = (xmlString: string): Document => {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+
+  // Check for parse errors - DOMParser embeds errors in the document
+  const parseError = xmlDoc.querySelector('parsererror');
+  if (parseError) {
+    throw new Error('Invalid XML');
+  }
+
+  return xmlDoc;
+};
+
+export const parseXmlToObservations = (xmlString: string, metadata: Record<string, string>): CatalogObservation[] => {
+  const xmlDoc = parseXml(xmlString);
   const observations: Map<string, CatalogObservation> = new Map();
 
   const traverse = (node: Node, path: string = "") => {
@@ -68,8 +85,7 @@ export const parseXmlToObservations = (xmlString: string, metadata: Record<strin
 };
 
 export const extractMetadataFromXml = (xmlString: string, rules: Record<string, MetadataExtractionRule>): Record<string, string> => {
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+  const xmlDoc = parseXml(xmlString);
   const extracted: Record<string, string> = {};
 
   if (!rules) return extracted;
@@ -98,8 +114,8 @@ export const extractMetadataFromXml = (xmlString: string, rules: Record<string, 
                   extracted[field] = value;
                   break; // Found a valid match
                 }
-            } catch (e) {
-                console.warn(`Invalid regex for field ${field}: ${rule.validationRegex}`);
+            } catch {
+                toast.warning(`Invalid regex for "${field}": ${rule.validationRegex}`);
             }
           } else {
             extracted[field] = value;

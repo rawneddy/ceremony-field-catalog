@@ -17,8 +17,8 @@ export const useSuggest = (field: string, prefix: string, contextId?: string, me
       try {
         const results = await catalogApi.suggest(field, debouncedPrefix, contextId, metadata);
         setSuggestions(results);
-      } catch (error) {
-        console.error('Failed to fetch suggestions', error);
+      } catch {
+        // Silently fail - suggestions are non-critical
         setSuggestions([]);
       }
     };
