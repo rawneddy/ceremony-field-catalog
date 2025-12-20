@@ -19,6 +19,8 @@ const FieldSearchPage: React.FC = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [suggestionIndex, setSuggestionIndex] = useState(-1);
+  const [isShaking, setIsShaking] = useState(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
   // Suggestions for field paths (enabled in string mode)
   const suggestions = useSuggest('fieldPath', query, undefined);
@@ -51,6 +53,15 @@ const FieldSearchPage: React.FC = () => {
 
   const handleSearch = (e?: React.FormEvent) => {
     e?.preventDefault();
+
+    // Don't submit empty searches - give subtle feedback instead
+    if (!query.trim()) {
+      setIsShaking(true);
+      inputRef.current?.focus();
+      setTimeout(() => setIsShaking(false), 500);
+      return;
+    }
+
     setHasSearched(true);
     setSearchParams({
       q: query,
@@ -132,6 +143,7 @@ const FieldSearchPage: React.FC = () => {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
+                  ref={inputRef}
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -139,7 +151,7 @@ const FieldSearchPage: React.FC = () => {
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   placeholder="Search field paths... (e.g. /Ceremony/Account or Account)"
-                  className="w-full bg-white border border-steel rounded px-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ceremony/20 focus:border-ceremony transition-all font-medium font-mono"
+                  className={`w-full bg-white border border-steel rounded px-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ceremony/20 focus:border-ceremony transition-all font-medium font-mono ${isShaking ? 'animate-shake' : ''}`}
                 />
 
                 {showSuggestions && !isRegex && query.length > 0 && suggestions.length > 0 && (
