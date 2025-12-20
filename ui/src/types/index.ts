@@ -22,7 +22,7 @@ export type {
 } from './facet.types';
 
 // Upload types
-export type { UploadBin } from './upload.types';
+export type { UploadBin, FileWithMetadata } from './upload.types';
 
 // API types
 export type { ErrorResponse } from './api.types';

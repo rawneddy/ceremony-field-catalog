@@ -71,15 +71,19 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
             useRegex = Boolean.parseBoolean(useRegexParam);
         }
 
-        // Handle any other parameters as metadata
+        // Handle any other parameters as metadata (strip metadata. prefix if present)
         Iterator<String> paramNames = webRequest.getParameterNames();
         while (paramNames.hasNext()) {
             String paramName = paramNames.next();
             if (paramName != null && !KNOWN_PARAMETERS.contains(paramName)) {
                 String value = webRequest.getParameter(paramName);
                 if (value != null && !value.trim().isEmpty()) {
+                    // Strip metadata. prefix if present (frontend sends metadata.productCode=value)
+                    String key = paramName.startsWith("metadata.")
+                        ? paramName.substring("metadata.".length())
+                        : paramName;
                     // Normalize metadata keys and values to lowercase for case-insensitive handling
-                    metadata.put(paramName.toLowerCase(), value.toLowerCase());
+                    metadata.put(key.toLowerCase(), value.toLowerCase());
                 }
             }
         }

@@ -22,8 +22,8 @@ const FieldSearchPage: React.FC = () => {
   const [isShaking, setIsShaking] = useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
-  // Suggestions for field paths (enabled in string mode)
-  const suggestions = useSuggest('fieldPath', query, undefined);
+  // Suggestions for field paths (enabled in string mode, only when dropdown visible)
+  const { suggestions } = useSuggest('fieldPath', query, undefined, undefined, showSuggestions && !isRegex);
 
   // Reset selection when suggestions change
   React.useEffect(() => {
