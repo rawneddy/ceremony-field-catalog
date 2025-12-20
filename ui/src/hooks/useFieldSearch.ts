@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { catalogApi } from '../services/catalogApi';
-import { queryKeys } from '../lib/queryKeys';
+import { queryKeys } from '../utils/queryKeys';
 import type { CatalogSearchRequest } from '../types';
 
 export const useFieldSearch = (request: CatalogSearchRequest, enabled: boolean = true, scope: string = 'global') => {

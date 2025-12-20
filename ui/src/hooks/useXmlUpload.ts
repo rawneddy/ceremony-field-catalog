@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { catalogApi } from '../services/catalogApi';
-import { parseXmlToObservations, extractMetadataFromXml } from '../services/xmlParser';
+import { parseXmlToObservations, extractMetadataFromXml } from '../utils/xmlParser';
 import type { UploadStatus, MetadataExtractionRule, UploadBin } from '../types';
 
 export const useXmlUpload = () => {
@@ -16,18 +16,17 @@ export const useXmlUpload = () => {
     }));
     setStatuses(initialStatuses);
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    for (const file of files) {
       updateStatus(file.name, { status: 'parsing' });
 
       try {
         const content = await file.text();
         const observations = parseXmlToObservations(content, metadata);
-        
+
         updateStatus(file.name, { status: 'submitting', observationCount: observations.length });
-        
+
         await catalogApi.submitObservations(contextId, observations);
-        
+
         updateStatus(file.name, { status: 'complete' });
       } catch (error) {
         console.error(`Failed to upload ${file.name}`, error);

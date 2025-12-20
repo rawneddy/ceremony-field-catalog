@@ -81,9 +81,11 @@ const FieldSearchPage: React.FC = () => {
       if (suggestionIndex >= 0) {
         e.preventDefault();
         const selected = suggestions[suggestionIndex];
-        setQuery(selected);
-        // Don't search yet - let them refine or hit enter again
-        setSuggestionIndex(-1);
+        if (selected) {
+          setQuery(selected);
+          // Don't search yet - let them refine or hit enter again
+          setSuggestionIndex(-1);
+        }
       } else {
         // Normal form submit handles the search
       }
@@ -91,15 +93,16 @@ const FieldSearchPage: React.FC = () => {
       if (suggestionIndex >= 0) {
         e.preventDefault();
         const selected = suggestions[suggestionIndex];
-        
-        // Partial autocomplete: fill up to the end of the match
-        const matchIndex = selected.toLowerCase().indexOf(query.toLowerCase());
-        if (matchIndex !== -1) {
-          const partial = selected.substring(0, matchIndex + query.length);
-          setQuery(partial);
-        } else {
-          // Fallback if match logic is fuzzy or regex-based in future
-          setQuery(selected);
+        if (selected) {
+          // Partial autocomplete: fill up to the end of the match
+          const matchIndex = selected.toLowerCase().indexOf(query.toLowerCase());
+          if (matchIndex !== -1) {
+            const partial = selected.substring(0, matchIndex + query.length);
+            setQuery(partial);
+          } else {
+            // Fallback if match logic is fuzzy or regex-based in future
+            setQuery(selected);
+          }
         }
       }
     }

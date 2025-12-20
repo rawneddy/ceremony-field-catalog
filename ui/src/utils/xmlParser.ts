@@ -15,10 +15,11 @@ export const parseXmlToObservations = (xmlString: string, metadata: Record<strin
       if (element.attributes) {
         for (let i = 0; i < element.attributes.length; i++) {
           const attr = element.attributes[i];
+          if (!attr) continue;
           if (attr.prefix === 'xmlns' || attr.name === 'xmlns' || attr.name.includes(':')) {
              if (attr.name !== 'xsi:nil') continue; // Only keep xsi:nil
           }
-          
+
           if (attr.name !== 'xsi:nil') {
               const attrPath = `${currentPath}/@${attr.name}`;
               updateObservation(attrPath, false, false);

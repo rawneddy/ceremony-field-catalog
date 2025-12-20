@@ -73,9 +73,12 @@ export const useFacets = (results: CatalogEntry[] | undefined) => {
   const setFacetMode = (key: string, mode: 'any' | 'one') => {
     setFacetModes(prev => ({ ...prev, [key]: mode }));
     // If switching to 'one', keep only the first selected value if multiple exist
-    if (mode === 'one' && selectedFacets[key]?.size > 1) {
-        const firstValue = Array.from(selectedFacets[key])[0];
-        setSelectedFacets(prev => ({ ...prev, [key]: new Set([firstValue]) }));
+    const currentSelected = selectedFacets[key];
+    if (mode === 'one' && currentSelected && currentSelected.size > 1) {
+        const firstValue = Array.from(currentSelected)[0];
+        if (firstValue !== undefined) {
+          setSelectedFacets(prev => ({ ...prev, [key]: new Set([firstValue]) }));
+        }
     }
   };
 

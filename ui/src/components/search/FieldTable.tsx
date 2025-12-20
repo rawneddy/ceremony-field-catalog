@@ -62,12 +62,14 @@ const FieldTable: React.FC<FieldTableProps> = ({
         e.preventDefault();
         const currentIndex = sortedResults.findIndex(r => r.id === selectedId);
         const nextIndex = currentIndex === -1 ? 0 : Math.min(currentIndex + 1, sortedResults.length - 1);
-        onSelectRow(sortedResults[nextIndex]);
+        const nextResult = sortedResults[nextIndex];
+        if (nextResult) onSelectRow(nextResult);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         const currentIndex = sortedResults.findIndex(r => r.id === selectedId);
         const prevIndex = currentIndex === -1 ? 0 : Math.max(currentIndex - 1, 0);
-        onSelectRow(sortedResults[prevIndex]);
+        const prevResult = sortedResults[prevIndex];
+        if (prevResult) onSelectRow(prevResult);
       }
     };
 

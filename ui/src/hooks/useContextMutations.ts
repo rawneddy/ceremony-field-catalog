@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { catalogApi } from '../services/catalogApi';
-import { queryKeys } from '../lib/queryKeys';
+import { queryKeys } from '../utils/queryKeys';
 import type { Context } from '../types';
 
 export const useContextMutations = () => {

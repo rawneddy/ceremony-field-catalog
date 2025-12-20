@@ -98,10 +98,11 @@ const ContextFormModal: React.FC<ContextFormModalProps> = ({ context, onClose })
 
   const updateRule = (field: string, updates: Partial<MetadataExtractionRule>) => {
     const currentRules = metadataRules || {};
+    const existingRule = currentRules[field] || { xpaths: [] };
     setValue('metadataRules', {
       ...currentRules,
       [field]: {
-        ...currentRules[field],
+        xpaths: existingRule.xpaths || [],
         ...updates,
       },
     });
