@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Layout from '../components/layout/Layout';
-import { Plus, Database, AlertCircle, Edit2, Trash2, CheckCircle2 } from 'lucide-react';
+import { Plus, Database, AlertCircle, Edit2, Trash2, CheckCircle2, AlertTriangle, Check } from 'lucide-react';
 import { useContexts } from '../hooks/useContexts';
 import { useContextMutations } from '../hooks/useContextMutations';
 import type { Context, ContextWithCount, MetadataExtractionRule } from '../types';
@@ -141,8 +141,43 @@ const ContextFormModal = ({ context, onClose }: { context: Context | null; onClo
     metadataRules: context?.metadataRules || {} as Record<string, MetadataExtractionRule>
   });
 
+  const [regexErrors, setRegexErrors] = useState<Record<string, boolean>>({});
+
+  const isValidRegex = (pattern: string): boolean => {
+    if (!pattern) return true; // Empty is valid
+    try {
+      new RegExp(pattern);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const handleRegexChange = (field: string, value: string) => {
+    const isValid = isValidRegex(value);
+    setRegexErrors(prev => ({ ...prev, [field]: !isValid }));
+    
+    setFormData(prev => ({
+      ...prev,
+      metadataRules: {
+        ...prev.metadataRules,
+        [field]: { 
+          ...prev.metadataRules[field], 
+          validationRegex: value 
+        }
+      }
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const hasErrors = Object.values(regexErrors).some(isInvalid => isInvalid);
+    if (hasErrors) {
+      alert('Please fix invalid regex patterns before saving.');
+      return;
+    }
+
     const payload = {
       ...formData,
       requiredMetadata: formData.requiredMetadata.split(',').map(s => s.trim()).filter(Boolean),
@@ -259,24 +294,32 @@ const ContextFormModal = ({ context, onClose }: { context: Context | null; onClo
                       />
                     </div>
                     <div>
-                      <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Validation Regex (Optional)</label>
-                      <input
-                        value={formData.metadataRules[field]?.validationRegex || ''}
-                        onChange={e => {
-                          setFormData(prev => ({
-                            ...prev,
-                            metadataRules: {
-                              ...prev.metadataRules,
-                              [field]: { 
-                                ...prev.metadataRules[field], 
-                                validationRegex: e.target.value 
-                              }
-                            }
-                          }));
-                        }}
-                        className="w-full bg-white border border-steel rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-ceremony"
-                        placeholder="e.g. ^[A-Z]{3}$"
-                      />
+                      <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-tighter mb-1">
+                        Validation Regex (Optional)
+                      </label>
+                      <div className="relative">
+                        <input
+                          value={formData.metadataRules[field]?.validationRegex || ''}
+                          onChange={e => handleRegexChange(field, e.target.value)}
+                          className={`w-full border rounded px-2 py-1.5 text-xs font-mono focus:outline-none transition-colors ${
+                            regexErrors[field] 
+                              ? 'border-red-500 bg-red-50 focus:border-red-600' 
+                              : formData.metadataRules[field]?.validationRegex 
+                                ? 'border-mint bg-mint/5 focus:border-ceremony'
+                                : 'border-steel bg-white focus:border-ceremony'
+                          }`}
+                          placeholder="e.g. ^[A-Z]{3}$"
+                        />
+                        {regexErrors[field] && (
+                          <AlertTriangle className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-red-500" />
+                        )}
+                        {!regexErrors[field] && formData.metadataRules[field]?.validationRegex && (
+                          <Check className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-emerald-600" />
+                        )}
+                      </div>
+                      {regexErrors[field] && (
+                        <p className="text-[9px] text-red-500 mt-1 font-bold">Invalid Regular Expression</p>
+                      )}
                     </div>
                   </div>
                 </div>
