@@ -285,19 +285,20 @@ const FieldSearchPage: React.FC = () => {
   // Results (no client-side filtering since we're searching exact FieldKey)
   const results = data?.content || [];
 
+  // Shared layout constants - title takes fixed width, controls fill the rest
+  const TITLE_WIDTH = 'w-56'; // 224px - consistent across all search pages
+  const ROW_GAP = 'gap-6';    // 24px - consistent gap between title and controls
+
   return (
     <Layout>
       <div className="bg-paper p-6 shrink-0 shadow-header relative z-30">
-        <div className="px-2">
-          {/* Primary Header: Context + Required Metadata + Search */}
-          <div className="flex items-end gap-4">
-            {/* Title */}
-            <div className="w-56 shrink-0 pb-1">
-              <h1 className="text-2xl font-black text-ink uppercase tracking-tight">Schema Search</h1>
-              <p className="text-slate-500 text-sm font-medium">Generate exact schemas</p>
-            </div>
-
-            {/* Context Selector */}
+        {/* Row 1: Title + Primary Controls (Context, Required Metadata, Search Button) */}
+        <div className={`flex items-center ${ROW_GAP}`}>
+          <div className={`${TITLE_WIDTH} shrink-0`}>
+            <h1 className="text-2xl font-black text-ink uppercase tracking-tight">Schema Search</h1>
+            <p className="text-slate-500 text-sm font-medium">Generate exact schemas</p>
+          </div>
+          <div className="flex-1 flex items-center gap-4">
             <div className="w-48 shrink-0">
               <ContextSelector
                 value={contextId}
@@ -336,14 +337,17 @@ const FieldSearchPage: React.FC = () => {
               Search
             </button>
           </div>
+        </div>
 
-          {/* Secondary Section: Optional Filters (slides down when ready) */}
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-out ${
-              searchEnabled ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
-            }`}
-          >
-            <div className="mt-4 pt-4 border-t border-steel/50 ml-60">
+        {/* Row 2: Optional Filters - uses same column structure for alignment */}
+        <div
+          className={`overflow-hidden transition-all duration-300 ease-out ${
+            searchEnabled ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div className={`flex ${ROW_GAP} mt-4 pt-4 border-t border-steel/50`}>
+            <div className={`${TITLE_WIDTH} shrink-0`} /> {/* Empty spacer for alignment */}
+            <div className="flex-1">
               {/* Optional Section Header */}
               <div className="flex items-center gap-2 mb-3">
                 <Filter className="w-3 h-3 text-ceremony" />
