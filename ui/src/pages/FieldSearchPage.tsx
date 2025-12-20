@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import Layout from '../components/layout/Layout';
 import { Search } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import FieldTable from '../components/search/FieldTable';
 import FacetSidebar from '../components/search/FacetSidebar';
 import FieldDetailPanel from '../components/search/FieldDetailPanel';
@@ -120,11 +119,14 @@ const FieldSearchPage: React.FC = () => {
   return (
     <Layout>
       <div className="bg-paper p-6 shrink-0 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.3)] relative z-10">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <form onSubmit={handleSearch} className="relative">
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+              {isRegex ? 'Regex Pattern Matching' : 'String Contains Matching on Field Paths'}
+            </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   value={query}
@@ -133,7 +135,7 @@ const FieldSearchPage: React.FC = () => {
                   onFocus={() => setShowSuggestions(true)}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   placeholder="Search field paths... (e.g. /Ceremony/Account or Account)"
-                  className="w-full bg-white border border-steel rounded px-10 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-ceremony/20 focus:border-ceremony transition-all font-medium"
+                  className="w-full bg-white border border-steel rounded px-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ceremony/20 focus:border-ceremony transition-all font-medium font-mono"
                 />
 
                 {showSuggestions && !isRegex && query.length > 0 && suggestions.length > 0 && (
@@ -145,7 +147,7 @@ const FieldSearchPage: React.FC = () => {
                       <button
                         key={suggestion}
                         type="button"
-                        className={`w-full text-left px-4 py-3 text-sm transition-colors font-mono border-b border-steel/50 last:border-0 ${
+                        className={`w-full text-left px-4 py-2 text-xs transition-colors font-mono border-b border-steel/50 last:border-0 ${
                           index === suggestionIndex ? 'bg-ceremony/10 text-ceremony font-bold' : 'hover:bg-paper'
                         }`}
                         onClick={() => {
@@ -160,41 +162,28 @@ const FieldSearchPage: React.FC = () => {
                   </div>
                 )}
               </div>
-              <div className="flex items-center bg-white border border-steel rounded px-1 px-1">
+              <div className="flex items-center bg-white border border-steel rounded px-1">
                 <button
                   type="button"
                   onClick={() => setIsRegex(false)}
-                  className={`px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-colors ${!isRegex ? 'bg-ink text-paper' : 'text-slate-400 hover:text-ink'}`}
+                  className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${!isRegex ? 'bg-ink text-paper' : 'text-slate-400 hover:text-ink'}`}
                 >
                   String
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsRegex(true)}
-                  className={`px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wider transition-colors ${isRegex ? 'bg-ink text-paper' : 'text-slate-400 hover:text-ink'}`}
+                  className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${isRegex ? 'bg-ink text-paper' : 'text-slate-400 hover:text-ink'}`}
                 >
                   Regex
                 </button>
               </div>
               <button
                 type="submit"
-                className="bg-ceremony text-paper px-8 py-3 rounded font-bold hover:bg-blue-700 transition-colors shadow-sm"
+                className="bg-ceremony text-paper px-6 py-2.5 rounded text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
               >
                 Search
               </button>
-            </div>
-            
-            <div className="mt-2 flex items-center justify-between text-xs font-medium">
-              <div className="flex items-center gap-1.5 text-slate-500">
-                {isRegex ? (
-                  <span>Regex pattern matching enabled</span>
-                ) : (
-                  <span>String contains matching on field paths</span>
-                )}
-              </div>
-              <Link to="/" className="text-ceremony hover:underline flex items-center gap-1">
-                Switch to Discovery Engine →
-              </Link>
             </div>
           </form>
         </div>
