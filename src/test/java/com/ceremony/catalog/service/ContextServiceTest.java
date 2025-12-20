@@ -49,6 +49,7 @@ class ContextServiceTest {
             "Test description",
             List.of("field1", "field2"),
             List.of("optional1"),
+            null, // metadataRules
             true
         );
         
@@ -73,6 +74,7 @@ class ContextServiceTest {
             "Test description",
             List.of("field1", "field2"),
             List.of("optional1"),
+            null, // metadataRules
             true
         );
         contextService.createContext(initialDto);
@@ -84,6 +86,7 @@ class ContextServiceTest {
             "Updated description",
             List.of("field1", "field2"), // Same required metadata
             List.of("optional1", "optional2", "optional3"), // Different optional metadata
+            null, // metadataRules
             false
         );
         
@@ -118,6 +121,7 @@ class ContextServiceTest {
             "Test description",
             List.of("field1", "field2"), // Same required metadata
             List.of("optional1"), // Removed optional2
+            null, // metadataRules
             true
         );
         
@@ -136,6 +140,7 @@ class ContextServiceTest {
             "Test description",
             List.of("field1", "field2"),
             List.of("optional1"),
+            null, // metadataRules
             true
         );
         contextService.createContext(initialDto);
@@ -269,6 +274,7 @@ class ContextServiceTest {
             "Test description",
             List.of("ProductCode", "ACTION", "SubType"),  // Mixed case required fields
             List.of("OptionalField", "CATEGORY"),  // Mixed case optional fields
+            null, // metadataRules
             true
         );
         
@@ -288,6 +294,7 @@ class ContextServiceTest {
             "Test description",
             List.of("ProductCode", "Action"),  // Mixed case required fields
             List.of("OptionalField"),  // Mixed case optional field
+            null, // metadataRules
             true
         );
         contextService.createContext(initialDto);
@@ -299,6 +306,7 @@ class ContextServiceTest {
             "Updated description",
             List.of("productcode", "action"), // Same required metadata (lowercase)
             List.of("NEWFIELD", "AnotherField"), // Mixed case optional fields
+            null, // metadataRules
             true
         );
         
@@ -318,6 +326,7 @@ class ContextServiceTest {
             "Test description",
             List.of("productcode", "action"),
             List.of("optional1"),
+            null, // metadataRules
             true
         );
         contextService.createContext(initialDto);
@@ -329,6 +338,7 @@ class ContextServiceTest {
             "Updated description",
             List.of("ProductCode", "ACTION"), // Same fields, different case
             List.of("optional2"),
+            null, // metadataRules
             true
         );
         
@@ -350,6 +360,7 @@ class ContextServiceTest {
             "Test description",
             List.of("productcode", "action"),
             List.of("optional1"),
+            null, // metadataRules
             true
         );
         contextService.createContext(initialDto);
@@ -361,6 +372,7 @@ class ContextServiceTest {
             "Updated description",
             List.of("ProductCode", "ACTION", "newfield"), // Added genuinely new field
             List.of("optional1"),
+            null, // metadataRules
             true
         );
         
@@ -378,6 +390,7 @@ class ContextServiceTest {
             "Test description",
             List.of("productcode", "action", "subtype"),
             List.of("optional1"),
+            null, // metadataRules
             true
         );
         contextService.createContext(initialDto);
@@ -389,6 +402,7 @@ class ContextServiceTest {
             "Updated description",
             List.of("ProductCode", "ACTION"), // Missing subtype, even with case variations
             List.of("optional1"),
+            null, // metadataRules
             true
         );
         
@@ -405,6 +419,7 @@ class ContextServiceTest {
             "Test description",
             List.of("ProductCode", "ACTION"), // Mixed case required fields
             null, // Null optional metadata
+            null, // metadataRules
             true
         );
         
@@ -423,6 +438,7 @@ class ContextServiceTest {
             "Test description",
             List.of("productcode"),
             List.of("optional1"),
+            null, // metadataRules
             true
         );
         contextService.createContext(initialDto);
@@ -434,6 +450,7 @@ class ContextServiceTest {
             "Updated description",
             null, // Null required metadata
             List.of("optional1"),
+            null, // metadataRules
             true
         );
         

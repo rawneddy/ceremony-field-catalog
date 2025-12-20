@@ -30,6 +30,7 @@ class CatalogServiceTest extends ServiceTestBase {
             "Test context for " + contextId,
             requiredFields,
             optionalFields,
+            null, // metadataRules
             true
         );
         contextService.createContext(contextDef);

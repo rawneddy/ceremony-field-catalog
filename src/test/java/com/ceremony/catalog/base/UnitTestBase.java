@@ -109,6 +109,7 @@ public abstract class UnitTestBase {
             "Test " + id + " context", 
             List.of(requiredFields), 
             List.of(), 
+            null, // metadataRules
             true
         );
     }

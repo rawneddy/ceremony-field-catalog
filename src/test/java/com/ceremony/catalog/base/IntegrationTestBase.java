@@ -71,6 +71,7 @@ public abstract class IntegrationTestBase {
             "Test " + id + " context", 
             List.of(requiredFields), 
             List.of(), 
+            null, // metadataRules
             true
         );
     }
