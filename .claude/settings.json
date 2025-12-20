@@ -2,9 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(docker:*)",
-      "Bash(mvn:*)"
-    ],
-    "ask": [
+      "Bash(mvn:*)",
       "Bash(docker rm:*)",
       "Bash(docker rmi:*)",
       "Bash(docker stop:*)",
@@ -14,7 +12,8 @@
       "Bash(docker volume rm:*)",
       "Bash(docker network rm:*)",
       "Bash(docker-compose down:*)",
-      "Bash(docker-compose rm:*)"
+      "Bash(docker-compose rm:*)",
+      "Bash(gh:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
