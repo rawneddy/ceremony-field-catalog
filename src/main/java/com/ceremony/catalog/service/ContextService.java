@@ -2,17 +2,23 @@ package com.ceremony.catalog.service;
 
 import com.ceremony.catalog.api.dto.ContextDefinitionDTO;
 import com.ceremony.catalog.api.dto.ContextWithCountDTO;
+import com.ceremony.catalog.api.dto.MetadataExtractionRuleDTO;
 import com.ceremony.catalog.domain.Context;
+import com.ceremony.catalog.domain.MetadataExtractionRule;
 import com.ceremony.catalog.persistence.CatalogRepository;
 import com.ceremony.catalog.persistence.ContextRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 @Service
 @RequiredArgsConstructor
@@ -32,8 +38,9 @@ public class ContextService {
         List<String> normalizedOptional = dto.getOptionalMetadata() != null ?
             dto.getOptionalMetadata().stream().map(String::toLowerCase).toList() : null;
 
-        // Validate metadata rules
+        // Validate and convert metadata rules
         validateMetadataRules(dto.getMetadataRules(), normalizedRequired, normalizedOptional);
+        Map<String, MetadataExtractionRule> domainRules = convertToDomainRules(dto.getMetadataRules());
 
         Context context = Context.builder()
             .contextId(cleanedContextId)
@@ -41,7 +48,7 @@ public class ContextService {
             .description(dto.getDescription())
             .requiredMetadata(normalizedRequired)
             .optionalMetadata(normalizedOptional)
-            .metadataRules(dto.getMetadataRules())
+            .metadataRules(domainRules)
             .active(dto.getActive())
             .createdAt(Instant.now())
             .build();
@@ -59,14 +66,15 @@ public class ContextService {
                 List<String> normalizedOptional = dto.getOptionalMetadata() != null ?
                     dto.getOptionalMetadata().stream().map(String::toLowerCase).toList() : null;
 
-                // Validate metadata rules against existing required + new optional
+                // Validate and convert metadata rules
                 validateMetadataRules(dto.getMetadataRules(), existing.getRequiredMetadata(), normalizedOptional);
+                Map<String, MetadataExtractionRule> domainRules = convertToDomainRules(dto.getMetadataRules());
 
                 existing.setDisplayName(dto.getDisplayName());
                 existing.setDescription(dto.getDescription());
                 // Note: NOT updating requiredMetadata - it's immutable after creation
                 existing.setOptionalMetadata(normalizedOptional);
-                existing.setMetadataRules(dto.getMetadataRules());
+                existing.setMetadataRules(domainRules);
                 existing.setActive(dto.getActive());
                 existing.setUpdatedAt(Instant.now());
                 return repository.save(existing);
@@ -139,8 +147,9 @@ public class ContextService {
      * - Keys must match declared required or optional metadata fields
      * - XPaths must start with '/' and be non-empty
      * - XPath lists cannot be empty
+     * - Validation regex (if provided) must be a valid regex pattern
      */
-    private void validateMetadataRules(java.util.Map<String, List<String>> rules,
+    private void validateMetadataRules(Map<String, MetadataExtractionRuleDTO> rules,
                                        List<String> requiredMetadata,
                                        List<String> optionalMetadata) {
         if (rules == null || rules.isEmpty()) {
@@ -156,9 +165,9 @@ public class ContextService {
             validFields.addAll(optionalMetadata.stream().map(String::toLowerCase).toList());
         }
 
-        for (java.util.Map.Entry<String, List<String>> entry : rules.entrySet()) {
+        for (Map.Entry<String, MetadataExtractionRuleDTO> entry : rules.entrySet()) {
             String fieldName = entry.getKey();
-            List<String> xpaths = entry.getValue();
+            MetadataExtractionRuleDTO rule = entry.getValue();
 
             // Validate field name matches a declared metadata field
             if (fieldName == null || fieldName.isBlank()) {
@@ -171,6 +180,14 @@ public class ContextService {
                     "Valid fields are: " + validFields
                 );
             }
+
+            if (rule == null) {
+                throw new IllegalArgumentException(
+                    "Metadata rule for field '" + fieldName + "' cannot be null"
+                );
+            }
+
+            List<String> xpaths = rule.getXpaths();
 
             // Validate XPath list
             if (xpaths == null || xpaths.isEmpty()) {
@@ -193,6 +210,38 @@ public class ContextService {
                     );
                 }
             }
+
+            // Validate regex pattern if provided
+            String regex = rule.getValidationRegex();
+            if (regex != null && !regex.isBlank()) {
+                try {
+                    Pattern.compile(regex);
+                } catch (PatternSyntaxException e) {
+                    throw new IllegalArgumentException(
+                        "Metadata rule for field '" + fieldName + "': Invalid regex pattern '" + regex + "': " + e.getMessage()
+                    );
+                }
+            }
         }
+    }
+
+    /**
+     * Converts DTO rules to domain rules.
+     */
+    private Map<String, MetadataExtractionRule> convertToDomainRules(Map<String, MetadataExtractionRuleDTO> dtoRules) {
+        if (dtoRules == null) {
+            return null;
+        }
+
+        Map<String, MetadataExtractionRule> domainRules = new HashMap<>();
+        for (Map.Entry<String, MetadataExtractionRuleDTO> entry : dtoRules.entrySet()) {
+            MetadataExtractionRuleDTO dto = entry.getValue();
+            MetadataExtractionRule domainRule = MetadataExtractionRule.builder()
+                .xpaths(dto.getXpaths())
+                .validationRegex(dto.getValidationRegex())
+                .build();
+            domainRules.put(entry.getKey(), domainRule);
+        }
+        return domainRules;
     }
 }

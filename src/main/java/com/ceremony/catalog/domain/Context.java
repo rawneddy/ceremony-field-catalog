@@ -20,9 +20,12 @@ public class Context {
     private String description;
     private List<String> requiredMetadata;
     private List<String> optionalMetadata;
-    
-    // Map of metadata field name -> List of XPaths to try in order
-    private java.util.Map<String, List<String>> metadataRules;
+
+    /**
+     * Map of metadata field name -> extraction/validation rules.
+     * Each rule contains XPaths for extraction and optional regex for validation.
+     */
+    private java.util.Map<String, MetadataExtractionRule> metadataRules;
     
     private boolean active;
     

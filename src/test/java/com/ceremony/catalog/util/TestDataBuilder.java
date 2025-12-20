@@ -2,6 +2,7 @@ package com.ceremony.catalog.util;
 
 import com.ceremony.catalog.api.dto.CatalogObservationDTO;
 import com.ceremony.catalog.api.dto.ContextDefinitionDTO;
+import com.ceremony.catalog.api.dto.MetadataExtractionRuleDTO;
 
 import java.util.HashMap;
 import java.util.List;
@@ -36,7 +37,7 @@ public class TestDataBuilder {
         private String description = "Test context description";
         private List<String> requiredMetadataFields = List.of("field1", "field2");
         private List<String> optionalMetadataFields = List.of();
-        private Map<String, List<String>> metadataRules = new HashMap<>();
+        private Map<String, MetadataExtractionRuleDTO> metadataRules = new HashMap<>();
         private boolean active = true;
         
         public ContextBuilder withId(String id) {
@@ -76,7 +77,7 @@ public class TestDataBuilder {
             return this;
         }
         
-        public ContextBuilder withMetadataRules(Map<String, List<String>> rules) {
+        public ContextBuilder withMetadataRules(Map<String, MetadataExtractionRuleDTO> rules) {
             this.metadataRules = new HashMap<>(rules);
             return this;
         }

@@ -1,6 +1,7 @@
 package com.ceremony.catalog.service;
 
 import com.ceremony.catalog.api.dto.ContextDefinitionDTO;
+import com.ceremony.catalog.api.dto.MetadataExtractionRuleDTO;
 import com.ceremony.catalog.domain.Context;
 import com.ceremony.catalog.persistence.ContextRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -469,11 +470,19 @@ class ContextServiceTest {
 
     // ===== METADATA RULES TESTS =====
 
+    private MetadataExtractionRuleDTO rule(List<String> xpaths) {
+        return MetadataExtractionRuleDTO.builder().xpaths(xpaths).build();
+    }
+
+    private MetadataExtractionRuleDTO rule(List<String> xpaths, String validationRegex) {
+        return MetadataExtractionRuleDTO.builder().xpaths(xpaths).validationRegex(validationRegex).build();
+    }
+
     @Test
     void createContextWithValidMetadataRules() {
         var rules = java.util.Map.of(
-            "productcode", List.of("/ceremony/productCode", "/header/product"),
-            "region", List.of("/address/state")
+            "productcode", rule(List.of("/ceremony/productCode", "/header/product")),
+            "region", rule(List.of("/address/state"))
         );
 
         var dto = ContextDefinitionDTO.builder()
@@ -490,9 +499,9 @@ class ContextServiceTest {
 
         assertThat(created.getMetadataRules()).isNotNull();
         assertThat(created.getMetadataRules()).hasSize(2);
-        assertThat(created.getMetadataRules().get("productcode"))
+        assertThat(created.getMetadataRules().get("productcode").getXpaths())
             .containsExactly("/ceremony/productCode", "/header/product");
-        assertThat(created.getMetadataRules().get("region"))
+        assertThat(created.getMetadataRules().get("region").getXpaths())
             .containsExactly("/address/state");
     }
 
@@ -529,7 +538,7 @@ class ContextServiceTest {
 
         // Update with rules
         var rules = java.util.Map.of(
-            "productcode", List.of("/ceremony/productCode")
+            "productcode", rule(List.of("/ceremony/productCode"))
         );
         var updateDto = ContextDefinitionDTO.builder()
             .contextId("test-context")
@@ -545,14 +554,14 @@ class ContextServiceTest {
 
         assertThat(updated).isPresent();
         assertThat(updated.get().getMetadataRules()).isNotNull();
-        assertThat(updated.get().getMetadataRules().get("productcode"))
+        assertThat(updated.get().getMetadataRules().get("productcode").getXpaths())
             .containsExactly("/ceremony/productCode");
     }
 
     @Test
     void metadataRulesPersistedAndRetrieved() {
         var rules = java.util.Map.of(
-            "productcode", List.of("/ceremony/productCode", "/alt/path")
+            "productcode", rule(List.of("/ceremony/productCode", "/alt/path"), "^[A-Z]{3}$")
         );
 
         var dto = ContextDefinitionDTO.builder()
@@ -572,14 +581,16 @@ class ContextServiceTest {
 
         assertThat(retrieved).isPresent();
         assertThat(retrieved.get().getMetadataRules()).isNotNull();
-        assertThat(retrieved.get().getMetadataRules().get("productcode"))
+        assertThat(retrieved.get().getMetadataRules().get("productcode").getXpaths())
             .containsExactly("/ceremony/productCode", "/alt/path");
+        assertThat(retrieved.get().getMetadataRules().get("productcode").getValidationRegex())
+            .isEqualTo("^[A-Z]{3}$");
     }
 
     @Test
     void metadataRulesRejectsUndeclaredField() {
         var rules = java.util.Map.of(
-            "undeclaredfield", List.of("/some/xpath")
+            "undeclaredfield", rule(List.of("/some/xpath"))
         );
 
         var dto = ContextDefinitionDTO.builder()
@@ -601,7 +612,7 @@ class ContextServiceTest {
     @Test
     void metadataRulesRejectsEmptyXPathList() {
         var rules = java.util.Map.of(
-            "productcode", List.<String>of()  // Empty list
+            "productcode", rule(List.of())  // Empty list
         );
 
         var dto = ContextDefinitionDTO.builder()
@@ -623,7 +634,7 @@ class ContextServiceTest {
     @Test
     void metadataRulesRejectsXPathNotStartingWithSlash() {
         var rules = java.util.Map.of(
-            "productcode", List.of("ceremony/productCode")  // Missing leading /
+            "productcode", rule(List.of("ceremony/productCode"))  // Missing leading /
         );
 
         var dto = ContextDefinitionDTO.builder()
@@ -646,7 +657,7 @@ class ContextServiceTest {
     void metadataRulesAcceptsCaseInsensitiveFieldMatch() {
         // Field declared as lowercase, rule uses mixed case
         var rules = java.util.Map.of(
-            "ProductCode", List.of("/ceremony/productCode")  // Mixed case key
+            "ProductCode", rule(List.of("/ceremony/productCode"))  // Mixed case key
         );
 
         var dto = ContextDefinitionDTO.builder()
@@ -680,7 +691,7 @@ class ContextServiceTest {
 
         // Try to update with invalid rules
         var invalidRules = java.util.Map.of(
-            "undeclaredfield", List.of("/some/xpath")
+            "undeclaredfield", rule(List.of("/some/xpath"))
         );
         var updateDto = ContextDefinitionDTO.builder()
             .contextId("test-context")
@@ -696,5 +707,95 @@ class ContextServiceTest {
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("undeclaredfield")
             .hasMessageContaining("not declared in required or optional metadata");
+    }
+
+    // ===== VALIDATION REGEX TESTS =====
+
+    @Test
+    void metadataRulesWithValidRegex() {
+        var rules = java.util.Map.of(
+            "productcode", rule(List.of("/ceremony/productCode"), "^[A-Z]{3}$")
+        );
+
+        var dto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(null)
+            .metadataRules(rules)
+            .active(true)
+            .build();
+
+        Context created = contextService.createContext(dto);
+
+        assertThat(created.getMetadataRules().get("productcode").getValidationRegex())
+            .isEqualTo("^[A-Z]{3}$");
+    }
+
+    @Test
+    void metadataRulesWithNullRegexIsValid() {
+        var rules = java.util.Map.of(
+            "productcode", rule(List.of("/ceremony/productCode"), null)
+        );
+
+        var dto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(null)
+            .metadataRules(rules)
+            .active(true)
+            .build();
+
+        Context created = contextService.createContext(dto);
+
+        assertThat(created.getMetadataRules().get("productcode").getValidationRegex()).isNull();
+    }
+
+    @Test
+    void metadataRulesRejectsInvalidRegex() {
+        var rules = java.util.Map.of(
+            "productcode", rule(List.of("/ceremony/productCode"), "[invalid(regex")  // Unclosed bracket
+        );
+
+        var dto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(null)
+            .metadataRules(rules)
+            .active(true)
+            .build();
+
+        assertThatThrownBy(() -> contextService.createContext(dto))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("productcode")
+            .hasMessageContaining("Invalid regex pattern");
+    }
+
+    @Test
+    void metadataRulesWithComplexRegex() {
+        // Test a more complex regex pattern
+        var rules = java.util.Map.of(
+            "productcode", rule(List.of("/ceremony/productCode"), "^(DDA|SAV|CD)[0-9]{2}[A-Z]?$")
+        );
+
+        var dto = ContextDefinitionDTO.builder()
+            .contextId("test-context")
+            .displayName("Test Context")
+            .description("Test description")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(null)
+            .metadataRules(rules)
+            .active(true)
+            .build();
+
+        Context created = contextService.createContext(dto);
+
+        assertThat(created.getMetadataRules().get("productcode").getValidationRegex())
+            .isEqualTo("^(DDA|SAV|CD)[0-9]{2}[A-Z]?$");
     }
 }

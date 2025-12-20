@@ -57,12 +57,12 @@ public class ContextDefinitionDTO {
     List<String> optionalMetadata;
 
     @Schema(
-        description = "Rules for automatically extracting metadata values from XML. " +
-                     "Map of metadata field name to prioritized list of XPaths to try. " +
+        description = "Rules for automatically extracting and validating metadata values from XML. " +
+                     "Map of metadata field name to extraction/validation rules. " +
                      "Keys must match declared required or optional metadata fields.",
-        example = "{\"productCode\": [\"/ceremony/productCode\", \"/header/product\"], \"region\": [\"/address/state\"]}"
+        example = "{\"productCode\": {\"xpaths\": [\"/ceremony/productCode\"], \"validationRegex\": \"^[A-Z]{3}$\"}}"
     )
-    Map<String, List<String>> metadataRules;
+    Map<String, MetadataExtractionRuleDTO> metadataRules;
 
     @Schema(
         description = "Whether this context is active and accepting new observations",
