@@ -5,10 +5,11 @@ import FieldTable from '../components/search/FieldTable';
 import FacetSidebar from '../components/search/FacetSidebar';
 import FieldDetailPanel from '../components/search/FieldDetailPanel';
 import TruncationWarning from '../components/search/TruncationWarning';
-import { ModeToggle, ErrorBanner } from '../components/ui';
+import { ModeToggle, ErrorBanner, EmptyState } from '../components/ui';
 import { useFieldSearch } from '../hooks/useFieldSearch';
 import { useFacets } from '../hooks/useFacets';
 import { useSuggest } from '../hooks/useSuggest';
+import { config } from '../config';
 import type { CatalogEntry } from '../types';
 
 const FieldSearchPage: React.FC = () => {
@@ -36,7 +37,7 @@ const FieldSearchPage: React.FC = () => {
   const { data, isLoading, error } = useFieldSearch({
     q: searchParams.q || undefined,
     useRegex: searchParams.useRegex,
-    size: 250
+    size: config.MAX_RESULTS_PER_PAGE
   }, hasSearched, 'search');
 
   const {
@@ -180,14 +181,13 @@ const FieldSearchPage: React.FC = () => {
         <div className="h-2 bg-gradient-to-b from-black/10 to-transparent shrink-0" />
         <div className="flex-1 flex overflow-hidden">
         {!hasSearched ? (
-          <div className="flex-1 flex flex-col items-center justify-center bg-white text-center p-12">
-            <div className="w-20 h-20 bg-paper rounded-full flex items-center justify-center mb-6">
-              <Search className="w-10 h-10 text-slate-300" />
-            </div>
-            <h2 className="text-2xl font-black text-ink uppercase tracking-tight mb-2">Field Search</h2>
-            <p className="text-slate-500 max-w-md mx-auto font-medium">
-              Enter an XPath or search term above to explore specific field patterns across the catalog.
-            </p>
+          <div className="flex-1 flex bg-white">
+            <EmptyState
+              icon={Search}
+              title="Field Search"
+              description="Enter an XPath or search term above to explore specific field patterns across the catalog."
+              className="flex-1"
+            />
           </div>
         ) : (
           <>

@@ -4,6 +4,7 @@ import { Plus, Search } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import ContextCard from '../components/contexts/ContextCard';
 import ContextFormModal from '../components/contexts/ContextFormModal';
+import { Skeleton, EmptyState } from '../components/ui';
 import { useContexts } from '../hooks/useContexts';
 import { useContextMutations } from '../hooks/useContextMutations';
 import type { Context, ContextWithCount } from '../types';
@@ -85,13 +86,13 @@ const ContextsPage: React.FC = () => {
         <div className="flex-1 overflow-auto bg-paper/50 p-8">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
           {isLoading ? (
-            [...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white border border-steel h-48 rounded-md animate-pulse" />
-            ))
+            <Skeleton variant="card" count={4} />
           ) : filteredContexts?.length === 0 ? (
-            <div className="col-span-2 text-center py-12 text-slate-400">
-              <p className="text-lg font-bold mb-2">{filter ? 'No matches' : 'No contexts yet'}</p>
-              <p className="text-sm">{filter ? 'Try a different filter term.' : 'Create your first context to start cataloging field observations.'}</p>
+            <div className="col-span-2">
+              <EmptyState
+                title={filter ? 'No matches' : 'No contexts yet'}
+                description={filter ? 'Try a different filter term.' : 'Create your first context to start cataloging field observations.'}
+              />
             </div>
           ) : (
             filteredContexts?.map((context) => (

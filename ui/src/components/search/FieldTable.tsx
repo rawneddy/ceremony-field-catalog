@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import type { CatalogEntry } from '../../types';
 import { ChevronUp, ChevronDown, Copy, Check } from 'lucide-react';
+import { Skeleton, EmptyState } from '../ui';
+import { config } from '../../config';
 
 interface FieldTableProps {
   results: CatalogEntry[];
@@ -94,7 +96,7 @@ const FieldTable: React.FC<FieldTableProps> = ({
     e.stopPropagation();
     navigator.clipboard.writeText(path);
     setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    setTimeout(() => setCopiedId(null), config.COPY_FEEDBACK_MS);
   };
 
   const highlightMatch = (text: string) => {
@@ -119,22 +121,19 @@ const FieldTable: React.FC<FieldTableProps> = ({
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4 p-6">
-        {[...Array(10)].map((_, i) => (
-          <div key={i} className="h-12 bg-steel/20 rounded animate-pulse" />
-        ))}
+        <Skeleton variant="row" count={10} />
       </div>
     );
   }
 
   if (results.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-12 text-center">
-        <div className="bg-steel/30 p-4 rounded-full mb-4">
-          <ChevronDown className="w-8 h-8 text-slate-400" />
-        </div>
-        <h3 className="text-xl font-bold text-ink mb-2">No results found</h3>
-        <p className="text-slate-500">Try adjusting your filters or search query.</p>
-      </div>
+      <EmptyState
+        icon={ChevronDown}
+        title="No results found"
+        description="Try adjusting your filters or search query."
+        className="h-full"
+      />
     );
   }
 

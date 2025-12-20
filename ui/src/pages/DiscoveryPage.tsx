@@ -12,6 +12,7 @@ import { useFieldSearch } from '../hooks/useFieldSearch';
 import { useFacets } from '../hooks/useFacets';
 import { useContexts } from '../hooks/useContexts';
 import { useDebounce } from '../hooks/useDebounce';
+import { config } from '../config';
 import type { CatalogEntry } from '../types';
 
 const DiscoveryPage: React.FC = () => {
@@ -22,8 +23,8 @@ const DiscoveryPage: React.FC = () => {
   const [selectedRow, setSelectedRow] = useState<CatalogEntry | null>(null);
 
   // Debounce the text-based search parameters
-  const debouncedFieldPath = useDebounce(fieldPath, 500);
-  const debouncedMetadata = useDebounce(metadata, 500);
+  const debouncedFieldPath = useDebounce(fieldPath, config.DEBOUNCE_MS);
+  const debouncedMetadata = useDebounce(metadata, config.DEBOUNCE_MS);
 
   const { data: contexts } = useContexts();
   const selectedContext = contexts?.find(c => c.contextId === contextId);
@@ -34,7 +35,7 @@ const DiscoveryPage: React.FC = () => {
     contextId: contextId || undefined,
     metadata: Object.keys(debouncedMetadata).length > 0 ? debouncedMetadata : undefined,
     useRegex: isRegex,
-    size: 250
+    size: config.MAX_RESULTS_PER_PAGE
   }, true, 'discovery');
 
   const {
