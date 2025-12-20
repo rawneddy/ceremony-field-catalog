@@ -1,26 +1,27 @@
 import React, { useState } from 'react';
 import Layout from '../components/layout/Layout';
 import { Search, Filter } from 'lucide-react';
-import FieldTable from '../components/search/FieldTable';
+import AggregatedFieldTable from '../components/search/AggregatedFieldTable';
 import FacetSidebar from '../components/search/FacetSidebar';
-import FieldDetailPanel from '../components/search/FieldDetailPanel';
+import VariantExplorerPanel from '../components/search/VariantExplorerPanel';
 import TruncationWarning from '../components/search/TruncationWarning';
 import ContextSelector from '../components/search/ContextSelector';
 import MetadataFilters from '../components/search/MetadataFilters';
 import { ModeToggle, ErrorBanner } from '../components/ui';
 import { useFieldSearch } from '../hooks/useFieldSearch';
-import { useFacets } from '../hooks/useFacets';
+import { useAggregatedFields } from '../hooks/useAggregatedFields';
+import { useDiscoveryFacets } from '../hooks/useDiscoveryFacets';
 import { useContexts } from '../hooks/useContexts';
 import { useDebounce } from '../hooks/useDebounce';
 import { config } from '../config';
-import type { CatalogEntry } from '../types';
+import type { AggregatedField } from '../types';
 
 const DiscoveryPage: React.FC = () => {
   const [contextId, setContextId] = useState('');
   const [metadata, setMetadata] = useState<Record<string, string[]>>({});
   const [fieldPath, setFieldPath] = useState('');
   const [isRegex, setIsRegex] = useState(false);
-  const [selectedRow, setSelectedRow] = useState<CatalogEntry | null>(null);
+  const [selectedField, setSelectedField] = useState<AggregatedField | null>(null);
 
   // Debounce only the text-based search (fieldPath)
   // Metadata is not debounced - updates are explicit (chip add/remove)
@@ -38,14 +39,39 @@ const DiscoveryPage: React.FC = () => {
     size: config.MAX_RESULTS_PER_PAGE
   }, true, 'discovery');
 
-  const {
-    facets,
-    filteredResults,
-    setFacetMode,
-    toggleFacetValue,
-    clearFacet,
-    clearAllFacets
-  } = useFacets(data?.content);
+  // Aggregate entries by fieldPath for discovery view
+  const aggregatedFields = useAggregatedFields(data?.content);
+
+  // Build facet index from aggregated results (Splunk-style)
+  const facets = useDiscoveryFacets(aggregatedFields, metadata);
+
+  // Splunk-style: clicking a facet value adds it to header filter
+  const handleFacetSelect = (key: string, value: string) => {
+    setMetadata(prev => {
+      const currentValues = prev[key] || [];
+      // Toggle: if already selected, remove; otherwise add
+      if (currentValues.includes(value)) {
+        const newValues = currentValues.filter(v => v !== value);
+        if (newValues.length === 0) {
+          const { [key]: _, ...rest } = prev;
+          return rest;
+        }
+        return { ...prev, [key]: newValues };
+      }
+      return { ...prev, [key]: [...currentValues, value] };
+    });
+  };
+
+  const handleClearFacet = (key: string) => {
+    setMetadata(prev => {
+      const { [key]: _, ...rest } = prev;
+      return rest;
+    });
+  };
+
+  const handleClearAllFacets = () => {
+    setMetadata({});
+  };
 
   const handleSearch = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -102,10 +128,10 @@ const DiscoveryPage: React.FC = () => {
           </div>
 
           {selectedContext && (
-            <div className="mt-4 pt-4 border-t border-steel/50">
+            <div className="mt-4 pt-4 border-t border-steel/50 ml-60">
               <div className="flex items-center gap-2 mb-3">
                 <Filter className="w-3 h-3 text-ceremony" />
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Fixed Metadata Filters for {selectedContext.displayName}</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Metadata Filters for {selectedContext.displayName}</h3>
               </div>
               <MetadataFilters
                 context={selectedContext}
@@ -122,11 +148,11 @@ const DiscoveryPage: React.FC = () => {
         <div className="flex-1 flex overflow-hidden">
         <FacetSidebar
           facets={facets}
-          onToggleValue={toggleFacetValue}
-          onSetMode={setFacetMode}
-          onClearFacet={clearFacet}
-          onClearAll={clearAllFacets}
-          resultCount={filteredResults.length}
+          onToggleValue={handleFacetSelect}
+          onSetMode={() => {}} // Mode not used in Splunk-style
+          onClearFacet={handleClearFacet}
+          onClearAll={handleClearAllFacets}
+          resultCount={aggregatedFields.length}
         />
 
         <div className="flex-1 flex flex-col overflow-hidden bg-white">
@@ -137,20 +163,20 @@ const DiscoveryPage: React.FC = () => {
           )}
 
           <div className="flex-1 overflow-auto">
-            <FieldTable
-              results={filteredResults}
+            <AggregatedFieldTable
+              results={aggregatedFields}
               isLoading={isLoading}
-              selectedId={selectedRow?.id}
-              onSelectRow={setSelectedRow}
+              selectedFieldPath={selectedField?.fieldPath}
+              onSelectRow={setSelectedField}
               query={fieldPath}
             />
           </div>
         </div>
 
-        {selectedRow && (
-          <FieldDetailPanel
-            entry={selectedRow}
-            onClose={() => setSelectedRow(null)}
+        {selectedField && (
+          <VariantExplorerPanel
+            aggregatedField={selectedField}
+            onClose={() => setSelectedField(null)}
           />
         )}
       </div>

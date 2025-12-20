@@ -7,9 +7,13 @@ interface TagInputProps {
   values: string[];
   onChange: (values: string[]) => void;
   contextId?: string;
+  /** Already-selected metadata for cascading filter constraints */
+  metadata?: Record<string, string>;
   placeholder?: string;
   disabled?: boolean;
   maxValues?: number; // Set to 1 for single-select mode
+  /** Disable auto-advance to next input after selection (default: false) */
+  disableAutoAdvance?: boolean;
   className?: string;
 }
 
@@ -18,9 +22,11 @@ const TagInput: React.FC<TagInputProps> = ({
   values,
   onChange,
   contextId,
+  metadata,
   placeholder = 'Type to search...',
   disabled = false,
   maxValues,
+  disableAutoAdvance = false,
   className = ''
 }) => {
   const [inputValue, setInputValue] = useState('');
@@ -31,8 +37,8 @@ const TagInput: React.FC<TagInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Fetch suggestions when focused
-  const { suggestions } = useSuggest(field, inputValue, contextId, undefined, isFocused);
+  // Fetch suggestions when focused, constrained by already-selected metadata
+  const { suggestions } = useSuggest(field, inputValue, contextId, metadata, isFocused);
 
   // Calculate dropdown position using fixed positioning to escape overflow containers
   useEffect(() => {
@@ -74,8 +80,8 @@ const TagInput: React.FC<TagInputProps> = ({
     setInputValue('');
     setSelectedIndex(-1);
 
-    // For single-select mode, auto-advance to next input
-    if (maxValues === 1) {
+    // For single-select mode, auto-advance to next input (unless disabled)
+    if (maxValues === 1 && !disableAutoAdvance) {
       setIsFocused(false);
 
       // Find and focus the next focusable input
@@ -163,7 +169,7 @@ const TagInput: React.FC<TagInputProps> = ({
     <div ref={containerRef} data-tag-input className={`relative ${className}`}>
       {/* Tags Container */}
       <div
-        className={`flex flex-wrap gap-1 p-1.5 bg-white border rounded min-h-[34px] cursor-text transition-colors
+        className={`flex flex-wrap items-center gap-1 px-2 py-1.5 bg-white border rounded min-h-[42px] cursor-text transition-colors
           ${isFocused ? 'border-ceremony ring-1 ring-ceremony/20' : 'border-steel'}
           ${disabled ? 'bg-slate-50 cursor-not-allowed' : ''}`}
         onClick={handleContainerClick}
@@ -199,7 +205,7 @@ const TagInput: React.FC<TagInputProps> = ({
             onKeyDown={handleKeyDown}
             placeholder={values.length === 0 ? placeholder : ''}
             disabled={disabled}
-            className="flex-1 min-w-[60px] outline-none text-xs font-medium bg-transparent"
+            className="flex-1 min-w-[60px] outline-none text-sm font-medium bg-transparent"
           />
         )}
       </div>

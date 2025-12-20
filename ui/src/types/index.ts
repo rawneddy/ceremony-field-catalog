@@ -26,3 +26,7 @@ export type { UploadBin, FileWithMetadata } from './upload.types';
 
 // API types
 export type { ErrorResponse } from './api.types';
+
+// Aggregated types
+export type { TriState, AggregatedField } from './aggregated.types';
+export { formatSchemaKey } from './aggregated.types';

@@ -12,9 +12,9 @@ const MetadataFilters: React.FC<MetadataFiltersProps> = ({ context, values, onCh
   const allMetadataKeys = [...context.requiredMetadata, ...context.optionalMetadata];
 
   return (
-    <div className="grid grid-cols-4 gap-4">
+    <div className="flex flex-wrap gap-4">
       {allMetadataKeys.map((key) => (
-        <div key={key}>
+        <div key={key} className="min-w-[160px] flex-1 max-w-xs">
           <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-tighter mb-1">
             {key}
           </label>

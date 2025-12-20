@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import type { CatalogEntry } from '../../types';
 import { ChevronUp, ChevronDown, Copy, Check } from 'lucide-react';
 import { Skeleton, EmptyState } from '../ui';
@@ -10,18 +10,42 @@ interface FieldTableProps {
   selectedId?: string;
   onSelectRow: (entry: CatalogEntry) => void;
   query?: string;
+  /** Field path to scroll to and auto-select after results load */
+  highlightFieldPath?: string;
 }
 
-const FieldTable: React.FC<FieldTableProps> = ({ 
-  results, 
-  isLoading, 
-  selectedId, 
+// CSS for attention animation (injected once)
+const attentionStyle = document.createElement('style');
+attentionStyle.textContent = `
+  @keyframes field-attention {
+    0% { background-color: #fef3c7; box-shadow: 0 0 0 2px #f59e0b; }
+    100% { background-color: rgba(139, 92, 246, 0.15); box-shadow: none; }
+  }
+  .field-attention {
+    animation: field-attention 0.8s ease-out forwards;
+  }
+  .field-highlighted {
+    background-color: rgba(139, 92, 246, 0.12) !important;
+  }
+`;
+if (!document.getElementById('field-attention-style')) {
+  attentionStyle.id = 'field-attention-style';
+  document.head.appendChild(attentionStyle);
+}
+
+const FieldTable: React.FC<FieldTableProps> = ({
+  results,
+  isLoading,
+  selectedId,
   onSelectRow,
-  query 
+  query,
+  highlightFieldPath
 }) => {
   const [sortField, setSortField] = useState<keyof CatalogEntry | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [hasScrolledToHighlight, setHasScrolledToHighlight] = useState(false);
+  const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
 
   const sortedResults = useMemo(() => {
     if (!sortField || !sortOrder) return results;
@@ -78,6 +102,42 @@ const FieldTable: React.FC<FieldTableProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [sortedResults, selectedId, onSelectRow]);
+
+  // Scroll to and select highlighted field after results load
+  useEffect(() => {
+    if (!highlightFieldPath || isLoading || hasScrolledToHighlight || results.length === 0) {
+      return;
+    }
+
+    // Find the entry with matching fieldPath
+    const targetEntry = results.find(r => r.fieldPath === highlightFieldPath);
+    if (!targetEntry) {
+      setHasScrolledToHighlight(true);
+      return;
+    }
+
+    // Select the row to open detail panel
+    onSelectRow(targetEntry);
+
+    // Scroll to the row after a brief delay to let the DOM update
+    setTimeout(() => {
+      const rowElement = rowRefs.current.get(targetEntry.id);
+      if (rowElement) {
+        rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add attention animation after scroll completes
+        setTimeout(() => {
+          rowElement.classList.add('field-attention');
+        }, 300); // Wait for scroll to settle
+      }
+    }, 100);
+
+    setHasScrolledToHighlight(true);
+  }, [highlightFieldPath, isLoading, results, hasScrolledToHighlight, onSelectRow]);
+
+  // Reset scroll flag when highlight changes
+  useEffect(() => {
+    setHasScrolledToHighlight(false);
+  }, [highlightFieldPath]);
 
   const handleSort = (field: keyof CatalogEntry) => {
     if (sortField === field) {
@@ -218,12 +278,16 @@ const FieldTable: React.FC<FieldTableProps> = ({
       </thead>
       <tbody className="divide-y divide-steel/50">
         {sortedResults.map((entry) => (
-          <tr 
+          <tr
             key={entry.id}
+            ref={(el) => {
+              if (el) rowRefs.current.set(entry.id, el);
+              else rowRefs.current.delete(entry.id);
+            }}
             onClick={() => onSelectRow(entry)}
             className={`group hover:bg-ceremony/5 cursor-pointer transition-colors ${
               selectedId === entry.id ? 'bg-ceremony/10' : ''
-            }`}
+            } ${highlightFieldPath === entry.fieldPath ? 'field-highlighted' : ''}`}
           >
             <td className="px-4 py-3">
               <button
