@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { Plus, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import ContextCard from '../components/contexts/ContextCard';
 import ContextFormModal from '../components/contexts/ContextFormModal';
@@ -73,10 +73,9 @@ const ContextsPage: React.FC = () => {
           </div>
           <button
             onClick={handleNewContext}
-            className="bg-ceremony text-paper px-6 py-2.5 rounded text-sm font-bold flex items-center gap-2 hover:bg-ceremony-hover transition-colors shadow-sm shrink-0"
+            className="bg-ceremony text-paper px-6 py-2.5 rounded text-sm font-bold hover:bg-ceremony-hover transition-colors shadow-sm"
           >
-            <Plus className="w-4 h-4" />
-            New Context
+            + New
           </button>
         </div>
       </div>

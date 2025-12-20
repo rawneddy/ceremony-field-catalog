@@ -5,4 +5,6 @@ export interface UploadBin {
   status: 'pending' | 'submitting' | 'complete' | 'error';
   error?: string;
   progress: number;
+  fieldCount: number;
+  attributeCount: number;
 }

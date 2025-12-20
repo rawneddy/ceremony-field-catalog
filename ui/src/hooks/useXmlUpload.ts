@@ -10,33 +10,64 @@ export const useXmlUpload = () => {
 
   const scanFiles = async (files: File[], rules: Record<string, MetadataExtractionRule>): Promise<number> => {
     setIsScanning(true);
-    const newBins: Record<string, UploadBin> = {};
+
+    // Track bins with their unique field/attribute paths during scanning
+    const binData: Record<string, {
+      bin: Omit<UploadBin, 'fieldCount' | 'attributeCount'>;
+      fieldPaths: Set<string>;
+      attributePaths: Set<string>;
+    }> = {};
 
     for (const file of files) {
       try {
         const content = await file.text();
         const extracted = extractMetadataFromXml(content, rules);
 
+        // Also parse to count unique fields and attributes
+        const observations = parseXmlToObservations(content, extracted);
+
         // Create a signature based on sorted metadata keys/values
         const signature = JSON.stringify(Object.entries(extracted).sort((a, b) => a[0].localeCompare(b[0])));
 
-        if (!newBins[signature]) {
-          newBins[signature] = {
-            id: signature, // Use signature as ID for grouping
-            files: [],
-            metadata: extracted,
-            status: 'pending',
-            progress: 0
+        if (!binData[signature]) {
+          binData[signature] = {
+            bin: {
+              id: signature,
+              files: [],
+              metadata: extracted,
+              status: 'pending',
+              progress: 0
+            },
+            fieldPaths: new Set(),
+            attributePaths: new Set()
           };
         }
-        newBins[signature].files.push(file);
+
+        const entry = binData[signature];
+        if (entry) {
+          entry.bin.files.push(file);
+          // Separate fields (no @) from attributes (contain @)
+          observations.forEach(o => {
+            if (o.fieldPath.includes('@')) {
+              entry.attributePaths.add(o.fieldPath);
+            } else {
+              entry.fieldPaths.add(o.fieldPath);
+            }
+          });
+        }
       } catch {
         toast.error(`Failed to scan "${file.name}" - not valid XML`);
         // Skip invalid files entirely - don't add to any bin
       }
     }
 
-    const binsList = Object.values(newBins);
+    // Convert to final bins with field and attribute counts
+    const binsList: UploadBin[] = Object.values(binData).map(({ bin, fieldPaths, attributePaths }) => ({
+      ...bin,
+      fieldCount: fieldPaths.size,
+      attributeCount: attributePaths.size
+    }));
+
     setBins(binsList);
     setIsScanning(false);
     return binsList.length;
