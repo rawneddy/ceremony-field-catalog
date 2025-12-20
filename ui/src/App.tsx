@@ -33,9 +33,9 @@ const App: React.FC = () => {
           position="bottom-right"
           toastOptions={{
             style: {
-              background: '#1a1a2e',
-              color: '#f8f8f8',
-              border: '1px solid #333',
+              background: 'var(--color-charcoal)',
+              color: 'var(--color-paper)',
+              border: '1px solid var(--color-steel)',
             },
           }}
         />

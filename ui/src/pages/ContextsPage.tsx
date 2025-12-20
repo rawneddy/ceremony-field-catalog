@@ -54,7 +54,7 @@ const ContextsPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="bg-paper p-6 shrink-0 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.3)] relative z-10">
+      <div className="bg-paper p-6 shrink-0 shadow-header relative z-10">
         <div className="flex items-center gap-8 px-2">
           <div className="w-56 shrink-0">
             <h1 className="text-2xl font-black text-ink uppercase tracking-tight">Contexts</h1>

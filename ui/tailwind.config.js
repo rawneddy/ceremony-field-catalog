@@ -34,6 +34,9 @@ export default {
         sans: ['Inter', 'sans-serif'],
         mono: ['Monaco', 'Consolas', 'monospace'],
       },
+      boxShadow: {
+        'header': '0 8px 24px -4px rgba(15, 23, 42, 0.3)', // ink color at 30%
+      },
     },
   },
   plugins: [],
