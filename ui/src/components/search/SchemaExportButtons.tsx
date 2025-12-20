@@ -7,6 +7,7 @@ interface SchemaExportButtonsProps {
   entries: CatalogEntry[];
   contextId: string;
   metadata: Record<string, string>;
+  optionalMetadata?: Record<string, string[]>;
   disabled?: boolean;
 }
 
@@ -18,11 +19,20 @@ const SchemaExportButtons: React.FC<SchemaExportButtonsProps> = ({
   entries,
   contextId,
   metadata,
+  optionalMetadata = {},
   disabled = false
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const isDisabled = disabled || entries.length === 0;
+
+  // Merge required metadata with optional metadata (use first value of each optional array for filename)
+  const mergedMetadata: Record<string, string> = { ...metadata };
+  for (const [key, values] of Object.entries(optionalMetadata)) {
+    if (values.length > 0 && values[0]) {
+      mergedMetadata[key] = values.join('-'); // Join multiple values with hyphen
+    }
+  }
 
   return (
     <>
@@ -47,7 +57,7 @@ const SchemaExportButtons: React.FC<SchemaExportButtonsProps> = ({
         <SchemaExportDialog
           entries={entries}
           contextId={contextId}
-          metadata={metadata}
+          metadata={mergedMetadata}
           onClose={() => setIsDialogOpen(false)}
         />
       )}

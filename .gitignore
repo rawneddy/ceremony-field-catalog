@@ -1,54 +1,30 @@
-# Ignore Maven target directory
-/target/
-
-# Ignore IDE files
-/.classpath
-/.project
-/.settings/
-/.vscode/
-
-# Ignore OS files
-.DS_Store
-Thumbs.db
-
-# Ignore logs
-*.log
-
-# Ignore compiled class files
+# ===================
+# Java / Maven
+# ===================
+target/
 *.class
-
-# Ignore test output
-/test-output/
-
-# Ignore build artifacts
 *.jar
 *.war
 *.ear
+maven-status/
+surefire-reports/
+test-output/
+generated-sources/
+generated-test-sources/
 
-# Ignore local environment files
-.env
+# ===================
+# Node / React / Vite
+# ===================
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.tsbuildinfo
+.eslintcache
 
-# Ignore IntelliJ IDEA files
-/.idea/
-*.iml
-
-# Ignore VS Code launch configs
-/.vscode/launch.json
-
-# Ignore generated files
-/generated-sources/
-/generated-test-sources/
-
-# Ignore surefire reports
-/surefire-reports/
-
-# Ignore Maven status
-/maven-status/
-
-# Ignore Data Samples target directory to prevent sensitive info from going to github
-/samples/
-
+# ===================
 # Python
+# ===================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -60,6 +36,58 @@ ENV/
 env/
 .pytest_cache/
 *.egg-info/
-dist/
 build/
 .eggs/
+
+# ===================
+# Environment / Secrets
+# ===================
+.env
+.env.*
+!.env.example
+*.local
+
+# ===================
+# IDE / Editors
+# ===================
+.idea/
+*.iml
+.vscode/
+!.vscode/extensions.json
+.classpath
+.project
+.settings/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ===================
+# OS Files
+# ===================
+.DS_Store
+Thumbs.db
+
+# ===================
+# Logs
+# ===================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ===================
+# Test Coverage
+# ===================
+coverage/
+.nyc_output/
+
+# ===================
+# Project Specific
+# ===================
+# Prevent sensitive sample data from being committed
+/samples/
