@@ -227,6 +227,9 @@ public class ContextService {
 
     /**
      * Converts DTO rules to domain rules.
+     * - Field names are lowercased for consistency
+     * - XPaths are lowercased for case-insensitive matching
+     * - Validation regex is preserved as-is (user's responsibility)
      */
     private Map<String, MetadataExtractionRule> convertToDomainRules(Map<String, MetadataExtractionRuleDTO> dtoRules) {
         if (dtoRules == null) {
@@ -236,11 +239,19 @@ public class ContextService {
         Map<String, MetadataExtractionRule> domainRules = new HashMap<>();
         for (Map.Entry<String, MetadataExtractionRuleDTO> entry : dtoRules.entrySet()) {
             MetadataExtractionRuleDTO dto = entry.getValue();
+
+            // Lowercase all XPaths for case-insensitive matching
+            List<String> normalizedXpaths = dto.getXpaths().stream()
+                .map(String::toLowerCase)
+                .toList();
+
             MetadataExtractionRule domainRule = MetadataExtractionRule.builder()
-                .xpaths(dto.getXpaths())
-                .validationRegex(dto.getValidationRegex())
+                .xpaths(normalizedXpaths)
+                .validationRegex(dto.getValidationRegex())  // Preserve regex as-is
                 .build();
-            domainRules.put(entry.getKey(), domainRule);
+
+            // Lowercase field name key for consistency
+            domainRules.put(entry.getKey().toLowerCase(), domainRule);
         }
         return domainRules;
     }

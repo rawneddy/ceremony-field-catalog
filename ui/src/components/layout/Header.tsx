@@ -6,8 +6,8 @@ const Header: React.FC = () => {
   const location = useLocation();
 
   const navItems = [
-    { path: '/', label: 'Field Search', icon: Search },
-    { path: '/search', label: 'Discovery', icon: BarChart3 },
+    { path: '/', label: 'Discovery', icon: BarChart3 },
+    { path: '/search', label: 'Field Search', icon: Search },
     { path: '/contexts', label: 'Contexts', icon: Database },
     { path: '/upload', label: 'Upload', icon: Upload },
   ];

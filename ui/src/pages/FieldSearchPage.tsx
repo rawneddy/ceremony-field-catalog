@@ -189,7 +189,7 @@ const FieldSearchPage: React.FC = () => {
                   <span>String contains matching on field paths</span>
                 )}
               </div>
-              <Link to="/search" className="text-ceremony hover:underline flex items-center gap-1">
+              <Link to="/" className="text-ceremony hover:underline flex items-center gap-1">
                 Switch to Discovery Engine →
               </Link>
             </div>

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { catalogApi } from '../services/catalogApi';
+import { queryKeys } from '../lib/queryKeys';
 import type { Context } from '../types';
 
 export const useContextMutations = () => {
@@ -8,22 +9,22 @@ export const useContextMutations = () => {
   const createMutation = useMutation({
     mutationFn: (context: Partial<Context>) => catalogApi.createContext(context),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contexts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contexts.all });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, context }: { id: string; context: Partial<Context> }) => 
+    mutationFn: ({ id, context }: { id: string; context: Partial<Context> }) =>
       catalogApi.updateContext(id, context),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contexts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contexts.all });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => catalogApi.deleteContext(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contexts'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contexts.all });
     },
   });
 

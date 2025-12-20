@@ -499,8 +499,9 @@ class ContextServiceTest {
 
         assertThat(created.getMetadataRules()).isNotNull();
         assertThat(created.getMetadataRules()).hasSize(2);
+        // XPaths are normalized to lowercase
         assertThat(created.getMetadataRules().get("productcode").getXpaths())
-            .containsExactly("/ceremony/productCode", "/header/product");
+            .containsExactly("/ceremony/productcode", "/header/product");
         assertThat(created.getMetadataRules().get("region").getXpaths())
             .containsExactly("/address/state");
     }
@@ -554,8 +555,9 @@ class ContextServiceTest {
 
         assertThat(updated).isPresent();
         assertThat(updated.get().getMetadataRules()).isNotNull();
+        // XPaths are normalized to lowercase
         assertThat(updated.get().getMetadataRules().get("productcode").getXpaths())
-            .containsExactly("/ceremony/productCode");
+            .containsExactly("/ceremony/productcode");
     }
 
     @Test
@@ -581,8 +583,9 @@ class ContextServiceTest {
 
         assertThat(retrieved).isPresent();
         assertThat(retrieved.get().getMetadataRules()).isNotNull();
+        // XPaths are normalized to lowercase, regex preserved as-is
         assertThat(retrieved.get().getMetadataRules().get("productcode").getXpaths())
-            .containsExactly("/ceremony/productCode", "/alt/path");
+            .containsExactly("/ceremony/productcode", "/alt/path");
         assertThat(retrieved.get().getMetadataRules().get("productcode").getValidationRegex())
             .isEqualTo("^[A-Z]{3}$");
     }
@@ -671,8 +674,11 @@ class ContextServiceTest {
             .build();
 
         // Should not throw - case insensitive matching
+        // Keys and XPaths are normalized to lowercase when stored
         Context created = contextService.createContext(dto);
-        assertThat(created.getMetadataRules()).containsKey("ProductCode");
+        assertThat(created.getMetadataRules()).containsKey("productcode");
+        assertThat(created.getMetadataRules().get("productcode").getXpaths())
+            .containsExactly("/ceremony/productcode");
     }
 
     @Test
