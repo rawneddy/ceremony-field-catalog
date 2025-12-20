@@ -2,7 +2,7 @@ export interface CatalogSearchRequest {
   q?: string;
   contextId?: string;
   fieldPathContains?: string;
-  metadata?: Record<string, string>;
+  metadata?: Record<string, string[]>; // Multiple values per key for OR logic
   page?: number;
   size?: number;
   sort?: string;

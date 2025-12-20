@@ -1,11 +1,11 @@
 import React from 'react';
 import type { Context } from '../../types';
-import { SuggestionInput } from '../ui';
+import { TagInput } from '../ui';
 
 interface MetadataFiltersProps {
   context: Context;
-  values: Record<string, string>;
-  onChange: (key: string, value: string) => void;
+  values: Record<string, string[]>;
+  onChange: (key: string, values: string[]) => void;
 }
 
 const MetadataFilters: React.FC<MetadataFiltersProps> = ({ context, values, onChange }) => {
@@ -18,10 +18,10 @@ const MetadataFilters: React.FC<MetadataFiltersProps> = ({ context, values, onCh
           <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-tighter mb-1">
             {key}
           </label>
-          <SuggestionInput
+          <TagInput
             field={`metadata.${key}`}
-            value={values[key] || ''}
-            onChange={(val) => onChange(key, val)}
+            values={values[key] || []}
+            onChange={(vals) => onChange(key, vals)}
             contextId={context.contextId}
             placeholder={`Filter by ${key}...`}
           />

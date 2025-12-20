@@ -398,7 +398,7 @@ class CatalogServiceTest extends ServiceTestBase {
         ));
 
         // Search with lowercase metadata should find both
-        var searchMetadata = Map.of("productcode", "dda");
+        var searchMetadata = Map.of("productcode", List.of("dda"));
         var criteria = new CatalogSearchCriteria(null, "deposits", searchMetadata, null);
         Page<CatalogEntry> results = catalogService.find(criteria, PageRequest.of(0, 10));
 

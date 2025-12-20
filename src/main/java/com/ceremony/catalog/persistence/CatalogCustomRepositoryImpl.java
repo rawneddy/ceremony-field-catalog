@@ -111,9 +111,16 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         }
 
         if (criteriaDto.metadata() != null && !criteriaDto.metadata().isEmpty()) {
-            for (Map.Entry<String, String> entry : criteriaDto.metadata().entrySet()) {
-                if (entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
-                    andConditions.add(new Document("metadata." + entry.getKey(), entry.getValue()));
+            for (Map.Entry<String, List<String>> entry : criteriaDto.metadata().entrySet()) {
+                List<String> values = entry.getValue();
+                if (values != null && !values.isEmpty()) {
+                    if (values.size() == 1) {
+                        // Single value - exact match
+                        andConditions.add(new Document("metadata." + entry.getKey(), values.get(0)));
+                    } else {
+                        // Multiple values - OR logic using $in
+                        andConditions.add(new Document("metadata." + entry.getKey(), new Document("$in", values)));
+                    }
                 }
             }
         }
@@ -190,13 +197,20 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         }
 
         // Filter by metadata fields if specified
+        // Supports multiple values per key (OR logic within field, AND logic between fields)
         Optional.ofNullable(criteriaDto.metadata())
             .ifPresent(metadata -> {
-                for (Map.Entry<String, String> entry : metadata.entrySet()) {
+                for (Map.Entry<String, List<String>> entry : metadata.entrySet()) {
                     String key = entry.getKey();
-                    String value = entry.getValue();
-                    if (value != null && !value.trim().isEmpty()) {
-                        filters.add(Criteria.where("metadata." + key).is(value));
+                    List<String> values = entry.getValue();
+                    if (values != null && !values.isEmpty()) {
+                        if (values.size() == 1) {
+                            // Single value - exact match
+                            filters.add(Criteria.where("metadata." + key).is(values.get(0)));
+                        } else {
+                            // Multiple values - OR logic using $in
+                            filters.add(Criteria.where("metadata." + key).in(values));
+                        }
                     }
                 }
             });
@@ -367,10 +381,9 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
             pipeline.add(Aggregation.match(new Criteria().andOperator(filters.toArray(new Criteria[0]))));
         }
 
-        pipeline.add(Aggregation.project(normalizedField));
-        
-        // Group by the value to get distinct results
-        pipeline.add(Aggregation.group(normalizedField));
+        // Group directly by the field - use $-prefixed field reference for nested paths
+        // This handles both "fieldpath" and "metadata.productcode" correctly
+        pipeline.add(Aggregation.group("$" + normalizedField));
 
         // For fieldPath, calculate depth (slash count) for sorting
         if (isFieldPath) {

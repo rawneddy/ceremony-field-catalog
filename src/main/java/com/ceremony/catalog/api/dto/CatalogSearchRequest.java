@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Schema(description = "Search criteria for finding catalog field entries. Supports global search (q), specific filter search, or a combination of both (scoped discovery).")
@@ -55,26 +56,26 @@ public record CatalogSearchRequest(
     @Max(value = 250, message = "Size cannot exceed 250") int size,
 
     @Schema(
-        description = "Dynamic metadata filters - any key-value pairs to filter by.",
+        description = "Dynamic metadata filters - supports multiple values per key for OR logic. Multiple fields are combined with AND.",
         example = """
         {
-          "productCode": "DDA",
-          "productSubCode": "4S"
+          "productCode": ["DDA", "SAV"],
+          "channel": ["Online"]
         }
         """,
         requiredMode = Schema.RequiredMode.NOT_REQUIRED
     )
-    Map<String, String> metadata
+    Map<String, List<String>> metadata
 ) {
     public CatalogSearchRequest {
         // Defensive defaults and validation
         page = page < 0 ? 0 : page;
         size = size < 1 ? 50 : size; // Default will be overridden by controller if needed
-        metadata = metadata != null ? Map.copyOf(metadata) : new HashMap<>();
+        metadata = metadata != null ? new HashMap<>(metadata) : new HashMap<>();
     }
 
     // Constructor for filter-based search (no q parameter)
-    public CatalogSearchRequest(String contextId, String fieldPathContains, int page, int size, Map<String, String> metadata) {
+    public CatalogSearchRequest(String contextId, String fieldPathContains, int page, int size, Map<String, List<String>> metadata) {
         this(null, contextId, fieldPathContains, false, page, size, metadata);
     }
 

@@ -17,14 +17,14 @@ import type { CatalogEntry } from '../types';
 
 const DiscoveryPage: React.FC = () => {
   const [contextId, setContextId] = useState('');
-  const [metadata, setMetadata] = useState<Record<string, string>>({});
+  const [metadata, setMetadata] = useState<Record<string, string[]>>({});
   const [fieldPath, setFieldPath] = useState('');
   const [isRegex, setIsRegex] = useState(false);
   const [selectedRow, setSelectedRow] = useState<CatalogEntry | null>(null);
 
-  // Debounce the text-based search parameters
+  // Debounce only the text-based search (fieldPath)
+  // Metadata is not debounced - updates are explicit (chip add/remove)
   const debouncedFieldPath = useDebounce(fieldPath, config.DEBOUNCE_MS);
-  const debouncedMetadata = useDebounce(metadata, config.DEBOUNCE_MS);
 
   const { data: contexts } = useContexts();
   const selectedContext = contexts?.find(c => c.contextId === contextId);
@@ -33,7 +33,7 @@ const DiscoveryPage: React.FC = () => {
   const { data, isLoading, error } = useFieldSearch({
     q: debouncedFieldPath || undefined,
     contextId: contextId || undefined,
-    metadata: Object.keys(debouncedMetadata).length > 0 ? debouncedMetadata : undefined,
+    metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
     useRegex: isRegex,
     size: config.MAX_RESULTS_PER_PAGE
   }, true, 'discovery');
@@ -58,16 +58,21 @@ const DiscoveryPage: React.FC = () => {
     setMetadata({}); // Reset metadata filters when context changes
   };
 
-  const handleMetadataChange = (key: string, value: string) => {
-    setMetadata(prev => ({
-      ...prev,
-      [key]: value
-    }));
+  const handleMetadataChange = (key: string, values: string[]) => {
+    setMetadata(prev => {
+      const updated = { ...prev };
+      if (values.length === 0) {
+        delete updated[key]; // Remove key when no values
+      } else {
+        updated[key] = values;
+      }
+      return updated;
+    });
   };
 
   return (
     <Layout>
-      <div className="bg-paper p-6 shrink-0 shadow-header relative z-10">
+      <div className="bg-paper p-6 shrink-0 shadow-header relative z-30">
         <div className="px-2">
           <div className="flex items-center gap-8">
             <div className="w-56 shrink-0">

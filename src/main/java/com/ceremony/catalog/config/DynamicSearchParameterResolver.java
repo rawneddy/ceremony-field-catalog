@@ -9,10 +9,14 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class DynamicSearchParameterResolver implements HandlerMethodArgumentResolver {
 
@@ -29,7 +33,7 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
     public Object resolveArgument(@NonNull MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
                                 @NonNull NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) {
 
-        Map<String, String> metadata = new HashMap<>();
+        Map<String, List<String>> metadata = new HashMap<>();
 
         // Extract global search parameter (q)
         String q = webRequest.getParameter("q");
@@ -41,7 +45,7 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
 
         String fieldPathContains = webRequest.getParameter("fieldPathContains");
         fieldPathContains = (fieldPathContains != null && !fieldPathContains.trim().isEmpty()) ? fieldPathContains : null;
-        
+
         // Parse page parameter
         int page = 0;
         String pageParam = webRequest.getParameter("page");
@@ -52,7 +56,7 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
                 page = 0;
             }
         }
-        
+
         // Parse size parameter
         int size = 50;
         String sizeParam = webRequest.getParameter("size");
@@ -72,18 +76,25 @@ public class DynamicSearchParameterResolver implements HandlerMethodArgumentReso
         }
 
         // Handle any other parameters as metadata (strip metadata. prefix if present)
+        // Uses getParameterValues() to support multiple values per key (OR logic)
         Iterator<String> paramNames = webRequest.getParameterNames();
         while (paramNames.hasNext()) {
             String paramName = paramNames.next();
             if (paramName != null && !KNOWN_PARAMETERS.contains(paramName)) {
-                String value = webRequest.getParameter(paramName);
-                if (value != null && !value.trim().isEmpty()) {
+                String[] values = webRequest.getParameterValues(paramName);
+                if (values != null && values.length > 0) {
                     // Strip metadata. prefix if present (frontend sends metadata.productCode=value)
                     String key = paramName.startsWith("metadata.")
                         ? paramName.substring("metadata.".length())
                         : paramName;
                     // Normalize metadata keys and values to lowercase for case-insensitive handling
-                    metadata.put(key.toLowerCase(), value.toLowerCase());
+                    List<String> normalizedValues = Arrays.stream(values)
+                        .filter(v -> v != null && !v.trim().isEmpty())
+                        .map(String::toLowerCase)
+                        .collect(Collectors.toList());
+                    if (!normalizedValues.isEmpty()) {
+                        metadata.put(key.toLowerCase(), normalizedValues);
+                    }
                 }
             }
         }

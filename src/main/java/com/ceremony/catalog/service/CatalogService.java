@@ -175,9 +175,12 @@ public class CatalogService {
                 .toList();
                 
             // If we have field paths to update, fetch only those entries and update them
-            List<CatalogEntry> entriesToUpdate = fieldPathsToUpdate.isEmpty() ? 
-                List.of() : 
-                repository.searchByCriteria(new CatalogSearchCriteria(null, contextId, contextKey.metadata(), null))
+            // Convert single-value metadata to multi-value for CatalogSearchCriteria
+            Map<String, List<String>> multiValueMetadata = contextKey.metadata().entrySet().stream()
+                .collect(HashMap::new, (m, e) -> m.put(e.getKey(), List.of(e.getValue())), HashMap::putAll);
+            List<CatalogEntry> entriesToUpdate = fieldPathsToUpdate.isEmpty() ?
+                List.of() :
+                repository.searchByCriteria(new CatalogSearchCriteria(null, contextId, multiValueMetadata, null))
                     .stream()
                     .filter(entry -> fieldPathsToUpdate.contains(entry.getFieldPath()))
                     .peek(entry -> entry.setMinOccurs(0))
@@ -251,8 +254,8 @@ public class CatalogService {
         // Don't escape fieldPathContains - repository handles it based on useRegex
         String cleanedFieldPathContains = criteria.fieldPathContains() != null ?
             criteria.fieldPathContains().toLowerCase() : null;
-        Map<String, String> cleanedMetadata = criteria.metadata() != null ?
-            validationService.validateAndCleanMetadata(criteria.metadata()) : null;
+        Map<String, List<String>> cleanedMetadata = criteria.metadata() != null ?
+            validationService.validateAndCleanMetadataMulti(criteria.metadata()) : null;
 
         return new CatalogSearchCriteria(cleanedQ, cleanedContextId, cleanedMetadata, cleanedFieldPathContains, criteria.useRegex());
     }

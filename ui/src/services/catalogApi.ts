@@ -34,19 +34,29 @@ export const catalogApi = {
   // Catalog Entries
   searchFields: async (request: CatalogSearchRequest): Promise<PagedResponse<CatalogEntry>> => {
     const { metadata, ...params } = request;
-    
-    const metadataParams: Record<string, string> = {};
+
+    // Use URLSearchParams to handle multi-value metadata params
+    const searchParams = new URLSearchParams();
+
+    // Add non-metadata params
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        searchParams.append(key, String(value));
+      }
+    });
+
+    // Add metadata params - each value becomes a separate param
+    // e.g., metadata.productCode=DDA&metadata.productCode=SAV for OR logic
     if (metadata) {
-      Object.entries(metadata).forEach(([key, value]) => {
-        metadataParams[`metadata.${key}`] = value;
+      Object.entries(metadata).forEach(([key, values]) => {
+        values.forEach(value => {
+          searchParams.append(`metadata.${key}`, value);
+        });
       });
     }
 
     const response = await api.get<PagedResponse<CatalogEntry>>(`/catalog/fields`, {
-      params: {
-        ...params,
-        ...metadataParams, // Flatten prefixed metadata filters into query params
-      },
+      params: searchParams,
     });
     return response.data;
   },

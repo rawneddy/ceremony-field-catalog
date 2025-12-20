@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, CheckCircle2 } from 'lucide-react';
-import { SuggestionInput } from '../ui';
+import { TagInput } from '../ui';
 import type { Context, UploadBin, FileWithMetadata } from '../../types';
 
 interface MetadataEditorModalProps {
@@ -44,10 +44,6 @@ const MetadataEditorModal: React.FC<MetadataEditorModalProps> = ({
   const handleSave = () => {
     onSave(editedFiles);
     onClose();
-  };
-
-  const isAutoExtracted = (file: FileWithMetadata, field: string): boolean => {
-    return !!file.originalMetadata[field];
   };
 
   return (
@@ -112,23 +108,19 @@ const MetadataEditorModal: React.FC<MetadataEditorModalProps> = ({
                     </td>
                     {allFields.map(field => {
                       const isRequired = requiredFields.includes(field);
-                      const isAuto = isAutoExtracted(file, field);
-                      const hasValue = file.metadata[field] && file.metadata[field].trim();
-                      const showError = isRequired && !hasValue;
 
                       return (
                         <td
                           key={field}
                           className={`px-2 py-2 ${isRequired ? 'bg-ceremony/5' : ''}`}
                         >
-                          <SuggestionInput
+                          <TagInput
                             field={`metadata.${field}`}
-                            value={file.metadata[field] || ''}
-                            onChange={(val) => handleMetadataChange(fileIndex, field, val)}
+                            values={file.metadata[field] ? [file.metadata[field]] : []}
+                            onChange={(vals) => handleMetadataChange(fileIndex, field, vals[0] || '')}
                             contextId={context.contextId}
                             placeholder={isRequired ? 'Required...' : 'Optional...'}
-                            autoExtracted={isAuto}
-                            inputClassName={showError ? 'border-error-300 bg-error-50' : ''}
+                            maxValues={1}
                           />
                         </td>
                       );
@@ -146,10 +138,6 @@ const MetadataEditorModal: React.FC<MetadataEditorModalProps> = ({
             <div className="flex items-center gap-1">
               <div className="w-4 h-4 bg-ceremony/10 border border-ceremony/30 rounded" />
               <span>Required field</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-4 h-4 bg-ceremony/5 border border-ceremony/20 rounded" />
-              <span>Auto-extracted (click to edit)</span>
             </div>
           </div>
 

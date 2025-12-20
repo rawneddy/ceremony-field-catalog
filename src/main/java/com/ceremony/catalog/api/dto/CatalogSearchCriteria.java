@@ -1,5 +1,6 @@
 package com.ceremony.catalog.api.dto;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -14,18 +15,21 @@ import java.util.Map;
  * The useRegex flag controls how the search term is interpreted:
  * - false (default): Literal string contains search, special regex chars are escaped
  * - true: Search term is treated as a regex pattern
+ *
+ * Metadata supports multiple values per key for OR logic within a field.
+ * Multiple metadata fields are combined with AND logic between fields.
  */
 public record CatalogSearchCriteria(
     String q,
     String contextId,
-    Map<String, String> metadata,
+    Map<String, List<String>> metadata,
     String fieldPathContains,
     boolean useRegex
 ) {
     /**
      * Constructor for backward compatibility (useRegex defaults to false).
      */
-    public CatalogSearchCriteria(String q, String contextId, Map<String, String> metadata, String fieldPathContains) {
+    public CatalogSearchCriteria(String q, String contextId, Map<String, List<String>> metadata, String fieldPathContains) {
         this(q, contextId, metadata, fieldPathContains, false);
     }
 
