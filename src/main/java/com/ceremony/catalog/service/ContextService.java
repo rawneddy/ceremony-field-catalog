@@ -86,9 +86,13 @@ public class ContextService {
     }
 
     public List<ContextWithCountDTO> getAllContextsWithCounts() {
-        return repository.findAll().stream()
+        // Fetch all contexts and counts in just 2 queries (instead of N+1)
+        List<Context> contexts = repository.findAll();
+        Map<String, Long> counts = catalogRepository.countGroupedByContextId();
+
+        return contexts.stream()
             .map(context -> {
-                long count = catalogRepository.countByContextId(context.getContextId());
+                long count = counts.getOrDefault(context.getContextId(), 0L);
                 return ContextWithCountDTO.from(context, count);
             })
             .toList();

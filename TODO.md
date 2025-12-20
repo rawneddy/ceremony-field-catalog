@@ -17,7 +17,7 @@
 
 ## Backend
 - [x] **Config binding mismatch**: `application.yml` uses `max-xpath-length` but `CatalogProperties.java` expects `maxFieldPathLength`. Validation limits may silently use defaults instead of configured values.
-- [ ] **N+1 counts in ContextService**: `getAllContextsWithCounts()` performs N+1 count queries. Replace with aggregation-based approach for scalability as context list grows.
+- [x] **N+1 counts in ContextService**: `getAllContextsWithCounts()` performs N+1 count queries. Replace with aggregation-based approach for scalability as context list grows.
 - [ ] **Context ID normalization**: Read/update/delete endpoints in `ContextController` accept case-sensitive IDs without normalization, which can cause surprising 404s when the stored ID is lowercase.
 
 ## UI
