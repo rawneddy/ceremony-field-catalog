@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DCARD code="DCARD" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <card>
+    <lastFour>7788</lastFour>
+    <network>VISA</network>
+    <type>DEBIT</type>
+    <expiration month="06" year="2027"/>
+    <issueDate>2024-06-10</issueDate>
+  </card>
+  <cardholder>
+    <name embossed="JENNIFER L NAKAMURA">Jennifer Nakamura</name>
+    <linkedAccount>****9900</linkedAccount>
+  </cardholder>
+  <activationDetails>
+    <status>ACTIVATED</status>
+    <method>MOBILE_APP</method>
+    <timestamp>2024-06-15T14:22:33Z</timestamp>
+    <device>iPhone 15 Pro</device>
+    <location>
+      <city>Seattle</city>
+      <state>WA</state>
+    </location>
+  </activationDetails>
+  <limits daily="true">
+    <atm>500.00</atm>
+    <pos>2500.00</pos>
+    <online xsi:nil="true"/>
+  </limits>
+  <features>
+    <contactless enabled="true"/>
+    <digitalWallet enabled="true">
+      <applePay/>
+      <googlePay/>
+    </digitalWallet>
+    <internationalUse enabled="false" reason="Contact us to enable"/>
+  </features>
+  <pinInfo>
+    <lastChanged xsi:nil="true"/>
+    <reminderSent>false</reminderSent>
+  </pinInfo>
+</DCARD>

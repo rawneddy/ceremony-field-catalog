@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100013</LoanNumber>
+    <LoanType>STUDENT</LoanType>
+    <LoanSubType>PRIVATE</LoanSubType>
+    <LoanPurpose>UNDERGRADUATE</LoanPurpose>
+    <Term>180</Term>
+    <Amount>35000.00</Amount>
+    <InterestRate>
+      <Type>VARIABLE</Type>
+      <Index>SOFR</Index>
+      <Margin>4.50</Margin>
+      <CurrentRate>9.85</CurrentRate>
+    </InterestRate>
+    <APR>10.12</APR>
+    <OriginationDate>2024-08-01</OriginationDate>
+    <MaturityDate>2039-08-01</MaturityDate>
+    <DefermentPeriod>
+      <Type>IN_SCHOOL</Type>
+      <EndDate>2026-05-15</EndDate>
+      <GracePeriodMonths>6</GracePeriodMonths>
+    </DefermentPeriod>
+    <RepaymentStartDate>2026-12-01</RepaymentStartDate>
+    <EstimatedMonthlyPayment>378.45</EstimatedMonthlyPayment>
+  </LoanDetails>
+  <Borrower>
+    <Student>
+      <Name>
+        <FirstName>Emily</FirstName>
+        <MiddleName>Grace</MiddleName>
+        <LastName>Thompson</LastName>
+      </Name>
+      <SSN>999-00-1122</SSN>
+      <DateOfBirth>2004-05-18</DateOfBirth>
+      <CitizenshipStatus>US_CITIZEN</CitizenshipStatus>
+      <Address>
+        <Street1>Campus Box 1234</Street1>
+        <Street2>State University</Street2>
+        <City>Columbus</City>
+        <State>OH</State>
+        <ZipCode>43210</ZipCode>
+        <Permanent>
+          <Street1>789 Family Home Drive</Street1>
+          <City>Cleveland</City>
+          <State>OH</State>
+          <ZipCode>44101</ZipCode>
+        </Permanent>
+      </Address>
+      <Phone type="mobile">555-999-0011</Phone>
+      <Email>e.thompson@university.edu</Email>
+      <School>
+        <Name>Ohio State University</Name>
+        <OPECode>003090</OPECode>
+        <EnrollmentStatus>FULL_TIME</EnrollmentStatus>
+        <GradeLevel>SOPHOMORE</GradeLevel>
+        <ExpectedGraduation>2026-05</ExpectedGraduation>
+        <Major>Computer Science</Major>
+        <GPA xsi:nil="true"/>
+      </School>
+    </Student>
+    <Cosigner required="true">
+      <Name>
+        <FirstName>Robert</FirstName>
+        <MiddleName>James</MiddleName>
+        <LastName>Thompson</LastName>
+      </Name>
+      <Relationship>FATHER</Relationship>
+      <SSN>000-11-2233</SSN>
+      <DateOfBirth>1972-11-03</DateOfBirth>
+      <Address>
+        <Street1>789 Family Home Drive</Street1>
+        <Street2></Street2>
+        <City>Cleveland</City>
+        <State>OH</State>
+        <ZipCode>44101</ZipCode>
+      </Address>
+      <Phone type="mobile">555-000-1122</Phone>
+      <Email>r.thompson@email.com</Email>
+      <Employment>
+        <Employer>Cleveland Clinic</Employer>
+        <Title>IT Director</Title>
+        <AnnualIncome>145000.00</AnnualIncome>
+        <StartDate>2008-03-01</StartDate>
+      </Employment>
+      <CreditScore>
+        <Score>772</Score>
+        <Bureau>EXPERIAN</Bureau>
+      </CreditScore>
+      <CosignerRelease>
+        <Eligible>true</Eligible>
+        <RequiredPayments>48</RequiredPayments>
+        <RequiredCreditScore>700</RequiredCreditScore>
+      </CosignerRelease>
+    </Cosigner>
+  </Borrower>
+  <Collateral xsi:nil="true"/>
+  <CostOfAttendance>
+    <AcademicYear>2024-2025</AcademicYear>
+    <Tuition>12000.00</Tuition>
+    <Fees>2500.00</Fees>
+    <RoomAndBoard>14000.00</RoomAndBoard>
+    <BooksAndSupplies>1200.00</BooksAndSupplies>
+    <Transportation>1500.00</Transportation>
+    <Personal>2000.00</Personal>
+    <Total>33200.00</Total>
+    <OtherAid>
+      <FederalLoans>7500.00</FederalLoans>
+      <Grants>5000.00</Grants>
+      <Scholarships>8000.00</Scholarships>
+    </OtherAid>
+    <Gap>12700.00</Gap>
+  </CostOfAttendance>
+  <Fees>
+    <Fee type="origination">
+      <Amount>700.00</Amount>
+      <Description>Origination Fee (2%)</Description>
+      <DeductedFromDisbursement>true</DeductedFromDisbursement>
+    </Fee>
+    <Fee type="late_payment">
+      <Amount>25.00</Amount>
+      <Description>Late Payment Fee</Description>
+    </Fee>
+  </Fees>
+  <Disbursement>
+    <Schedule>
+      <Disbursement number="1">
+        <Date>2024-08-15</Date>
+        <Amount>17500.00</Amount>
+        <Semester>FALL_2024</Semester>
+      </Disbursement>
+      <Disbursement number="2">
+        <Date>2025-01-10</Date>
+        <Amount>17500.00</Amount>
+        <Semester>SPRING_2025</Semester>
+      </Disbursement>
+    </Schedule>
+    <Payee>Ohio State University</Payee>
+  </Disbursement>
+  <Disclosures>
+    <SelfCertification completed="true" date="2024-06-01"/>
+    <TruthInLending signed="true" date="2024-06-05"/>
+    <RightToCancel expirationDate="2024-08-04"/>
+  </Disclosures>
+</loan_info>

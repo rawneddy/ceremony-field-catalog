@@ -47,8 +47,8 @@ public class CatalogService {
             .stream()
             .collect(HashMap::new, (map, entry) -> map.put(entry.getId(), entry), HashMap::putAll);
         
-        // Process all observations and collect entries to save
         List<CatalogEntry> entriesToSave = new ArrayList<>();
+        java.time.Instant now = java.time.Instant.now();
         
         for (CatalogObservationDTO dto : cleanedObservations) {
             Map<String, String> requiredMetadata = filterToRequiredMetadata(context, dto.metadata());
@@ -63,6 +63,7 @@ public class CatalogService {
                 entry.setMinOccurs(Math.min(entry.getMinOccurs(), dto.count()));
                 entry.setAllowsNull(entry.isAllowsNull() || dto.hasNull());
                 entry.setAllowsEmpty(entry.isAllowsEmpty() || dto.hasEmpty());
+                entry.setLastObservedAt(now);
                 // Also update metadata to include any new optional metadata
                 entry.setMetadata(allowedMetadata);
                 entriesToSave.add(entry);
@@ -77,6 +78,8 @@ public class CatalogService {
                     .minOccurs(dto.count())
                     .allowsNull(dto.hasNull())
                     .allowsEmpty(dto.hasEmpty())
+                    .firstObservedAt(now)
+                    .lastObservedAt(now)
                     .build();
                 entriesToSave.add(newEntry);
             }
@@ -172,9 +175,12 @@ public class CatalogService {
                 .toList();
                 
             // If we have field paths to update, fetch only those entries and update them
-            List<CatalogEntry> entriesToUpdate = fieldPathsToUpdate.isEmpty() ? 
-                List.of() : 
-                repository.searchByCriteria(new CatalogSearchCriteria(null, contextId, contextKey.metadata(), null))
+            // Convert single-value metadata to multi-value for CatalogSearchCriteria
+            Map<String, List<String>> multiValueMetadata = contextKey.metadata().entrySet().stream()
+                .collect(HashMap::new, (m, e) -> m.put(e.getKey(), List.of(e.getValue())), HashMap::putAll);
+            List<CatalogEntry> entriesToUpdate = fieldPathsToUpdate.isEmpty() ?
+                List.of() :
+                repository.searchByCriteria(new CatalogSearchCriteria(null, contextId, multiValueMetadata, null))
                     .stream()
                     .filter(entry -> fieldPathsToUpdate.contains(entry.getFieldPath()))
                     .peek(entry -> entry.setMinOccurs(0))
@@ -203,8 +209,8 @@ public class CatalogService {
         // Normalize to lowercase - all MongoDB field names are lowercase
         String normalizedField = field.toLowerCase();
 
-        if (!normalizedField.equals("fieldpath") && !normalizedField.startsWith("metadata.")) {
-            throw new IllegalArgumentException("Field must be 'fieldPath' or 'metadata.{name}'");
+        if (!normalizedField.equals("fieldpath") && !normalizedField.startsWith("metadata.") && !normalizedField.equals("discovery")) {
+            throw new IllegalArgumentException("Field must be 'fieldPath', 'metadata.{name}', or 'discovery'");
         }
 
         // Sanitize inputs - InputValidationService handles lowercasing
@@ -221,6 +227,10 @@ public class CatalogService {
 
         // Get active context IDs - suggestions only come from active contexts
         Set<String> activeContextIds = contextService.getActiveContextIds();
+
+        if ("discovery".equals(normalizedField)) {
+            return repository.discoverySuggest(cleanedPrefix, cleanedContextId, cleanedMetadata, activeContextIds, safeLimit);
+        }
 
         return repository.suggestValues(normalizedField, cleanedPrefix, cleanedContextId, cleanedMetadata, activeContextIds, safeLimit);
     }
@@ -244,8 +254,8 @@ public class CatalogService {
         // Don't escape fieldPathContains - repository handles it based on useRegex
         String cleanedFieldPathContains = criteria.fieldPathContains() != null ?
             criteria.fieldPathContains().toLowerCase() : null;
-        Map<String, String> cleanedMetadata = criteria.metadata() != null ?
-            validationService.validateAndCleanMetadata(criteria.metadata()) : null;
+        Map<String, List<String>> cleanedMetadata = criteria.metadata() != null ?
+            validationService.validateAndCleanMetadataMulti(criteria.metadata()) : null;
 
         return new CatalogSearchCriteria(cleanedQ, cleanedContextId, cleanedMetadata, cleanedFieldPathContains, criteria.useRegex());
     }

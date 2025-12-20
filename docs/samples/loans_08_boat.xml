@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100008</LoanNumber>
+    <LoanType>RECREATIONAL</LoanType>
+    <LoanSubType>BOAT</LoanSubType>
+    <Term>180</Term>
+    <Amount>85000.00</Amount>
+    <InterestRate>7.49</InterestRate>
+    <APR>7.75</APR>
+    <OriginationDate>2024-06-01</OriginationDate>
+    <MaturityDate>2039-06-01</MaturityDate>
+    <MonthlyPayment>790.45</MonthlyPayment>
+    <FirstPaymentDate>2024-07-01</FirstPaymentDate>
+    <SeasonalPaymentOption>false</SeasonalPaymentOption>
+  </LoanDetails>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>Richard</FirstName>
+        <MiddleName>Lee</MiddleName>
+        <LastName>Donovan</LastName>
+      </Name>
+      <SSN>111-22-3344</SSN>
+      <DateOfBirth>1968-05-28</DateOfBirth>
+      <Address>
+        <Street1>890 Harbor View Road</Street1>
+        <Street2></Street2>
+        <City>San Diego</City>
+        <State>CA</State>
+        <ZipCode>92101</ZipCode>
+      </Address>
+      <Phone type="mobile">555-111-2233</Phone>
+      <Email>r.donovan@email.com</Email>
+      <Employment>
+        <Employer>Retired</Employer>
+        <Title xsi:nil="true"/>
+        <RetirementIncome>true</RetirementIncome>
+        <AnnualIncome>145000.00</AnnualIncome>
+        <IncomeSource>PENSION_401K</IncomeSource>
+      </Employment>
+    </PrimaryBorrower>
+    <CoBorrower xsi:nil="true"/>
+  </Borrower>
+  <Collateral>
+    <Vessel>
+      <Make>Sea Ray</Make>
+      <Model>Sundancer 320</Model>
+      <Year>2024</Year>
+      <HIN>SERV1234H324</HIN>
+      <Length>32</Length>
+      <EstimatedValue>125000.00</EstimatedValue>
+      <NewOrUsed>NEW</NewOrUsed>
+      <FuelType>GAS</FuelType>
+      <PropulsionType>INBOARD</PropulsionType>
+      <Engines>
+        <Engine>
+          <Make>MerCruiser</Make>
+          <Horsepower>350</Horsepower>
+          <Serial>MC12345678</Serial>
+        </Engine>
+        <Engine>
+          <Make>MerCruiser</Make>
+          <Horsepower>350</Horsepower>
+          <Serial>MC12345679</Serial>
+        </Engine>
+      </Engines>
+      <Trailer>
+        <Included>true</Included>
+        <Make>EZ Loader</Make>
+        <Value>8500.00</Value>
+      </Trailer>
+    </Vessel>
+    <Storage>
+      <Type>MARINA_WET_SLIP</Type>
+      <Marina>San Diego Bay Marina</Marina>
+      <SlipNumber>B-42</SlipNumber>
+    </Storage>
+  </Collateral>
+  <Fees>
+    <Fee type="origination">
+      <Amount>850.00</Amount>
+      <Description>Loan Origination Fee</Description>
+    </Fee>
+    <Fee type="documentation">
+      <Amount>150.00</Amount>
+      <Description>Document Preparation</Description>
+    </Fee>
+    <Fee type="uscg_documentation">
+      <Amount>500.00</Amount>
+      <Description>USCG Documentation</Description>
+    </Fee>
+  </Fees>
+  <Insurance>
+    <Marine>
+      <Provider>Progressive Marine</Provider>
+      <PolicyNumber>BOAT-987654</PolicyNumber>
+      <AnnualPremium>2400.00</AnnualPremium>
+      <CoverageType>AGREED_VALUE</CoverageType>
+      <HullValue>125000.00</HullValue>
+      <Liability>500000.00</Liability>
+      <NavigationArea>US_COASTAL</NavigationArea>
+    </Marine>
+  </Insurance>
+</loan_info>

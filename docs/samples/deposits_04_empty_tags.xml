@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-000004</TransactionId>
+    <Timestamp>2024-06-04T08:45:00Z</Timestamp>
+    <Channel>ATM</Channel>
+    <Action>FULFILLMENT</Action>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-100004</CustomerId>
+    <Name>
+      <FirstName>Jennifer</FirstName>
+      <MiddleName></MiddleName>
+      <LastName>Wilson</LastName>
+      <Suffix></Suffix>
+    </Name>
+    <SSN>456-78-9012</SSN>
+    <DateOfBirth>1988-02-28</DateOfBirth>
+    <Nickname></Nickname>
+  </Customer>
+  <Accounts>
+    <Account productCode="DDA" productSubCode="4S">
+      <AccountNumber>3333333333</AccountNumber>
+      <AccountTitle>Jennifer Wilson</AccountTitle>
+      <OpenDate>2024-06-04</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>1200.00</Current>
+        <Available>1200.00</Available>
+      </Balance>
+      <Notes></Notes>
+      <ExternalReference></ExternalReference>
+    </Account>
+  </Accounts>
+  <Comments></Comments>
+</Ceremony>

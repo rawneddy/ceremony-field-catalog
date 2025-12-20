@@ -1,10 +1,12 @@
 package com.ceremony.catalog.api.dto;
 
 import com.ceremony.catalog.domain.Context;
+import com.ceremony.catalog.domain.MetadataExtractionRule;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Context DTO with optional field count for UI display.
@@ -25,6 +27,9 @@ public record ContextWithCountDTO(
 
     @Schema(description = "Optional metadata fields for observations in this context", example = "[\"channel\", \"region\"]")
     List<String> optionalMetadata,
+
+    @Schema(description = "Rules for automatically extracting and validating metadata values from XML. Map of field name to extraction/validation rules.")
+    Map<String, MetadataExtractionRule> metadataRules,
 
     @Schema(description = "Whether the context is accepting new observations", example = "true")
     boolean active,
@@ -55,6 +60,7 @@ public record ContextWithCountDTO(
             context.getDescription(),
             context.getRequiredMetadata(),
             context.getOptionalMetadata(),
+            context.getMetadataRules(),
             context.isActive(),
             context.getCreatedAt(),
             context.getUpdatedAt(),

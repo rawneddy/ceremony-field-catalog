@@ -80,24 +80,52 @@ public class InputValidationService {
     }
     
     /**
-     * Validates and cleans metadata map
+     * Validates and cleans metadata map (single-value)
      */
     public Map<String, String> validateAndCleanMetadata(Map<String, String> metadata) {
         if (metadata == null || metadata.isEmpty()) {
             return metadata;
         }
-        
+
         Map<String, String> cleaned = new HashMap<>();
-        
+
         for (Map.Entry<String, String> entry : metadata.entrySet()) {
             String key = validateAndCleanMetadataKey(entry.getKey());
             String value = validateAndCleanMetadataValue(entry.getValue());
-            
+
             if (StringUtils.hasText(key) && value != null) {
                 cleaned.put(key, value);
             }
         }
-        
+
+        return cleaned;
+    }
+
+    /**
+     * Validates and cleans metadata map with multi-value support (for search criteria)
+     */
+    public Map<String, java.util.List<String>> validateAndCleanMetadataMulti(Map<String, java.util.List<String>> metadata) {
+        if (metadata == null || metadata.isEmpty()) {
+            return metadata;
+        }
+
+        Map<String, java.util.List<String>> cleaned = new HashMap<>();
+
+        for (Map.Entry<String, java.util.List<String>> entry : metadata.entrySet()) {
+            String key = validateAndCleanMetadataKey(entry.getKey());
+            java.util.List<String> values = entry.getValue();
+
+            if (StringUtils.hasText(key) && values != null && !values.isEmpty()) {
+                java.util.List<String> cleanedValues = values.stream()
+                    .map(this::validateAndCleanMetadataValue)
+                    .filter(v -> v != null)
+                    .toList();
+                if (!cleanedValues.isEmpty()) {
+                    cleaned.put(key, cleanedValues);
+                }
+            }
+        }
+
         return cleaned;
     }
     

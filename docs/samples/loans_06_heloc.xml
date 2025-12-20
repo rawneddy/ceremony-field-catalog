@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100006</LoanNumber>
+    <LoanType>HELOC</LoanType>
+    <LoanSubType>VARIABLE</LoanSubType>
+    <LoanPurpose>HOME_IMPROVEMENT</LoanPurpose>
+    <CreditLimit>75000.00</CreditLimit>
+    <CurrentBalance>0.00</CurrentBalance>
+    <AvailableCredit>75000.00</AvailableCredit>
+    <DrawPeriodMonths>120</DrawPeriodMonths>
+    <RepaymentPeriodMonths>180</RepaymentPeriodMonths>
+    <InterestRate>
+      <Index>PRIME</Index>
+      <Margin>0.50</Margin>
+      <CurrentRate>8.00</CurrentRate>
+      <Floor>4.00</Floor>
+      <Ceiling>18.00</Ceiling>
+    </InterestRate>
+    <OriginationDate>2024-06-08</OriginationDate>
+    <DrawPeriodEndDate>2034-06-08</DrawPeriodEndDate>
+    <MaturityDate>2049-06-08</MaturityDate>
+    <MinimumDraw>500.00</MinimumDraw>
+    <MinimumPayment>InterestOnly</MinimumPayment>
+  </LoanDetails>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>Jonathan</FirstName>
+        <MiddleName>Edward</MiddleName>
+        <LastName>Crawford</LastName>
+      </Name>
+      <SSN>888-99-0000</SSN>
+      <DateOfBirth>1975-12-03</DateOfBirth>
+      <Address>
+        <Street1>1450 Lakeview Drive</Street1>
+        <Street2></Street2>
+        <City>Minneapolis</City>
+        <State>MN</State>
+        <ZipCode>55416</ZipCode>
+        <ResidencyType>OWN</ResidencyType>
+        <YearsAtAddress>12</YearsAtAddress>
+      </Address>
+      <Phone type="mobile">555-888-9999</Phone>
+      <Phone type="home">555-111-0000</Phone>
+      <Email>j.crawford@email.com</Email>
+      <Employment>
+        <Employer>Midwest Financial Group</Employer>
+        <Title>Senior Vice President</Title>
+        <AnnualIncome>175000.00</AnnualIncome>
+        <StartDate>2008-02-01</StartDate>
+      </Employment>
+    </PrimaryBorrower>
+    <CoBorrower>
+      <Name>
+        <FirstName>Susan</FirstName>
+        <MiddleName>Marie</MiddleName>
+        <LastName>Crawford</LastName>
+      </Name>
+      <SSN>999-00-1111</SSN>
+      <DateOfBirth>1977-06-18</DateOfBirth>
+      <Employment>
+        <Employer>Self-Employed</Employer>
+        <Title>Interior Designer</Title>
+        <AnnualIncome>85000.00</AnnualIncome>
+        <EmploymentType>SELF_EMPLOYED</EmploymentType>
+        <YearsInBusiness>15</YearsInBusiness>
+      </Employment>
+    </CoBorrower>
+  </Borrower>
+  <Collateral>
+    <Property>
+      <Address>
+        <Street1>1450 Lakeview Drive</Street1>
+        <Street2></Street2>
+        <City>Minneapolis</City>
+        <State>MN</State>
+        <ZipCode>55416</ZipCode>
+      </Address>
+      <PropertyType>SINGLE_FAMILY</PropertyType>
+      <Occupancy>PRIMARY_RESIDENCE</Occupancy>
+      <AppraisedValue>650000.00</AppraisedValue>
+      <FirstMortgageBalance>280000.00</FirstMortgageBalance>
+      <EquityAvailable>370000.00</EquityAvailable>
+      <CLTV>54.62</CLTV>
+      <LienPosition>SECOND</LienPosition>
+    </Property>
+  </Collateral>
+  <Fees>
+    <Fee type="origination">
+      <Amount>0.00</Amount>
+      <Description>No Origination Fee</Description>
+    </Fee>
+    <Fee type="annual">
+      <Amount>50.00</Amount>
+      <Description>Annual Maintenance Fee</Description>
+      <Waived>true</Waived>
+      <WaiverCondition>Waived first year</WaiverCondition>
+    </Fee>
+    <Fee type="early_closure">
+      <Amount>500.00</Amount>
+      <Description>Early Closure Fee (within 36 months)</Description>
+    </Fee>
+  </Fees>
+  <AccessMethods>
+    <Checks enabled="true">
+      <InitialChecks>10</InitialChecks>
+    </Checks>
+    <DebitCard enabled="true">
+      <CardNumber masked="true">****5678</CardNumber>
+    </DebitCard>
+    <OnlineTransfer enabled="true"/>
+  </AccessMethods>
+</loan_info>

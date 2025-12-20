@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100001</LoanNumber>
+    <LoanType>AUTO</LoanType>
+    <LoanSubType>NEW</LoanSubType>
+    <Term>48</Term>
+    <Amount>18500.00</Amount>
+    <InterestRate>5.49</InterestRate>
+    <APR>5.62</APR>
+    <OriginationDate>2024-06-15</OriginationDate>
+    <MaturityDate>2028-06-15</MaturityDate>
+    <MonthlyPayment>430.12</MonthlyPayment>
+    <FirstPaymentDate>2024-07-15</FirstPaymentDate>
+  </LoanDetails>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>Kevin</FirstName>
+        <MiddleName xsi:nil="true"/>
+        <LastName>Torres</LastName>
+      </Name>
+      <SSN>111-22-3333</SSN>
+      <DateOfBirth>1992-03-18</DateOfBirth>
+      <Address>
+        <Street1>225 Cedar Lane</Street1>
+        <Street2></Street2>
+        <City>Austin</City>
+        <State>TX</State>
+        <ZipCode>78701</ZipCode>
+      </Address>
+      <Phone type="mobile">555-111-2222</Phone>
+      <Email>k.torres@email.com</Email>
+      <Employment>
+        <Employer>Tech Startup Inc</Employer>
+        <Title>Software Developer</Title>
+        <AnnualIncome>85000.00</AnnualIncome>
+        <StartDate>2020-08-01</StartDate>
+      </Employment>
+    </PrimaryBorrower>
+    <CoBorrower xsi:nil="true"/>
+  </Borrower>
+  <Collateral>
+    <Vehicle>
+      <Make>Honda</Make>
+      <Model>Civic</Model>
+      <Year>2024</Year>
+      <VIN>2HGFC2F59RH123456</VIN>
+      <EstimatedValue>22000.00</EstimatedValue>
+      <Mileage>15</Mileage>
+      <Color>Blue</Color>
+    </Vehicle>
+  </Collateral>
+  <Fees>
+    <Fee type="origination">
+      <Amount>199.00</Amount>
+      <Description>Loan Origination Fee</Description>
+    </Fee>
+  </Fees>
+</loan_info>

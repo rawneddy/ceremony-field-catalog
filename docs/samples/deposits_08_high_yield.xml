@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-000008</TransactionId>
+    <Timestamp>2024-06-08T11:00:00Z</Timestamp>
+    <Channel>ONLINE</Channel>
+    <Action>FULFILLMENT</Action>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-100008</CustomerId>
+    <Name>
+      <FirstName>Amanda</FirstName>
+      <MiddleName>Grace</MiddleName>
+      <LastName>Martinez</LastName>
+    </Name>
+    <SSN>890-12-3456</SSN>
+    <DateOfBirth>1987-06-30</DateOfBirth>
+    <EmployerId>EMP-5678</EmployerId>
+    <AnnualIncome>85000.00</AnnualIncome>
+  </Customer>
+  <Accounts>
+    <Account productCode="SAV" productSubCode="HY">
+      <AccountNumber>7777777777</AccountNumber>
+      <AccountTitle>Amanda G Martinez - High Yield Savings</AccountTitle>
+      <OpenDate>2024-06-08</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>50000.00</Current>
+        <Available>50000.00</Available>
+      </Balance>
+      <InterestRate>4.50</InterestRate>
+      <InterestAccrued>187.50</InterestAccrued>
+      <APY>4.60</APY>
+    </Account>
+  </Accounts>
+  <Disclosures>
+    <Disclosure type="TRUTH_IN_SAVINGS">
+      <Version>2024.2</Version>
+      <AcceptedDate>2024-06-08</AcceptedDate>
+    </Disclosure>
+  </Disclosures>
+</Ceremony>

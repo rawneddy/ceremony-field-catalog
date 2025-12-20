@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document code="LPOFF" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <header>
+    <documentDate>2024-06-15</documentDate>
+    <expirationDate>2024-06-25</expirationDate>
+    <requestedBy>Customer Portal</requestedBy>
+  </header>
+  <loanDetails>
+    <loanNumber>LN-2019-445566</loanNumber>
+    <loanType>AUTO</loanType>
+    <originalAmount currency="USD">28500.00</originalAmount>
+    <originationDate>2019-08-15</originationDate>
+    <maturityDate>2025-08-15</maturityDate>
+    <interestRate>4.99</interestRate>
+  </loanDetails>
+  <borrower>
+    <name>
+      <first>Daniel</first>
+      <last>Okonkwo</last>
+    </name>
+    <ssn masked="true">***-**-7890</ssn>
+  </borrower>
+  <payoffCalculation goodThrough="2024-06-25">
+    <principalBalance>8234.56</principalBalance>
+    <accruedInterest>45.23</accruedInterest>
+    <lateFees xsi:nil="true"/>
+    <otherFees>0.00</otherFees>
+    <totalPayoff>8279.79</totalPayoff>
+    <perDiem>1.13</perDiem>
+  </payoffCalculation>
+  <paymentInstructions>
+    <payableTo>First National Bank</payableTo>
+    <mailingAddress>
+      <street>PO Box 9999</street>
+      <city>Charlotte</city>
+      <state>NC</state>
+      <zip>28255</zip>
+    </mailingAddress>
+    <wireInfo>
+      <routingNumber>053000196</routingNumber>
+      <accountNumber>Reference: LN-2019-445566</accountNumber>
+    </wireInfo>
+  </paymentInstructions>
+  <disclaimer>This payoff is valid through the date shown above. Additional interest accrues daily.</disclaimer>
+</document>

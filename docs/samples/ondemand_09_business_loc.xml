@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document code="BRLOC" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <letterType>LINE_OF_CREDIT_CONFIRMATION</letterType>
+  <issueDate>2024-06-15</issueDate>
+  <business>
+    <legalName>Sunrise Catering Services LLC</legalName>
+    <dba>Sunrise Catering</dba>
+    <ein>87-1234567</ein>
+    <contact>
+      <name>Maria Santos</name>
+      <title>Owner</title>
+      <phone>555-444-3322</phone>
+    </contact>
+    <address>
+      <street>2100 Industrial Parkway</street>
+      <suite>Suite 150</suite>
+      <city>Phoenix</city>
+      <state>AZ</state>
+      <zip>85034</zip>
+    </address>
+  </business>
+  <lineOfCredit>
+    <accountNumber>LOC-2024-78899</accountNumber>
+    <approvedAmount>150000.00</approvedAmount>
+    <currentBalance>45000.00</currentBalance>
+    <availableCredit>105000.00</availableCredit>
+    <interestRate variable="true">
+      <index>PRIME</index>
+      <margin>2.00</margin>
+      <current>10.50</current>
+      <floor>7.00</floor>
+      <ceiling xsi:nil="true"/>
+    </interestRate>
+    <termYears>3</termYears>
+    <maturityDate>2027-06-15</maturityDate>
+    <minimumPayment>
+      <interestOnly>true</interestOnly>
+      <currentDue>393.75</currentDue>
+      <dueDate>2024-07-01</dueDate>
+    </minimumPayment>
+  </lineOfCredit>
+  <collateral>
+    <type>UNSECURED</type>
+    <personalGuarantee required="true">
+      <guarantor>Maria Santos</guarantor>
+    </personalGuarantee>
+  </collateral>
+  <covenants>
+    <covenant type="FINANCIAL">Maintain minimum $25,000 in business deposit accounts</covenant>
+  </covenants>
+</document>

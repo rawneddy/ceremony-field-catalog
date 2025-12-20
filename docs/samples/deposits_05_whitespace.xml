@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-000005</TransactionId>
+    <Timestamp>2024-06-05T14:20:00Z</Timestamp>
+    <Channel>BRANCH</Channel>
+    <Action>FULFILLMENT</Action>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-100005</CustomerId>
+    <Name>
+      <FirstName>Robert</FirstName>
+      <MiddleName>   </MiddleName>
+      <LastName>Brown</LastName>
+      <Suffix>    </Suffix>
+    </Name>
+    <SSN>567-89-0123</SSN>
+    <DateOfBirth>1975-09-10</DateOfBirth>
+    <PreferredName>   </PreferredName>
+  </Customer>
+  <Accounts>
+    <Account productCode="DDA" productSubCode="4S">
+      <AccountNumber>4444444444</AccountNumber>
+      <AccountTitle>Robert Brown</AccountTitle>
+      <OpenDate>2024-06-05</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>3500.00</Current>
+        <Available>3500.00</Available>
+      </Balance>
+      <Description>     </Description>
+      <Tags>   </Tags>
+    </Account>
+  </Accounts>
+  <Memo>      </Memo>
+</Ceremony>

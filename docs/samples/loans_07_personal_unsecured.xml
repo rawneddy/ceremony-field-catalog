@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100007</LoanNumber>
+    <LoanType>PERSONAL</LoanType>
+    <LoanSubType>UNSECURED</LoanSubType>
+    <LoanPurpose>DEBT_CONSOLIDATION</LoanPurpose>
+    <Term>48</Term>
+    <Amount>25000.00</Amount>
+    <InterestRate>11.99</InterestRate>
+    <APR>12.45</APR>
+    <OriginationDate>2024-06-14</OriginationDate>
+    <MaturityDate>2028-06-14</MaturityDate>
+    <MonthlyPayment>659.00</MonthlyPayment>
+    <FirstPaymentDate>2024-07-14</FirstPaymentDate>
+    <FundingMethod>ACH</FundingMethod>
+    <FundingAccount>****3456</FundingAccount>
+  </LoanDetails>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>Nicole</FirstName>
+        <MiddleName xsi:nil="true"/>
+        <LastName>Patterson</LastName>
+      </Name>
+      <SSN>000-11-2222</SSN>
+      <DateOfBirth>1991-10-07</DateOfBirth>
+      <Address>
+        <Street1>567 College Avenue</Street1>
+        <Street2>   </Street2>
+        <City>Atlanta</City>
+        <State>GA</State>
+        <ZipCode>30308</ZipCode>
+      </Address>
+      <Phone type="mobile">555-000-1111</Phone>
+      <Email>n.patterson@email.com</Email>
+      <Employment>
+        <Employer>Delta Airlines</Employer>
+        <Title>Flight Attendant</Title>
+        <AnnualIncome>62000.00</AnnualIncome>
+        <StartDate>2017-04-15</StartDate>
+      </Employment>
+      <CreditScore>
+        <Score>712</Score>
+        <Bureau>EQUIFAX</Bureau>
+        <Date>2024-06-01</Date>
+      </CreditScore>
+      <DebtToIncome>32.5</DebtToIncome>
+    </PrimaryBorrower>
+    <CoBorrower xsi:nil="true"/>
+  </Borrower>
+  <Collateral xsi:nil="true"/>
+  <Fees>
+    <Fee type="origination">
+      <Amount>500.00</Amount>
+      <Description>Origination Fee (2%)</Description>
+      <DeductedFromProceeds>true</DeductedFromProceeds>
+    </Fee>
+    <Fee type="late_payment">
+      <Amount>39.00</Amount>
+      <Description>Late Payment Fee</Description>
+      <GracePeriodDays>15</GracePeriodDays>
+    </Fee>
+  </Fees>
+  <DebtConsolidation>
+    <TotalDebtPaidOff>23500.00</TotalDebtPaidOff>
+    <Accounts>
+      <Account>
+        <Creditor>Chase Credit Card</Creditor>
+        <AccountNumber masked="true">****7890</AccountNumber>
+        <Balance>8500.00</Balance>
+        <CurrentAPR>22.99</CurrentAPR>
+      </Account>
+      <Account>
+        <Creditor>Discover Card</Creditor>
+        <AccountNumber masked="true">****4567</AccountNumber>
+        <Balance>6200.00</Balance>
+        <CurrentAPR>19.99</CurrentAPR>
+      </Account>
+      <Account>
+        <Creditor>Capital One</Creditor>
+        <AccountNumber masked="true">****1234</AccountNumber>
+        <Balance>8800.00</Balance>
+        <CurrentAPR>24.99</CurrentAPR>
+      </Account>
+    </Accounts>
+    <EstimatedMonthlySavings>285.00</EstimatedMonthlySavings>
+  </DebtConsolidation>
+  <Autopay>
+    <Enrolled>true</Enrolled>
+    <DiscountApplied>0.25</DiscountApplied>
+    <PaymentAccount>****3456</PaymentAccount>
+  </Autopay>
+</loan_info>

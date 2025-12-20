@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-000012</TransactionId>
+    <Timestamp>2024-06-12T08:15:00Z</Timestamp>
+    <Channel>ATM</Channel>
+    <Action>INQUIRY</Action>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-100012</CustomerId>
+    <Name>
+      <FirstName>Elizabeth</FirstName>
+      <MiddleName xsi:nil="true"/>
+      <LastName>White</LastName>
+    </Name>
+    <SSN xsi:nil="true"/>
+    <DateOfBirth xsi:nil="true"/>
+  </Customer>
+  <Accounts>
+    <Account productCode="DDA" productSubCode="4S">
+      <AccountNumber>1212121212</AccountNumber>
+      <AccountTitle>Elizabeth White</AccountTitle>
+      <OpenDate xsi:nil="true"/>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>4200.00</Current>
+        <Available>4000.00</Available>
+        <Pending>200.00</Pending>
+      </Balance>
+      <!-- Inquiry doesn't return full details -->
+      <InterestRate xsi:nil="true"/>
+      <LinkedSavings xsi:nil="true"/>
+    </Account>
+  </Accounts>
+  <!-- No disclosures for inquiry -->
+</Ceremony>

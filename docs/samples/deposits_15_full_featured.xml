@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-000015</TransactionId>
+    <Timestamp>2024-06-15T16:45:00Z</Timestamp>
+    <Channel>ONLINE</Channel>
+    <Action>FULFILLMENT</Action>
+    <CorrelationId>CORR-99999</CorrelationId>
+    <RequestingSystem>DIGITAL_BANKING</RequestingSystem>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-100015</CustomerId>
+    <Name>
+      <FirstName>Victoria</FirstName>
+      <MiddleName>Alexandra</MiddleName>
+      <LastName>Robinson</LastName>
+      <Suffix>III</Suffix>
+    </Name>
+    <SSN>456-78-0007</SSN>
+    <DateOfBirth>1988-07-04</DateOfBirth>
+    <CustomerSince>2010-01-15</CustomerSince>
+    <EmployerId>EMP-TECH-001</EmployerId>
+    <AnnualIncome>175000.00</AnnualIncome>
+    <Address>
+      <Street1>500 Park Avenue</Street1>
+      <Street2>Apt 42B</Street2>
+      <City>New York</City>
+      <State>NY</State>
+      <ZipCode>10022</ZipCode>
+      <Country>USA</Country>
+    </Address>
+    <Contact>
+      <Email>victoria.robinson@email.com</Email>
+      <Phone type="mobile">555-987-6543</Phone>
+      <Phone type="work">555-123-4567</Phone>
+      <Phone type="home">   </Phone>
+    </Contact>
+    <Preferences>
+      <PaperlessStatements>true</PaperlessStatements>
+      <MarketingOptIn>false</MarketingOptIn>
+      <Language>EN</Language>
+    </Preferences>
+  </Customer>
+  <Accounts>
+    <!-- 5 accounts - max repeat -->
+    <Account productCode="DDA" productSubCode="PR">
+      <AccountNumber>1515151500</AccountNumber>
+      <AccountTitle>Victoria A Robinson - Premier Checking</AccountTitle>
+      <OpenDate>2024-06-15</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>85000.00</Current>
+        <Available>84000.00</Available>
+        <Pending>1000.00</Pending>
+        <Hold xsi:nil="true"/>
+      </Balance>
+      <InterestRate>0.05</InterestRate>
+      <OverdraftProtection>true</OverdraftProtection>
+      <LinkedSavings>1515151501</LinkedSavings>
+    </Account>
+    <Account productCode="DDA" productSubCode="4S">
+      <AccountNumber>1515151501</AccountNumber>
+      <AccountTitle>Victoria A Robinson - Standard</AccountTitle>
+      <OpenDate>2024-06-15</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>5000.00</Current>
+        <Available>5000.00</Available>
+      </Balance>
+    </Account>
+    <Account productCode="SAV" productSubCode="HY">
+      <AccountNumber>1515151502</AccountNumber>
+      <AccountTitle>Victoria A Robinson - High Yield</AccountTitle>
+      <OpenDate>2024-06-15</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>150000.00</Current>
+        <Available>150000.00</Available>
+      </Balance>
+      <InterestRate>4.75</InterestRate>
+      <APY>4.86</APY>
+    </Account>
+    <Account productCode="MMA" productSubCode="PR">
+      <AccountNumber>1515151503</AccountNumber>
+      <AccountTitle>Victoria A Robinson - Money Market</AccountTitle>
+      <OpenDate>2024-06-15</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>100000.00</Current>
+        <Available>100000.00</Available>
+      </Balance>
+      <InterestRate>5.25</InterestRate>
+    </Account>
+    <Account productCode="CD" productSubCode="12">
+      <AccountNumber>1515151504</AccountNumber>
+      <AccountTitle>Victoria A Robinson - 12 Month CD</AccountTitle>
+      <OpenDate>2024-06-15</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>50000.00</Current>
+        <Available xsi:nil="true"/>
+      </Balance>
+      <InterestRate>5.50</InterestRate>
+      <MaturityDate>2025-06-15</MaturityDate>
+      <EarlyWithdrawalPenalty>90 days interest</EarlyWithdrawalPenalty>
+    </Account>
+  </Accounts>
+  <Disclosures>
+    <Disclosure type="TERMS_AND_CONDITIONS">
+      <Version>2024.1</Version>
+      <AcceptedDate>2024-06-15</AcceptedDate>
+    </Disclosure>
+    <Disclosure type="PRIVACY_POLICY">
+      <Version>2024.1</Version>
+      <AcceptedDate>2024-06-15</AcceptedDate>
+    </Disclosure>
+    <Disclosure type="EFTA">
+      <Version>2024.1</Version>
+      <AcceptedDate>2024-06-15</AcceptedDate>
+    </Disclosure>
+  </Disclosures>
+  <Fees>
+    <Fee type="MONTHLY_SERVICE">
+      <Amount>0.00</Amount>
+      <WaiverEligible>true</WaiverEligible>
+      <WaiverCondition>Premier relationship</WaiverCondition>
+    </Fee>
+  </Fees>
+  <Beneficiaries>
+    <Beneficiary>
+      <Name>Robinson Family Trust</Name>
+      <Percentage>100</Percentage>
+      <Type>PRIMARY</Type>
+    </Beneficiary>
+  </Beneficiaries>
+</Ceremony>

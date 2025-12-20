@@ -6,6 +6,7 @@
 - `src/main/resources/` holds `application.yml` plus env overrides like `application-dev.yml`.
 - `docs/` includes architecture, API, testing, and SDK guidance; `sdks/` contains .NET and Python clients.
 - `tests/` stores manual REST Client scripts such as `CatalogSmokeTests.http`.
+- `ui/src/index.css` `@theme` block defines all colors, fonts, and shadows (Tailwind v4 central palette).
 - Root `docker-compose.yml` and `Dockerfile` define containerized builds and local runtime.
 
 ## Build, Test, and Development Commands
@@ -37,3 +38,4 @@ mvn test -Dtest=CatalogServiceTest  # Run a single test class
 ## Configuration & Runtime Notes
 - Default MongoDB connection is `mongodb://localhost:27017/ceremony_catalog` (see `src/main/resources/application.yml`).
 - Docker must be running for Testcontainers-based tests and for `docker-compose` workflows.
+- See `docs/MONGODB_PERFORMANCE.md` for indexing strategy and scale considerations.

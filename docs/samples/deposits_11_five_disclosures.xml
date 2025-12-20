@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-000011</TransactionId>
+    <Timestamp>2024-06-11T15:30:00Z</Timestamp>
+    <Channel>ONLINE</Channel>
+    <Action>FULFILLMENT</Action>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-100011</CustomerId>
+    <Name>
+      <FirstName>William</FirstName>
+      <MiddleName>James</MiddleName>
+      <LastName>Thompson</LastName>
+    </Name>
+    <SSN>123-45-0001</SSN>
+    <DateOfBirth>1982-10-25</DateOfBirth>
+  </Customer>
+  <Accounts>
+    <Account productCode="DDA" productSubCode="4S">
+      <AccountNumber>1010101010</AccountNumber>
+      <AccountTitle>William J Thompson</AccountTitle>
+      <OpenDate>2024-06-11</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>18000.00</Current>
+        <Available>18000.00</Available>
+      </Balance>
+    </Account>
+  </Accounts>
+  <Disclosures>
+    <!-- 5 disclosures - testing maxOccurs=5 -->
+    <Disclosure type="TERMS_AND_CONDITIONS">
+      <Version>2024.1</Version>
+      <AcceptedDate>2024-06-11</AcceptedDate>
+      <Signature>William Thompson</Signature>
+    </Disclosure>
+    <Disclosure type="PRIVACY_POLICY">
+      <Version>2024.1</Version>
+      <AcceptedDate>2024-06-11</AcceptedDate>
+      <Signature>William Thompson</Signature>
+    </Disclosure>
+    <Disclosure type="EFTA">
+      <Version>2024.1</Version>
+      <AcceptedDate>2024-06-11</AcceptedDate>
+      <Signature>William Thompson</Signature>
+    </Disclosure>
+    <Disclosure type="OVERDRAFT_PROTECTION">
+      <Version>2024.1</Version>
+      <AcceptedDate>2024-06-11</AcceptedDate>
+      <Signature>William Thompson</Signature>
+    </Disclosure>
+    <Disclosure type="ESCHEATMENT">
+      <Version>2024.1</Version>
+      <AcceptedDate>2024-06-11</AcceptedDate>
+      <Signature>William Thompson</Signature>
+    </Disclosure>
+  </Disclosures>
+</Ceremony>

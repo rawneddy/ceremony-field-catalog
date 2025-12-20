@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100015</LoanNumber>
+    <LoanType>AUTO</LoanType>
+    <LoanSubType>LEASE_BUYOUT</LoanSubType>
+    <Term>60</Term>
+    <Amount>28500.00</Amount>
+    <InterestRate>6.49</InterestRate>
+    <APR>6.72</APR>
+    <OriginationDate>2024-06-12</OriginationDate>
+    <MaturityDate>2029-06-12</MaturityDate>
+    <MonthlyPayment>557.35</MonthlyPayment>
+    <FirstPaymentDate>2024-07-12</FirstPaymentDate>
+  </LoanDetails>
+  <LeaseDetails>
+    <LeasingCompany>BMW Financial Services</LeasingCompany>
+    <OriginalLeaseDate>2021-06-15</OriginalLeaseDate>
+    <LeaseEndDate>2024-06-15</LeaseEndDate>
+    <ResidualValue>28500.00</ResidualValue>
+    <PurchaseOptionPrice>28500.00</PurchaseOptionPrice>
+    <ExcessMileageFee xsi:nil="true"/>
+    <WearAndTearCharges xsi:nil="true"/>
+    <DispositionFee waived="true">
+      <Amount>350.00</Amount>
+    </DispositionFee>
+  </LeaseDetails>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>Victoria</FirstName>
+        <MiddleName>Lynn</MiddleName>
+        <LastName>Chen</LastName>
+      </Name>
+      <SSN>333-44-5566</SSN>
+      <DateOfBirth>1986-12-08</DateOfBirth>
+      <Address>
+        <Street1>2100 Financial District</Street1>
+        <Street2>Unit 3502</Street2>
+        <City>San Francisco</City>
+        <State>CA</State>
+        <ZipCode>94111</ZipCode>
+      </Address>
+      <Phone type="mobile">555-333-4455</Phone>
+      <Email>v.chen@email.com</Email>
+      <Employment>
+        <Employer>Salesforce</Employer>
+        <Title>Senior Product Manager</Title>
+        <AnnualIncome>185000.00</AnnualIncome>
+        <StockOptions>45000.00</StockOptions>
+        <StartDate>2019-02-01</StartDate>
+      </Employment>
+      <CreditScore>
+        <Score>788</Score>
+        <Bureau>EXPERIAN</Bureau>
+        <Date>2024-06-01</Date>
+      </CreditScore>
+      <ExistingCustomer>true</ExistingCustomer>
+      <RelationshipDiscount>0.25</RelationshipDiscount>
+    </PrimaryBorrower>
+    <CoBorrower xsi:nil="true"/>
+  </Borrower>
+  <Collateral>
+    <Vehicle>
+      <Make>BMW</Make>
+      <Model>X3 xDrive30i</Model>
+      <Year>2021</Year>
+      <VIN>5UXTY5C09M9D12345</VIN>
+      <EstimatedValue>32000.00</EstimatedValue>
+      <Mileage>34521</Mileage>
+      <Color>Alpine White</Color>
+      <Condition>EXCELLENT</Condition>
+      <EquityPosition>
+        <CurrentValue>32000.00</CurrentValue>
+        <BuyoutAmount>28500.00</BuyoutAmount>
+        <Equity>3500.00</Equity>
+      </EquityPosition>
+      <MaintenanceHistory>
+        <ServiceRecords>COMPLETE</ServiceRecords>
+        <LastService>2024-05-15</LastService>
+        <TireCondition>GOOD</TireCondition>
+        <BrakeCondition>GOOD</BrakeCondition>
+      </MaintenanceHistory>
+    </Vehicle>
+  </Collateral>
+  <Fees>
+    <Fee type="origination">
+      <Amount>0.00</Amount>
+      <Description>No Origination Fee - Existing Customer</Description>
+    </Fee>
+    <Fee type="documentation">
+      <Amount>75.00</Amount>
+      <Description>Document Preparation</Description>
+    </Fee>
+    <Fee type="dmv">
+      <Amount>350.00</Amount>
+      <Description>DMV Title Transfer and Registration</Description>
+    </Fee>
+  </Fees>
+  <Insurance>
+    <AutoInsurance>
+      <Provider>AAA Insurance</Provider>
+      <PolicyNumber>AUTO-SF-789012</PolicyNumber>
+      <ExpirationDate>2024-12-15</ExpirationDate>
+      <Comprehensive>500</Comprehensive>
+      <Collision>500</Collision>
+      <Liability>100/300/100</Liability>
+    </AutoInsurance>
+    <GAPInsurance xsi:nil="true"/>
+  </Insurance>
+  <TradeIn xsi:nil="true"/>
+  <Payoff>
+    <Payee>BMW Financial Services</Payee>
+    <Amount>28500.00</Amount>
+    <GoodThrough>2024-06-20</GoodThrough>
+    <Method>ELECTRONIC</Method>
+    <Address>
+      <Street1>PO Box 650000</Street1>
+      <City>Dallas</City>
+      <State>TX</State>
+      <ZipCode>75265</ZipCode>
+    </Address>
+  </Payoff>
+</loan_info>

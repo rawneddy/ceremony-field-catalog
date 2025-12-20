@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100003</LoanNumber>
+    <LoanType>MORTGAGE</LoanType>
+    <LoanSubType>CONVENTIONAL</LoanSubType>
+    <LoanPurpose>PURCHASE</LoanPurpose>
+    <Term>360</Term>
+    <Amount>380000.00</Amount>
+    <InterestRate>6.875</InterestRate>
+    <APR>7.012</APR>
+    <OriginationDate>2024-06-01</OriginationDate>
+    <MaturityDate>2054-06-01</MaturityDate>
+    <MonthlyPayment>2495.33</MonthlyPayment>
+    <FirstPaymentDate>2024-08-01</FirstPaymentDate>
+    <LTV>80.00</LTV>
+    <CLTV>80.00</CLTV>
+    <EscrowRequired>true</EscrowRequired>
+    <InterestOnlyPeriod xsi:nil="true"/>
+  </LoanDetails>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>Andrew</FirstName>
+        <MiddleName>James</MiddleName>
+        <LastName>Mitchell</LastName>
+      </Name>
+      <SSN>333-44-5555</SSN>
+      <DateOfBirth>1985-07-12</DateOfBirth>
+      <CitizenshipStatus>US_CITIZEN</CitizenshipStatus>
+      <Address>
+        <Street1>Current: 456 Rental Ave</Street1>
+        <Street2>Apt 12</Street2>
+        <City>Denver</City>
+        <State>CO</State>
+        <ZipCode>80202</ZipCode>
+        <ResidencyType>RENT</ResidencyType>
+        <MonthlyRent>1800.00</MonthlyRent>
+        <YearsAtAddress>3</YearsAtAddress>
+      </Address>
+      <Phone type="mobile">555-333-4444</Phone>
+      <Email>a.mitchell@email.com</Email>
+      <Employment>
+        <Employer>Mountain Engineering LLC</Employer>
+        <Title>Project Manager</Title>
+        <AnnualIncome>125000.00</AnnualIncome>
+        <StartDate>2017-03-01</StartDate>
+        <EmploymentType>W2</EmploymentType>
+      </Employment>
+      <CreditScore>
+        <Score>762</Score>
+        <Bureau>EXPERIAN</Bureau>
+        <Date>2024-05-15</Date>
+      </CreditScore>
+    </PrimaryBorrower>
+    <CoBorrower>
+      <Name>
+        <FirstName>Laura</FirstName>
+        <MiddleName>Marie</MiddleName>
+        <LastName>Mitchell</LastName>
+      </Name>
+      <SSN>444-55-6666</SSN>
+      <DateOfBirth>1987-02-28</DateOfBirth>
+      <Employment>
+        <Employer>Denver Public Schools</Employer>
+        <Title>Teacher</Title>
+        <AnnualIncome>58000.00</AnnualIncome>
+        <StartDate>2012-08-15</StartDate>
+      </Employment>
+      <CreditScore>
+        <Score>745</Score>
+        <Bureau>EXPERIAN</Bureau>
+        <Date>2024-05-15</Date>
+      </CreditScore>
+    </CoBorrower>
+  </Borrower>
+  <Collateral>
+    <Property>
+      <Address>
+        <Street1>789 Mountain View Drive</Street1>
+        <Street2></Street2>
+        <City>Lakewood</City>
+        <State>CO</State>
+        <ZipCode>80226</ZipCode>
+        <County>JEFFERSON</County>
+      </Address>
+      <PropertyType>SINGLE_FAMILY</PropertyType>
+      <Occupancy>PRIMARY_RESIDENCE</Occupancy>
+      <AppraisedValue>475000.00</AppraisedValue>
+      <PurchasePrice>475000.00</PurchasePrice>
+      <YearBuilt>2018</YearBuilt>
+      <SquareFootage>2400</SquareFootage>
+      <LotSize>0.25</LotSize>
+      <Bedrooms>4</Bedrooms>
+      <Bathrooms>2.5</Bathrooms>
+    </Property>
+  </Collateral>
+  <Fees>
+    <Fee type="origination">
+      <Amount>3800.00</Amount>
+      <Description>Loan Origination Fee (1%)</Description>
+    </Fee>
+    <Fee type="appraisal">
+      <Amount>650.00</Amount>
+      <Description>Property Appraisal</Description>
+    </Fee>
+    <Fee type="title">
+      <Amount>1850.00</Amount>
+      <Description>Title Insurance</Description>
+    </Fee>
+    <Fee type="recording">
+      <Amount>150.00</Amount>
+      <Description>Recording Fee</Description>
+    </Fee>
+    <Fee type="credit_report">
+      <Amount>75.00</Amount>
+      <Description>Credit Report</Description>
+    </Fee>
+  </Fees>
+  <Insurance>
+    <Hazard>
+      <Provider>Allstate</Provider>
+      <PolicyNumber>HO-234567</PolicyNumber>
+      <AnnualPremium>2100.00</AnnualPremium>
+      <EffectiveDate>2024-06-01</EffectiveDate>
+    </Hazard>
+    <PMI xsi:nil="true"/>
+    <Flood xsi:nil="true"/>
+  </Insurance>
+  <Escrow>
+    <InitialDeposit>4500.00</InitialDeposit>
+    <MonthlyAmount>525.00</MonthlyAmount>
+    <IncludesTaxes>true</IncludesTaxes>
+    <IncludesInsurance>true</IncludesInsurance>
+  </Escrow>
+</loan_info>

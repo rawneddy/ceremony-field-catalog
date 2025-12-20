@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100010</LoanNumber>
+    <LoanType>CONSTRUCTION</LoanType>
+    <LoanSubType>CONSTRUCTION_TO_PERM</LoanSubType>
+    <LoanPurpose>NEW_CONSTRUCTION</LoanPurpose>
+    <ConstructionAmount>550000.00</ConstructionAmount>
+    <LotValue>125000.00</LotValue>
+    <TotalProjectCost>675000.00</TotalProjectCost>
+    <PermanentLoanAmount>500000.00</PermanentLoanAmount>
+    <ConstructionTerm>12</ConstructionTerm>
+    <PermanentTerm>360</PermanentTerm>
+    <ConstructionRate>
+      <Type>VARIABLE</Type>
+      <Index>PRIME</Index>
+      <Margin>1.00</Margin>
+      <CurrentRate>9.50</CurrentRate>
+    </ConstructionRate>
+    <PermanentRate>
+      <Type>FIXED</Type>
+      <Rate>6.75</Rate>
+      <LockDate xsi:nil="true"/>
+      <LockExpiration xsi:nil="true"/>
+    </PermanentRate>
+    <OriginationDate>2024-06-01</OriginationDate>
+    <EstimatedCompletionDate>2025-06-01</EstimatedCompletionDate>
+    <LTV>74.07</LTV>
+  </LoanDetails>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>Catherine</FirstName>
+        <MiddleName>Rose</MiddleName>
+        <LastName>Blackwell</LastName>
+      </Name>
+      <SSN>444-55-6677</SSN>
+      <DateOfBirth>1980-08-14</DateOfBirth>
+      <Address>
+        <Street1>Current: 789 Temporary Lane</Street1>
+        <Street2></Street2>
+        <City>Charlotte</City>
+        <State>NC</State>
+        <ZipCode>28202</ZipCode>
+      </Address>
+      <Phone type="mobile">555-444-5566</Phone>
+      <Email>c.blackwell@email.com</Email>
+      <Employment>
+        <Employer>Bank of America</Employer>
+        <Title>Managing Director</Title>
+        <AnnualIncome>285000.00</AnnualIncome>
+        <BonusIncome>75000.00</BonusIncome>
+        <StartDate>2010-06-01</StartDate>
+      </Employment>
+    </PrimaryBorrower>
+    <CoBorrower>
+      <Name>
+        <FirstName>David</FirstName>
+        <MiddleName>Michael</MiddleName>
+        <LastName>Blackwell</LastName>
+      </Name>
+      <SSN>555-66-7788</SSN>
+      <DateOfBirth>1978-04-22</DateOfBirth>
+      <Employment>
+        <Employer>Blackwell Architecture</Employer>
+        <Title>Principal Architect</Title>
+        <AnnualIncome>195000.00</AnnualIncome>
+        <EmploymentType>SELF_EMPLOYED</EmploymentType>
+      </Employment>
+    </CoBorrower>
+  </Borrower>
+  <Collateral>
+    <Property>
+      <Address>
+        <Street1>Lot 42, Pinecrest Estates</Street1>
+        <Street2></Street2>
+        <City>Davidson</City>
+        <State>NC</State>
+        <ZipCode>28036</ZipCode>
+      </Address>
+      <PropertyType>SINGLE_FAMILY</PropertyType>
+      <Occupancy>PRIMARY_RESIDENCE</Occupancy>
+      <LotAppraisedValue>125000.00</LotAppraisedValue>
+      <EstimatedCompletedValue>725000.00</EstimatedCompletedValue>
+    </Property>
+    <Construction>
+      <Builder>
+        <Name>Pinecrest Custom Homes</Name>
+        <License>NC-GC-45678</License>
+        <Phone>555-888-9999</Phone>
+        <BankApproved>true</BankApproved>
+      </Builder>
+      <Architect>
+        <Name>David Blackwell</Name>
+        <License>NC-AR-12345</License>
+      </Architect>
+      <Plans>
+        <ApprovalDate>2024-05-15</ApprovalDate>
+        <SquareFootage>4200</SquareFootage>
+        <Stories>2</Stories>
+        <Bedrooms>5</Bedrooms>
+        <Bathrooms>4.5</Bathrooms>
+        <Garage>3</Garage>
+      </Plans>
+    </Construction>
+  </Collateral>
+  <DrawSchedule>
+    <Draw number="1" percentage="15">
+      <Milestone>Foundation Complete</Milestone>
+      <Amount>82500.00</Amount>
+      <Status>PENDING</Status>
+    </Draw>
+    <Draw number="2" percentage="20">
+      <Milestone>Framing Complete</Milestone>
+      <Amount>110000.00</Amount>
+      <Status>PENDING</Status>
+    </Draw>
+    <Draw number="3" percentage="20">
+      <Milestone>Rough-In Complete</Milestone>
+      <Amount>110000.00</Amount>
+      <Status>PENDING</Status>
+    </Draw>
+    <Draw number="4" percentage="25">
+      <Milestone>Drywall and Interior</Milestone>
+      <Amount>137500.00</Amount>
+      <Status>PENDING</Status>
+    </Draw>
+    <Draw number="5" percentage="20">
+      <Milestone>Final Completion</Milestone>
+      <Amount>110000.00</Amount>
+      <Status>PENDING</Status>
+    </Draw>
+  </DrawSchedule>
+  <Fees>
+    <Fee type="origination">
+      <Amount>5500.00</Amount>
+      <Description>Construction Loan Origination</Description>
+    </Fee>
+    <Fee type="inspection">
+      <Amount>150.00</Amount>
+      <Description>Per-Draw Inspection Fee</Description>
+      <Occurrences>5</Occurrences>
+    </Fee>
+  </Fees>
+  <Insurance>
+    <BuildersRisk>
+      <Provider>Zurich</Provider>
+      <PolicyNumber>BR-789012</PolicyNumber>
+      <Coverage>750000.00</Coverage>
+      <AnnualPremium>3200.00</AnnualPremium>
+    </BuildersRisk>
+  </Insurance>
+</loan_info>

@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100009</LoanNumber>
+    <LoanType>RECREATIONAL</LoanType>
+    <LoanSubType>RV</LoanSubType>
+    <Term>240</Term>
+    <Amount>125000.00</Amount>
+    <InterestRate>6.99</InterestRate>
+    <APR>7.15</APR>
+    <OriginationDate>2024-06-10</OriginationDate>
+    <MaturityDate>2044-06-10</MaturityDate>
+    <MonthlyPayment>968.78</MonthlyPayment>
+    <FirstPaymentDate>2024-07-10</FirstPaymentDate>
+  </LoanDetails>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>Thomas</FirstName>
+        <MiddleName>Wayne</MiddleName>
+        <LastName>Henderson</LastName>
+      </Name>
+      <SSN>222-33-4455</SSN>
+      <DateOfBirth>1962-11-15</DateOfBirth>
+      <Address>
+        <Street1>4500 Prairie Lane</Street1>
+        <Street2></Street2>
+        <City>Dallas</City>
+        <State>TX</State>
+        <ZipCode>75201</ZipCode>
+      </Address>
+      <Phone type="mobile">555-222-3344</Phone>
+      <Email>t.henderson@email.com</Email>
+      <Employment>
+        <Employer>Henderson Consulting</Employer>
+        <Title>Owner</Title>
+        <AnnualIncome>210000.00</AnnualIncome>
+        <EmploymentType>SELF_EMPLOYED</EmploymentType>
+        <YearsInBusiness>22</YearsInBusiness>
+      </Employment>
+    </PrimaryBorrower>
+    <CoBorrower>
+      <Name>
+        <FirstName>Barbara</FirstName>
+        <MiddleName>Jean</MiddleName>
+        <LastName>Henderson</LastName>
+      </Name>
+      <SSN>333-44-5566</SSN>
+      <DateOfBirth>1965-03-22</DateOfBirth>
+      <Employment>
+        <Employer>Henderson Consulting</Employer>
+        <Title>CFO</Title>
+        <AnnualIncome>150000.00</AnnualIncome>
+      </Employment>
+    </CoBorrower>
+  </Borrower>
+  <Collateral>
+    <RecreationalVehicle>
+      <Make>Winnebago</Make>
+      <Model>View 24J</Model>
+      <Year>2024</Year>
+      <VIN>1F66F5DY8R0123456</VIN>
+      <EstimatedValue>165000.00</EstimatedValue>
+      <NewOrUsed>NEW</NewOrUsed>
+      <Class>C</Class>
+      <Length>25</Length>
+      <GVWR>14500</GVWR>
+      <Slideouts>1</Slideouts>
+      <Mileage>125</Mileage>
+      <ChassisType>MERCEDES_SPRINTER</ChassisType>
+    </RecreationalVehicle>
+  </Collateral>
+  <Fees>
+    <Fee type="origination">
+      <Amount>1250.00</Amount>
+      <Description>Loan Origination Fee</Description>
+    </Fee>
+    <Fee type="titling">
+      <Amount>225.00</Amount>
+      <Description>Title and Registration</Description>
+    </Fee>
+  </Fees>
+  <Insurance>
+    <RVInsurance>
+      <Provider>Good Sam Insurance</Provider>
+      <PolicyNumber>RV-456789</PolicyNumber>
+      <AnnualPremium>1850.00</AnnualPremium>
+      <CoverageType>FULL_TIMER</CoverageType>
+      <PersonalEffects>15000.00</PersonalEffects>
+      <TotalLossReplacement>true</TotalLossReplacement>
+    </RVInsurance>
+  </Insurance>
+  <ExtendedWarranty>
+    <Provider>Good Sam Extended Service Plan</Provider>
+    <Term>84</Term>
+    <Coverage>PLATINUM</Coverage>
+    <Cost>4500.00</Cost>
+    <Financed>true</Financed>
+    <Deductible>100.00</Deductible>
+  </ExtendedWarranty>
+</loan_info>

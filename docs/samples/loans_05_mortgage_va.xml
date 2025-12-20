@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<loan_info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <LoanDetails>
+    <LoanNumber>LN-2024-100005</LoanNumber>
+    <LoanType>MORTGAGE</LoanType>
+    <LoanSubType>VA</LoanSubType>
+    <LoanPurpose>PURCHASE</LoanPurpose>
+    <Term>360</Term>
+    <Amount>425000.00</Amount>
+    <InterestRate>6.25</InterestRate>
+    <APR>6.48</APR>
+    <OriginationDate>2024-06-12</OriginationDate>
+    <MaturityDate>2054-06-12</MaturityDate>
+    <MonthlyPayment>2617.08</MonthlyPayment>
+    <FirstPaymentDate>2024-08-01</FirstPaymentDate>
+    <LTV>100.00</LTV>
+    <EscrowRequired>true</EscrowRequired>
+    <VACaseNumber>12-34-5-6789012</VACaseNumber>
+    <VAFundingFee>
+      <Amount>9137.50</Amount>
+      <Percentage>2.15</Percentage>
+      <Financed>true</Financed>
+      <Exempt>false</Exempt>
+    </VAFundingFee>
+  </LoanDetails>
+  <Borrower>
+    <PrimaryBorrower>
+      <Name>
+        <FirstName>Marcus</FirstName>
+        <MiddleName>Anthony</MiddleName>
+        <LastName>Williams</LastName>
+      </Name>
+      <SSN>666-77-8888</SSN>
+      <DateOfBirth>1982-04-22</DateOfBirth>
+      <CitizenshipStatus>US_CITIZEN</CitizenshipStatus>
+      <Address>
+        <Street1>Base Housing Unit 45</Street1>
+        <Street2></Street2>
+        <City>Norfolk</City>
+        <State>VA</State>
+        <ZipCode>23505</ZipCode>
+      </Address>
+      <Phone type="mobile">555-666-7777</Phone>
+      <Email>m.williams.vet@email.com</Email>
+      <Employment>
+        <Employer>US Navy (Retired)</Employer>
+        <Title>Chief Petty Officer (Ret.)</Title>
+        <AnnualIncome>65000.00</AnnualIncome>
+        <RetirementIncome>true</RetirementIncome>
+      </Employment>
+      <MilitaryService>
+        <Branch>NAVY</Branch>
+        <ServiceType>VETERAN</ServiceType>
+        <DischargeType>HONORABLE</DischargeType>
+        <DischargeDate>2022-06-30</DischargeDate>
+        <ServiceYears>20</ServiceYears>
+        <DisabilityRating>30</DisabilityRating>
+        <COEDate>2024-05-01</COEDate>
+        <Entitlement>FULL</Entitlement>
+      </MilitaryService>
+    </PrimaryBorrower>
+    <CoBorrower>
+      <Name>
+        <FirstName>Angela</FirstName>
+        <MiddleName xsi:nil="true"/>
+        <LastName>Williams</LastName>
+      </Name>
+      <SSN>777-88-9999</SSN>
+      <DateOfBirth>1984-08-15</DateOfBirth>
+      <Employment>
+        <Employer>Norfolk Public Schools</Employer>
+        <Title>Guidance Counselor</Title>
+        <AnnualIncome>55000.00</AnnualIncome>
+        <StartDate>2015-08-01</StartDate>
+      </Employment>
+      <NonBorrowingSpouse>false</NonBorrowingSpouse>
+    </CoBorrower>
+  </Borrower>
+  <Collateral>
+    <Property>
+      <Address>
+        <Street1>892 Coastal Highway</Street1>
+        <Street2></Street2>
+        <City>Virginia Beach</City>
+        <State>VA</State>
+        <ZipCode>23451</ZipCode>
+      </Address>
+      <PropertyType>SINGLE_FAMILY</PropertyType>
+      <Occupancy>PRIMARY_RESIDENCE</Occupancy>
+      <AppraisedValue>425000.00</AppraisedValue>
+      <PurchasePrice>425000.00</PurchasePrice>
+      <YearBuilt>2022</YearBuilt>
+      <SquareFootage>2200</SquareFootage>
+      <VAMinimumPropertyRequirements>PASSED</VAMinimumPropertyRequirements>
+    </Property>
+  </Collateral>
+  <Fees>
+    <Fee type="origination">
+      <Amount>4250.00</Amount>
+      <Description>Loan Origination Fee</Description>
+    </Fee>
+    <Fee type="appraisal">
+      <Amount>600.00</Amount>
+      <Description>VA Appraisal</Description>
+    </Fee>
+    <Fee type="title">
+      <Amount>1500.00</Amount>
+      <Description>Title Insurance</Description>
+    </Fee>
+  </Fees>
+  <Insurance>
+    <Hazard>
+      <Provider>USAA</Provider>
+      <PolicyNumber>HO-VA-123456</PolicyNumber>
+      <AnnualPremium>1800.00</AnnualPremium>
+    </Hazard>
+    <PMI xsi:nil="true"/>
+    <Flood>
+      <Required>true</Required>
+      <Provider>NFIP</Provider>
+      <AnnualPremium>850.00</AnnualPremium>
+    </Flood>
+  </Insurance>
+  <DownPayment>
+    <Amount>0.00</Amount>
+    <Percentage>0.00</Percentage>
+    <Source xsi:nil="true"/>
+  </DownPayment>
+</loan_info>

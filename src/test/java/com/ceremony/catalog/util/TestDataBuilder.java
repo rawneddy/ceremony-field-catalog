@@ -2,6 +2,7 @@ package com.ceremony.catalog.util;
 
 import com.ceremony.catalog.api.dto.CatalogObservationDTO;
 import com.ceremony.catalog.api.dto.ContextDefinitionDTO;
+import com.ceremony.catalog.api.dto.MetadataExtractionRuleDTO;
 
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +37,7 @@ public class TestDataBuilder {
         private String description = "Test context description";
         private List<String> requiredMetadataFields = List.of("field1", "field2");
         private List<String> optionalMetadataFields = List.of();
+        private Map<String, MetadataExtractionRuleDTO> metadataRules = new HashMap<>();
         private boolean active = true;
         
         public ContextBuilder withId(String id) {
@@ -75,6 +77,11 @@ public class TestDataBuilder {
             return this;
         }
         
+        public ContextBuilder withMetadataRules(Map<String, MetadataExtractionRuleDTO> rules) {
+            this.metadataRules = new HashMap<>(rules);
+            return this;
+        }
+        
         public ContextBuilder inactive() {
             this.active = false;
             return this;
@@ -86,14 +93,15 @@ public class TestDataBuilder {
         }
         
         public ContextDefinitionDTO build() {
-            return new ContextDefinitionDTO(
-                id, 
-                displayName, 
-                description, 
-                requiredMetadataFields, 
-                optionalMetadataFields, 
-                active
-            );
+            return ContextDefinitionDTO.builder()
+                .contextId(id)
+                .displayName(displayName)
+                .description(description)
+                .requiredMetadata(requiredMetadataFields)
+                .optionalMetadata(optionalMetadataFields)
+                .metadataRules(metadataRules.isEmpty() ? null : metadataRules)
+                .active(active)
+                .build();
         }
     }
     

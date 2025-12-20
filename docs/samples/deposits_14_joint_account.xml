@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ceremony xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <TransactionId>TXN-2024-000014</TransactionId>
+    <Timestamp>2024-06-14T14:00:00Z</Timestamp>
+    <Channel>BRANCH</Channel>
+    <Action>FULFILLMENT</Action>
+  </Header>
+  <Customer>
+    <CustomerId>CUST-100014</CustomerId>
+    <Name>
+      <FirstName>Mary</FirstName>
+      <MiddleName>Catherine</MiddleName>
+      <LastName>Clark</LastName>
+    </Name>
+    <SSN>345-67-0003</SSN>
+    <DateOfBirth>1965-11-20</DateOfBirth>
+  </Customer>
+  <JointOwners>
+    <!-- 3 joint owners - testing repeating elements -->
+    <JointOwner>
+      <CustomerId>CUST-100014-J1</CustomerId>
+      <Name>
+        <FirstName>Thomas</FirstName>
+        <MiddleName></MiddleName>
+        <LastName>Clark</LastName>
+      </Name>
+      <SSN>345-67-0004</SSN>
+      <Relationship>SPOUSE</Relationship>
+    </JointOwner>
+    <JointOwner>
+      <CustomerId>CUST-100014-J2</CustomerId>
+      <Name>
+        <FirstName>Emily</FirstName>
+        <MiddleName>Rose</MiddleName>
+        <LastName>Clark</LastName>
+      </Name>
+      <SSN>345-67-0005</SSN>
+      <Relationship>CHILD</Relationship>
+    </JointOwner>
+    <JointOwner>
+      <CustomerId>CUST-100014-J3</CustomerId>
+      <Name>
+        <FirstName>Michael</FirstName>
+        <MiddleName xsi:nil="true"/>
+        <LastName>Clark</LastName>
+      </Name>
+      <SSN>345-67-0006</SSN>
+      <Relationship>CHILD</Relationship>
+    </JointOwner>
+  </JointOwners>
+  <Accounts>
+    <Account productCode="SAV" productSubCode="FM">
+      <AccountNumber>1414141414</AccountNumber>
+      <AccountTitle>Clark Family Savings</AccountTitle>
+      <OpenDate>2024-06-14</OpenDate>
+      <Status>ACTIVE</Status>
+      <Balance>
+        <Current>75000.00</Current>
+        <Available>75000.00</Available>
+      </Balance>
+      <InterestRate>2.50</InterestRate>
+    </Account>
+  </Accounts>
+  <Beneficiaries>
+    <Beneficiary>
+      <Name>Estate of Mary C Clark</Name>
+      <Percentage>100</Percentage>
+      <Type>PRIMARY</Type>
+    </Beneficiary>
+  </Beneficiaries>
+</Ceremony>

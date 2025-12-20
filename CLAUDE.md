@@ -160,6 +160,41 @@ GET /catalog/fields?productCode=DDA&page=0&size=10
 GET /catalog/fields?fieldPathContains=/Ceremony/Amount
 ```
 
+## UI Development
+
+### Commands
+```bash
+cd ui
+
+# Development server
+npm run dev
+
+# Type check (MUST pass before committing)
+npm run typecheck
+
+# Build for production
+npm run build
+
+# Lint check
+npm run lint
+```
+
+### Type Safety Requirements
+The UI uses strict TypeScript configuration with Nexus-level type checking:
+- `noUncheckedIndexedAccess`: Array/object indexing returns `T | undefined`
+- `noImplicitReturns`: All code paths must return a value
+- `noUnusedLocals` / `noUnusedParameters`: No dead code allowed
+- `strict`: Enables all strict type-checking options
+
+**All type errors must be resolved before committing.** Run `npm run typecheck` to verify.
+
+### Architecture
+- **hooks/**: React Query hooks and custom hooks
+- **services/**: API client and catalog API functions
+- **utils/**: Pure utility functions (xmlParser, queryKeys)
+- **components/**: Organized by feature area with barrel exports
+- **Theming**: All colors, fonts, and shadows are defined in `ui/src/index.css` `@theme` block (Tailwind v4)
+
 ## Development Guidelines
 
 ### Making Changes

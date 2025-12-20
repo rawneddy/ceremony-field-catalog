@@ -122,6 +122,7 @@ public abstract class ServiceTestBase {
             "Test context for " + contextId,
             java.util.List.of(requiredFields),
             java.util.List.of(),
+            null, // metadataRules
             true
         );
     }

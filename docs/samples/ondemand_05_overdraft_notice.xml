@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OVDFT code="OVDFT" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <noticeDate>2024-06-15</noticeDate>
+  <accountInfo>
+    <number>****3344</number>
+    <type>CHECKING</type>
+    <holder>Marcus Thompson</holder>
+  </accountInfo>
+  <overdraftEvent>
+    <occurredOn>2024-06-14</occurredOn>
+    <triggeringTransaction>
+      <description>ACH Debit - Electric Company</description>
+      <amount>185.00</amount>
+      <availableAtTime>142.33</availableAtTime>
+      <shortfall>42.67</shortfall>
+    </triggeringTransaction>
+    <action taken="COVERED">
+      <source>OVERDRAFT_PROTECTION</source>
+      <linkedAccount>****9988</linkedAccount>
+      <transferAmount>50.00</transferAmount>
+      <transferFee>12.00</transferFee>
+    </action>
+  </overdraftEvent>
+  <currentStatus>
+    <balance>7.33</balance>
+    <availableBalance>7.33</availableBalance>
+    <pendingItems count="0"/>
+  </currentStatus>
+  <feesSummary>
+    <thisEvent>12.00</thisEvent>
+    <yearToDate>36.00</yearToDate>
+    <refundEligible>false</refundEligible>
+  </feesSummary>
+  <preventionTips>
+    <tip>Set up low balance alerts</tip>
+    <tip>Enable automatic transfers</tip>
+    <tip>Review recurring payments</tip>
+  </preventionTips>
+</OVDFT>

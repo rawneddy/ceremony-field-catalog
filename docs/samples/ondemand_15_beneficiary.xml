@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BENUP code="BENUP" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <confirmationNumber>BEN-2024-667788</confirmationNumber>
+  <effectiveDate>2024-06-15</effectiveDate>
+  <accountHolder>
+    <name>Harold Patterson</name>
+    <dateOfBirth>1955-08-22</dateOfBirth>
+    <customerId>CUST-112244</customerId>
+  </accountHolder>
+  <account>
+    <number>****5599</number>
+    <type>IRA_TRADITIONAL</type>
+    <currentValue asOf="2024-06-15">487235.00</currentValue>
+  </account>
+  <previousBeneficiaries>
+    <primary>
+      <name>Margaret Patterson</name>
+      <relationship>SPOUSE</relationship>
+      <percentage>100</percentage>
+    </primary>
+    <contingent xsi:nil="true"/>
+  </previousBeneficiaries>
+  <newBeneficiaries>
+    <primary total="100">
+      <beneficiary>
+        <name>Margaret Patterson</name>
+        <relationship>SPOUSE</relationship>
+        <dateOfBirth>1958-03-15</dateOfBirth>
+        <ssn masked="true">***-**-1234</ssn>
+        <percentage>60</percentage>
+        <address>
+          <street>442 Sunset Blvd</street>
+          <city>Tampa</city>
+          <state>FL</state>
+          <zip>33602</zip>
+        </address>
+      </beneficiary>
+      <beneficiary>
+        <name>Harold Patterson Jr</name>
+        <relationship>CHILD</relationship>
+        <dateOfBirth>1982-11-30</dateOfBirth>
+        <ssn masked="true">***-**-5678</ssn>
+        <percentage>20</percentage>
+        <address>
+          <street>1100 Park Ave</street>
+          <city>Orlando</city>
+          <state>FL</state>
+          <zip>32801</zip>
+        </address>
+      </beneficiary>
+      <beneficiary>
+        <name>Susan Patterson-Miller</name>
+        <relationship>CHILD</relationship>
+        <dateOfBirth>1985-06-12</dateOfBirth>
+        <ssn masked="true">***-**-9012</ssn>
+        <percentage>20</percentage>
+        <address>
+          <street>555 Ocean Drive</street>
+          <city>Miami</city>
+          <state>FL</state>
+          <zip>33139</zip>
+        </address>
+      </beneficiary>
+    </primary>
+    <contingent>
+      <beneficiary>
+        <name>Patterson Family Trust</name>
+        <relationship>TRUST</relationship>
+        <taxId masked="true">**-***4567</taxId>
+        <percentage>100</percentage>
+        <trustDate>2020-05-01</trustDate>
+      </beneficiary>
+    </contingent>
+  </newBeneficiaries>
+  <spousalConsent required="false" reason="Community property state"/>
+  <witnessedBy>
+    <witness>
+      <name>Bank Employee</name>
+      <employeeId>EMP-9988</employeeId>
+    </witness>
+  </witnessedBy>
+</BENUP>
