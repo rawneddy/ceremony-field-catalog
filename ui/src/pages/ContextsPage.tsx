@@ -47,8 +47,8 @@ const ContextsPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="bg-paper border-b border-steel p-8 shrink-0">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+      <div className="bg-paper p-6 shrink-0 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.3)] relative z-10">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-black text-ink uppercase tracking-tight">
               Context Management
@@ -67,8 +67,10 @@ const ContextsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto bg-paper/50 p-8">
-        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="h-2 bg-gradient-to-b from-black/10 to-transparent shrink-0" />
+        <div className="flex-1 overflow-auto bg-paper/50 p-8">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
           {isLoading ? (
             [...Array(4)].map((_, i) => (
               <div key={i} className="bg-white border border-steel h-48 rounded-md animate-pulse" />
@@ -88,6 +90,7 @@ const ContextsPage: React.FC = () => {
               />
             ))
           )}
+        </div>
         </div>
       </div>
 

@@ -56,7 +56,7 @@ const UploadPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="bg-paper border-b border-steel p-8 shrink-0">
+      <div className="bg-paper p-6 shrink-0 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.3)] relative z-10">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-black text-ink uppercase tracking-tight">Smart Ingestion</h1>
@@ -81,7 +81,9 @@ const UploadPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto bg-paper/30 p-8">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="h-2 bg-gradient-to-b from-black/10 to-transparent shrink-0" />
+        <div className="flex-1 overflow-auto bg-paper/30 p-8">
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Step 1: Select Context */}
           <section className={`bg-white border-2 p-8 rounded-md transition-all ${step === 1 ? 'border-ceremony shadow-xl' : 'border-steel opacity-50'}`}>
@@ -152,6 +154,7 @@ const UploadPage: React.FC = () => {
                 )}
              </div>
           )}
+        </div>
         </div>
       </div>
     </Layout>
