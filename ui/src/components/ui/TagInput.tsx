@@ -26,11 +26,33 @@ const TagInput: React.FC<TagInputProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Fetch suggestions when focused
   const { suggestions } = useSuggest(field, inputValue, contextId, undefined, isFocused);
+
+  // Calculate dropdown position using fixed positioning to escape overflow containers
+  useEffect(() => {
+    if (isFocused && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const openUpward = spaceBelow < 200 && spaceAbove > spaceBelow;
+
+      setDropdownStyle({
+        position: 'fixed',
+        left: rect.left,
+        width: rect.width,
+        maxHeight: 192, // max-h-48 = 12rem = 192px
+        ...(openUpward
+          ? { bottom: window.innerHeight - rect.top + 4 }
+          : { top: rect.bottom + 4 })
+      });
+    }
+  }, [isFocused]);
 
   // Filter out already-selected values from suggestions
   const availableSuggestions = suggestions.filter(s => !values.includes(s));
@@ -117,7 +139,7 @@ const TagInput: React.FC<TagInputProps> = ({
   const hideInput = maxValues && values.length >= maxValues;
 
   return (
-    <div className={`relative ${className}`}>
+    <div ref={containerRef} className={`relative ${className}`}>
       {/* Tags Container */}
       <div
         className={`flex flex-wrap gap-1 p-1.5 bg-white border rounded min-h-[34px] cursor-text transition-colors
@@ -161,11 +183,12 @@ const TagInput: React.FC<TagInputProps> = ({
         )}
       </div>
 
-      {/* Suggestions Dropdown */}
+      {/* Suggestions Dropdown - uses fixed positioning to escape overflow containers */}
       {isFocused && availableSuggestions.length > 0 && !hideInput && (
         <div
           ref={suggestionsRef}
-          className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-steel rounded-md shadow-xl max-h-48 overflow-y-auto"
+          style={dropdownStyle}
+          className="z-[100] bg-white border border-steel rounded-md shadow-xl overflow-y-auto"
         >
           {availableSuggestions.map((suggestion, index) => (
             <button

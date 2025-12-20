@@ -28,10 +28,15 @@ const MetadataEditorModal: React.FC<MetadataEditorModalProps> = ({
   const optionalFields = context.optionalMetadata;
   const allFields = [...requiredFields, ...optionalFields];
 
+  // Check if a specific file has all required fields filled
+  const isRowComplete = (file: FileWithMetadata) =>
+    requiredFields.every(field => file.metadata[field] && file.metadata[field].trim());
+
   // Check if all required fields are filled for all files
-  const allRequiredFilled = editedFiles.every(f =>
-    requiredFields.every(field => f.metadata[field] && f.metadata[field].trim())
-  );
+  const allRequiredFilled = editedFiles.every(isRowComplete);
+
+  // Count completed rows
+  const completedCount = editedFiles.filter(isRowComplete).length;
 
   const handleMetadataChange = (fileIndex: number, field: string, value: string) => {
     setEditedFiles(prev => prev.map((f, i) =>
@@ -96,37 +101,60 @@ const MetadataEditorModal: React.FC<MetadataEditorModalProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {editedFiles.map((file, fileIndex) => (
-                  <tr key={file.file.name} className="border-b border-steel/50 hover:bg-paper/50">
-                    <td className="px-3 py-2 text-xs font-medium text-ink sticky left-0 bg-white z-10">
-                      <div className="truncate max-w-[200px]" title={file.file.name}>
-                        {file.file.name}
-                      </div>
-                      <div className="text-[10px] text-slate-400">
-                        {file.fieldCount} fields, {file.attributeCount} attrs
-                      </div>
-                    </td>
-                    {allFields.map(field => {
-                      const isRequired = requiredFields.includes(field);
+                {editedFiles.map((file, fileIndex) => {
+                  const rowComplete = isRowComplete(file);
+                  return (
+                    <tr
+                      key={file.file.name}
+                      className={`border-b border-steel/50 transition-colors ${
+                        rowComplete
+                          ? 'bg-mint/10 hover:bg-mint/15'
+                          : 'hover:bg-paper/50'
+                      }`}
+                    >
+                      <td className={`px-3 py-2 text-xs font-medium text-ink sticky left-0 z-10 ${
+                        rowComplete ? 'bg-mint/10' : 'bg-white'
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          {rowComplete && (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-mint flex-shrink-0" />
+                          )}
+                          <div>
+                            <div className="truncate max-w-[180px]" title={file.file.name}>
+                              {file.file.name}
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              {file.fieldCount} fields, {file.attributeCount} attrs
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      {allFields.map(field => {
+                        const isRequired = requiredFields.includes(field);
 
-                      return (
-                        <td
-                          key={field}
-                          className={`px-2 py-2 ${isRequired ? 'bg-ceremony/5' : ''}`}
-                        >
-                          <TagInput
-                            field={`metadata.${field}`}
-                            values={file.metadata[field] ? [file.metadata[field]] : []}
-                            onChange={(vals) => handleMetadataChange(fileIndex, field, vals[0] || '')}
-                            contextId={context.contextId}
-                            placeholder={isRequired ? 'Required...' : 'Optional...'}
-                            maxValues={1}
-                          />
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                        return (
+                          <td
+                            key={field}
+                            className={`px-2 py-2 ${
+                              rowComplete
+                                ? ''
+                                : isRequired ? 'bg-ceremony/5' : ''
+                            }`}
+                          >
+                            <TagInput
+                              field={`metadata.${field}`}
+                              values={file.metadata[field] ? [file.metadata[field]] : []}
+                              onChange={(vals) => handleMetadataChange(fileIndex, field, vals[0] || '')}
+                              contextId={context.contextId}
+                              placeholder={isRequired ? 'Required...' : 'Optional...'}
+                              maxValues={1}
+                            />
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -139,6 +167,14 @@ const MetadataEditorModal: React.FC<MetadataEditorModalProps> = ({
               <div className="w-4 h-4 bg-ceremony/10 border border-ceremony/30 rounded" />
               <span>Required field</span>
             </div>
+            <div className="flex items-center gap-1">
+              <div className="w-4 h-4 bg-mint/10 border border-mint/30 rounded" />
+              <span>Row complete</span>
+            </div>
+            <div className="text-slate-400">
+              <span className="font-bold text-mint">{completedCount}</span>
+              <span> / {editedFiles.length} files ready</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -150,15 +186,14 @@ const MetadataEditorModal: React.FC<MetadataEditorModalProps> = ({
             </button>
             <button
               onClick={handleSave}
-              disabled={!allRequiredFilled}
-              className={`px-6 py-2 rounded text-sm font-bold flex items-center gap-2 transition-colors ${
+              className={`px-6 py-2 rounded text-sm font-bold flex items-center gap-2 transition-all ${
                 allRequiredFilled
-                  ? 'bg-mint text-white hover:bg-mint/90 shadow-sm'
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  ? 'bg-mint text-white hover:bg-mint/90 shadow-lg shadow-mint/25 ring-2 ring-mint/30'
+                  : 'bg-slate-600 text-white hover:bg-slate-500'
               }`}
             >
               {allRequiredFilled && <CheckCircle2 className="w-4 h-4" />}
-              Save
+              Save {!allRequiredFilled && 'Progress'}
             </button>
           </div>
         </div>
