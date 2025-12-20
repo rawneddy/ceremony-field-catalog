@@ -119,12 +119,14 @@ const FieldSearchPage: React.FC = () => {
   return (
     <Layout>
       <div className="bg-paper p-6 shrink-0 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.3)] relative z-10">
-        <div className="max-w-6xl mx-auto">
-          <form onSubmit={handleSearch} className="relative">
-            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-              {isRegex ? 'Regex Pattern Matching' : 'String Contains Matching on Field Paths'}
-            </label>
-            <div className="flex gap-2">
+        <div className="flex items-center gap-8 px-2">
+          <div className="w-56 shrink-0">
+            <h1 className="text-2xl font-black text-ink uppercase tracking-tight">Field Search</h1>
+            <p className="text-slate-500 text-sm font-medium">
+              {isRegex ? 'Regex mode' : 'Substring mode'}
+            </p>
+          </div>
+          <form onSubmit={handleSearch} className="flex-1 flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
@@ -184,7 +186,6 @@ const FieldSearchPage: React.FC = () => {
               >
                 Search
               </button>
-            </div>
           </form>
         </div>
       </div>

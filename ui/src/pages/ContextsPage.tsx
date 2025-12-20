@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import ContextCard from '../components/contexts/ContextCard';
 import ContextFormModal from '../components/contexts/ContextFormModal';
@@ -11,7 +11,14 @@ import type { Context, ContextWithCount } from '../types';
 const ContextsPage: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingContext, setEditingContext] = useState<Context | null>(null);
+  const [filter, setFilter] = useState('');
   const { data: contexts, isLoading } = useContexts(true);
+
+  const filteredContexts = contexts?.filter(c =>
+    c.displayName.toLowerCase().includes(filter.toLowerCase()) ||
+    c.contextId.toLowerCase().includes(filter.toLowerCase()) ||
+    c.description?.toLowerCase().includes(filter.toLowerCase())
+  );
   const { deleteContext } = useContextMutations();
 
   const handleEdit = (context: Context) => {
@@ -48,18 +55,24 @@ const ContextsPage: React.FC = () => {
   return (
     <Layout>
       <div className="bg-paper p-6 shrink-0 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.3)] relative z-10">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-black text-ink uppercase tracking-tight">
-              Context Management
-            </h1>
-            <p className="text-slate-500 mt-1 font-medium">
-              Define and manage business observation points.
-            </p>
+        <div className="flex items-center gap-8 px-2">
+          <div className="w-56 shrink-0">
+            <h1 className="text-2xl font-black text-ink uppercase tracking-tight">Contexts</h1>
+            <p className="text-slate-500 text-sm font-medium">Business observation points</p>
+          </div>
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Filter contexts..."
+              className="w-full bg-white border border-steel rounded px-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ceremony/20 focus:border-ceremony transition-all font-medium"
+            />
           </div>
           <button
             onClick={handleNewContext}
-            className="bg-ceremony text-paper px-6 py-2.5 rounded text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm"
+            className="bg-ceremony text-paper px-6 py-2.5 rounded text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm shrink-0"
           >
             <Plus className="w-4 h-4" />
             New Context
@@ -75,13 +88,13 @@ const ContextsPage: React.FC = () => {
             [...Array(4)].map((_, i) => (
               <div key={i} className="bg-white border border-steel h-48 rounded-md animate-pulse" />
             ))
-          ) : contexts?.length === 0 ? (
+          ) : filteredContexts?.length === 0 ? (
             <div className="col-span-2 text-center py-12 text-slate-400">
-              <p className="text-lg font-bold mb-2">No contexts yet</p>
-              <p className="text-sm">Create your first context to start cataloging field observations.</p>
+              <p className="text-lg font-bold mb-2">{filter ? 'No matches' : 'No contexts yet'}</p>
+              <p className="text-sm">{filter ? 'Try a different filter term.' : 'Create your first context to start cataloging field observations.'}</p>
             </div>
           ) : (
-            contexts?.map((context) => (
+            filteredContexts?.map((context) => (
               <ContextCard
                 key={context.contextId}
                 context={context as ContextWithCount}

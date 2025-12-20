@@ -57,10 +57,10 @@ const UploadPage: React.FC = () => {
   return (
     <Layout>
       <div className="bg-paper p-6 shrink-0 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.3)] relative z-10">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-black text-ink uppercase tracking-tight">Smart Ingestion</h1>
-            <p className="text-slate-500 mt-1 font-medium">Automatic extraction and correlation of field observations.</p>
+        <div className="flex items-center justify-between px-2">
+          <div className="w-56 shrink-0">
+            <h1 className="text-2xl font-black text-ink uppercase tracking-tight">Upload</h1>
+            <p className="text-slate-500 text-sm font-medium">Smart field extraction</p>
           </div>
           <div className="flex items-center gap-4">
              <button onClick={() => setStep(1)} className={`flex flex-col items-center transition-colors hover:opacity-80 ${step >= 1 ? 'text-ceremony' : 'text-slate-300'}`}>
