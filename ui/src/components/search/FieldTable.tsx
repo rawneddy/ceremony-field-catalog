@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import type { CatalogEntry } from '../../types';
-import { ChevronUp, ChevronDown, Copy, Check } from 'lucide-react';
+import { ChevronUp, ChevronDown, Copy, Check, AlertTriangle, Info } from 'lucide-react';
 import { Skeleton, EmptyState } from '../ui';
 import { config } from '../../config';
+import { computeAllFieldWarnings, type FieldWarning } from '../../lib/schema/fieldWarnings';
 
 interface FieldTableProps {
   results: CatalogEntry[];
@@ -41,38 +42,60 @@ const FieldTable: React.FC<FieldTableProps> = ({
   query,
   highlightFieldPath
 }) => {
-  const [sortField, setSortField] = useState<keyof CatalogEntry | null>(null);
+  const [sortField, setSortField] = useState<keyof CatalogEntry | 'alerts' | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [hasScrolledToHighlight, setHasScrolledToHighlight] = useState(false);
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
 
+  // Compute field warnings once for all results (before sorting so we can sort by it)
+  const fieldWarnings = useMemo(() => {
+    return computeAllFieldWarnings(results);
+  }, [results]);
+
+  // Helper to get warning priority for sorting: warning=2, info=1, none=0
+  const getWarningPriority = (fieldPath: string): number => {
+    const warnings = fieldWarnings.get(fieldPath) || [];
+    if (warnings.length === 0) return 0;
+    if (warnings.some(w => w.severity === 'warning')) return 2;
+    return 1; // info
+  };
+
   const sortedResults = useMemo(() => {
     if (!sortField || !sortOrder) return results;
 
     return [...results].sort((a, b) => {
+      // Special handling for alerts column
+      if (sortField === 'alerts') {
+        const aPriority = getWarningPriority(a.fieldPath);
+        const bPriority = getWarningPriority(b.fieldPath);
+        return sortOrder === 'asc'
+          ? bPriority - aPriority  // asc: warning → info → none
+          : aPriority - bPriority; // desc: none → info → warning
+      }
+
       const aVal = a[sortField];
       const bVal = b[sortField];
 
       if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sortOrder === 'asc' 
-          ? aVal.localeCompare(bVal) 
+        return sortOrder === 'asc'
+          ? aVal.localeCompare(bVal)
           : bVal.localeCompare(aVal);
       }
-      
+
       if (typeof aVal === 'number' && typeof bVal === 'number') {
         return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
       }
 
       if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
-        return sortOrder === 'asc' 
+        return sortOrder === 'asc'
           ? (aVal === bVal ? 0 : aVal ? 1 : -1)
           : (aVal === bVal ? 0 : bVal ? 1 : -1);
       }
 
       return 0;
     });
-  }, [results, sortField, sortOrder]);
+  }, [results, sortField, sortOrder, fieldWarnings]);
 
   // Keyboard navigation
   React.useEffect(() => {
@@ -139,7 +162,7 @@ const FieldTable: React.FC<FieldTableProps> = ({
     setHasScrolledToHighlight(false);
   }, [highlightFieldPath]);
 
-  const handleSort = (field: keyof CatalogEntry) => {
+  const handleSort = (field: keyof CatalogEntry | 'alerts') => {
     if (sortField === field) {
       if (sortOrder === 'asc') setSortOrder('desc');
       else if (sortOrder === 'desc') {
@@ -202,22 +225,23 @@ const FieldTable: React.FC<FieldTableProps> = ({
       <thead className="sticky top-0 bg-paper z-10 shadow-sm">
         <tr className="border-b border-steel">
           <th className="w-12 px-4 py-3"></th>
-          <th 
+          <th
+            className="w-28 px-2 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group"
+            onClick={() => handleSort('alerts')}
+          >
+            <div className="flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" />
+              <span>Alerts</span>
+              <SortIcon active={sortField === 'alerts'} order={sortOrder} />
+            </div>
+          </th>
+          <th
             className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group"
             onClick={() => handleSort('fieldPath')}
           >
             <div className="flex items-center gap-2">
               Field Path
               <SortIcon active={sortField === 'fieldPath'} order={sortOrder} />
-            </div>
-          </th>
-          <th 
-            className="w-40 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group"
-            onClick={() => handleSort('contextId')}
-          >
-            <div className="flex items-center gap-2">
-              Context
-              <SortIcon active={sortField === 'contextId'} order={sortOrder} />
             </div>
           </th>
           <th 
@@ -277,7 +301,12 @@ const FieldTable: React.FC<FieldTableProps> = ({
         </tr>
       </thead>
       <tbody className="divide-y divide-steel/50">
-        {sortedResults.map((entry) => (
+        {sortedResults.map((entry) => {
+          const warnings = fieldWarnings.get(entry.fieldPath) || [];
+          const hasWarnings = warnings.length > 0;
+          const isWarningSeverity = hasWarningSeverity(warnings);
+
+          return (
           <tr
             key={entry.id}
             ref={(el) => {
@@ -287,9 +316,11 @@ const FieldTable: React.FC<FieldTableProps> = ({
             onClick={() => onSelectRow(entry)}
             className={`group hover:bg-ceremony/5 cursor-pointer transition-colors ${
               selectedId === entry.id ? 'bg-ceremony/10' : ''
-            } ${highlightFieldPath === entry.fieldPath ? 'field-highlighted' : ''}`}
+            } ${highlightFieldPath === entry.fieldPath ? 'field-highlighted' : ''} ${
+              hasWarnings ? (isWarningSeverity ? 'bg-amber-50/50' : 'bg-sky-50/30') : ''
+            }`}
           >
-            <td className="px-4 py-3">
+            <td className={`px-4 py-3 ${hasWarnings ? (isWarningSeverity ? 'border-l-4 border-l-amber-400' : 'border-l-4 border-l-sky-300') : ''}`}>
               <button
                 onClick={(e) => handleCopy(e, entry.fieldPath, entry.id)}
                 className="text-slate-300 hover:text-ceremony transition-colors"
@@ -298,13 +329,11 @@ const FieldTable: React.FC<FieldTableProps> = ({
                 {copiedId === entry.id ? <Check className="w-4 h-4 text-mint" /> : <Copy className="w-4 h-4" />}
               </button>
             </td>
+            <td className="px-2 py-3">
+              <WarningBadges warnings={warnings} />
+            </td>
             <td className="px-4 py-3 font-mono text-sm truncate">
               {highlightMatch(entry.fieldPath)}
-            </td>
-            <td className="px-4 py-3">
-              <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs font-bold">
-                {entry.contextId}
-              </span>
             </td>
             <td className="px-4 py-3 text-center text-sm font-medium">{entry.minOccurs}</td>
             <td className="px-4 py-3 text-center text-sm font-medium">{entry.maxOccurs}</td>
@@ -321,7 +350,8 @@ const FieldTable: React.FC<FieldTableProps> = ({
               {formatDate(entry.lastObservedAt)}
             </td>
           </tr>
-        ))}
+          );
+        })}
       </tbody>
     </table>
   );
@@ -352,5 +382,44 @@ const BooleanBadge = ({ value }: { value: boolean }) => (
     {value ? 'Yes' : 'No'}
   </span>
 );
+
+/**
+ * Displays a single warning badge for a field - prioritizes warnings over info.
+ */
+const WarningBadges = ({ warnings }: { warnings: FieldWarning[] }) => {
+  if (warnings.length === 0) return null;
+
+  // Priority: show warning severity first, then info
+  const primaryWarning = warnings.find(w => w.severity === 'warning') || warnings[0]!;
+
+  const tooltipText = warnings
+    .map(w => `${w.shortLabel}: ${w.message}`)
+    .join('\n\n');
+
+  return (
+    <span
+      title={tooltipText}
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+        primaryWarning.severity === 'warning'
+          ? 'bg-amber-100 text-amber-700 border border-amber-200'
+          : 'bg-sky-50 text-sky-600 border border-sky-200'
+      }`}
+    >
+      {primaryWarning.severity === 'warning' ? (
+        <AlertTriangle className="w-2.5 h-2.5" />
+      ) : (
+        <Info className="w-2.5 h-2.5" />
+      )}
+      {primaryWarning.shortLabel}
+    </span>
+  );
+};
+
+/**
+ * Returns true if any warning has 'warning' severity.
+ */
+const hasWarningSeverity = (warnings: FieldWarning[]): boolean => {
+  return warnings.some(w => w.severity === 'warning');
+};
 
 export default FieldTable;

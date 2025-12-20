@@ -473,6 +473,7 @@ const FieldSearchPage: React.FC = () => {
           {selectedRow && (
             <FieldDetailPanel
               entry={selectedRow}
+              allEntries={results}
               onClose={() => setSelectedRow(null)}
             />
           )}

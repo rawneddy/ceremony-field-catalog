@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { CatalogEntry } from '../../types';
-import { X, Database, Info, Activity, Clock } from 'lucide-react';
+import { X, Database, Info, Activity, Clock, AlertTriangle } from 'lucide-react';
 import { config } from '../../config';
+import { getFieldWarnings, getWarningSeverityClasses, type FieldWarning } from '../../lib/schema/fieldWarnings';
 
 interface FieldDetailPanelProps {
   entry: CatalogEntry;
+  allEntries: CatalogEntry[];
   onClose: () => void;
 }
 
-const FieldDetailPanel: React.FC<FieldDetailPanelProps> = ({ entry, onClose }) => {
+const FieldDetailPanel: React.FC<FieldDetailPanelProps> = ({ entry, allEntries, onClose }) => {
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
@@ -21,6 +23,11 @@ const FieldDetailPanel: React.FC<FieldDetailPanelProps> = ({ entry, onClose }) =
       hour12: true
     });
   };
+
+  // Compute warnings for this field
+  const warnings = useMemo(() => {
+    return getFieldWarnings(entry, allEntries);
+  }, [entry, allEntries]);
 
   return (
     <div 
@@ -38,6 +45,41 @@ const FieldDetailPanel: React.FC<FieldDetailPanelProps> = ({ entry, onClose }) =
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-8">
+        {/* Warnings section - only shown when there are warnings */}
+        {warnings.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-3 text-amber-500">
+              <AlertTriangle className="w-4 h-4" />
+              <h3 className="text-xs font-black uppercase tracking-widest">Warnings</h3>
+            </div>
+            <div className="space-y-2">
+              {warnings.map((warning) => {
+                const colors = getWarningSeverityClasses(warning.severity);
+                return (
+                  <div
+                    key={warning.code}
+                    className={`p-3 rounded-md border ${colors.bg} ${colors.border}`}
+                  >
+                    <div className={`flex items-center gap-2 mb-1 ${colors.text}`}>
+                      {warning.severity === 'warning' ? (
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                      ) : (
+                        <Info className="w-3.5 h-3.5" />
+                      )}
+                      <span className="text-xs font-black uppercase tracking-wider">
+                        {warning.shortLabel}
+                      </span>
+                    </div>
+                    <p className={`text-xs ${colors.text} opacity-80`}>
+                      {warning.message}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         <section>
           <div className="flex items-center gap-2 mb-3 text-slate-400">
             <Database className="w-4 h-4" />
