@@ -110,6 +110,7 @@ class ContextServiceTest {
             "Test description",
             List.of("field1", "field2"),
             List.of("optional1", "optional2"),
+            null, // metadataRules
             true
         );
         contextService.createContext(initialDto);
@@ -152,9 +153,10 @@ class ContextServiceTest {
             "Test description",
             List.of("field1", "field2", "field3"), // Added field3
             List.of("optional1"),
+            null, // metadataRules
             true
         );
-        
+
         assertThatThrownBy(() -> contextService.updateContext("test-context", updateDto))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Required metadata cannot be changed after context creation")
@@ -172,10 +174,11 @@ class ContextServiceTest {
             "Test description",
             List.of("field1", "field2", "field3"),
             List.of("optional1"),
+            null, // metadataRules
             true
         );
         contextService.createContext(initialDto);
-        
+
         // Try to remove required metadata
         var updateDto = new ContextDefinitionDTO(
             "test-context",
@@ -183,6 +186,7 @@ class ContextServiceTest {
             "Test description",
             List.of("field1", "field2"), // Removed field3
             List.of("optional1"),
+            null, // metadataRules
             true
         );
         
@@ -202,10 +206,11 @@ class ContextServiceTest {
             "Test description",
             List.of("field1", "field2", "field3"),
             List.of("optional1"),
+            null, // metadataRules
             true
         );
         contextService.createContext(initialDto);
-        
+
         // Try to reorder required metadata (should be allowed - order doesn't matter for validation)
         var updateDto = new ContextDefinitionDTO(
             "test-context",
@@ -213,6 +218,7 @@ class ContextServiceTest {
             "Test description",
             List.of("field3", "field1", "field2"), // Same fields, different order
             List.of("optional1"),
+            null, // metadataRules
             true
         );
         
@@ -231,6 +237,7 @@ class ContextServiceTest {
             "Test description",
             List.of("field1"),
             List.of(),
+            null, // metadataRules
             true
         );
         
@@ -247,6 +254,7 @@ class ContextServiceTest {
             "Test description",
             List.of("field1"),
             List.of(),
+            null, // metadataRules
             true
         );
         contextService.createContext(dto);
