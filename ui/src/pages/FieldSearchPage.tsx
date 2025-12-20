@@ -5,6 +5,7 @@ import FieldTable from '../components/search/FieldTable';
 import FacetSidebar from '../components/search/FacetSidebar';
 import FieldDetailPanel from '../components/search/FieldDetailPanel';
 import TruncationWarning from '../components/search/TruncationWarning';
+import { ModeToggle, ErrorBanner } from '../components/ui';
 import { useFieldSearch } from '../hooks/useFieldSearch';
 import { useFacets } from '../hooks/useFacets';
 import { useSuggest } from '../hooks/useSuggest';
@@ -164,22 +165,7 @@ const FieldSearchPage: React.FC = () => {
                   </div>
                 )}
               </div>
-              <div className="flex items-center bg-white border border-steel rounded px-1">
-                <button
-                  type="button"
-                  onClick={() => setIsRegex(false)}
-                  className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${!isRegex ? 'bg-ink text-paper' : 'text-slate-400 hover:text-ink'}`}
-                >
-                  String
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsRegex(true)}
-                  className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${isRegex ? 'bg-ink text-paper' : 'text-slate-400 hover:text-ink'}`}
-                >
-                  Regex
-                </button>
-              </div>
+              <ModeToggle isRegex={isRegex} onToggle={setIsRegex} />
               <button
                 type="submit"
                 className="bg-ceremony text-paper px-6 py-2.5 rounded text-sm font-bold hover:bg-ceremony-hover transition-colors shadow-sm"
@@ -215,17 +201,7 @@ const FieldSearchPage: React.FC = () => {
             />
 
             <div className="flex-1 flex flex-col overflow-hidden bg-white">
-              {error && (
-                <div className="m-6 p-4 bg-error-50 border border-error-200 rounded-md text-error-700 flex items-center gap-3">
-                  <div className="bg-error-100 p-1.5 rounded-full">
-                    <Search className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-black uppercase tracking-tight">Search Failed</div>
-                    <div className="text-xs">{(error as any).response?.data?.message || error.message}</div>
-                  </div>
-                </div>
-              )}
+              {error && <ErrorBanner title="Search Failed" error={error} />}
 
               {data && data.totalElements > data.size && (
                 <TruncationWarning total={data.totalElements} displayed={data.size} />

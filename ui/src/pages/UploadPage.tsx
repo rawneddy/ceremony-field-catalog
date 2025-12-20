@@ -13,13 +13,13 @@ const UploadPage: React.FC = () => {
   const { data: contexts } = useContexts();
   const selectedContext = contexts?.find(c => c.contextId === contextId);
   
-  const { 
-    bins, 
-    scanFiles, 
-    updateBinMetadata, 
-    submitBin, 
-    clearStatuses, 
-    isScanning 
+  const {
+    bins,
+    scanFiles,
+    updateBinMetadata,
+    submitBin,
+    clearBins,
+    isScanning
   } = useXmlUpload();
 
   const handleFileDrop = (e: React.DragEvent) => {
@@ -49,7 +49,7 @@ const UploadPage: React.FC = () => {
   };
 
   const resetUpload = () => {
-    clearStatuses();
+    clearBins();
     setStep(1);
     setContextId('');
   };

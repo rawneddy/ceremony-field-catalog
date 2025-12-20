@@ -7,6 +7,7 @@ import FieldDetailPanel from '../components/search/FieldDetailPanel';
 import TruncationWarning from '../components/search/TruncationWarning';
 import ContextSelector from '../components/search/ContextSelector';
 import MetadataFilters from '../components/search/MetadataFilters';
+import { ModeToggle, ErrorBanner } from '../components/ui';
 import { useFieldSearch } from '../hooks/useFieldSearch';
 import { useFacets } from '../hooks/useFacets';
 import { useContexts } from '../hooks/useContexts';
@@ -90,22 +91,7 @@ const DiscoveryPage: React.FC = () => {
                   className="w-full bg-white border border-steel rounded px-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ceremony/20 focus:border-ceremony transition-all font-medium font-mono"
                 />
               </div>
-              <div className="flex items-center bg-white border border-steel rounded px-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsRegex(false)}
-                  className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${!isRegex ? 'bg-ink text-paper' : 'text-slate-400 hover:text-ink'}`}
-                >
-                  String
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsRegex(true)}
-                  className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${isRegex ? 'bg-ink text-paper' : 'text-slate-400 hover:text-ink'}`}
-                >
-                  Regex
-                </button>
-              </div>
+              <ModeToggle isRegex={isRegex} onToggle={setIsRegex} />
             </form>
           </div>
 
@@ -138,17 +124,7 @@ const DiscoveryPage: React.FC = () => {
         />
 
         <div className="flex-1 flex flex-col overflow-hidden bg-white">
-          {error && (
-            <div className="m-6 p-4 bg-error-50 border border-error-200 rounded-md text-error-700 flex items-center gap-3">
-              <div className="bg-error-100 p-1.5 rounded-full">
-                <Search className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-sm font-black uppercase tracking-tight">Discovery Failed</div>
-                <div className="text-xs">{(error as any).response?.data?.message || error.message}</div>
-              </div>
-            </div>
-          )}
+          {error && <ErrorBanner title="Discovery Failed" error={error} />}
 
           {data && data.totalElements > data.size && (
             <TruncationWarning total={data.totalElements} displayed={data.size} />
