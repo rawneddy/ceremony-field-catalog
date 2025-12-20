@@ -119,7 +119,7 @@ const FieldSearchPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="bg-paper border-b border-steel p-6 shrink-0">
+      <div className="bg-paper p-6 shrink-0 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.3)] relative z-10">
         <div className="max-w-4xl mx-auto">
           <form onSubmit={handleSearch} className="relative">
             <div className="flex gap-2">
@@ -200,7 +200,9 @@ const FieldSearchPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="h-2 bg-gradient-to-b from-black/10 to-transparent shrink-0" />
+        <div className="flex-1 flex overflow-hidden">
         {!hasSearched ? (
           <div className="flex-1 flex flex-col items-center justify-center bg-white text-center p-12">
             <div className="w-20 h-20 bg-paper rounded-full flex items-center justify-center mb-6">
@@ -258,6 +260,7 @@ const FieldSearchPage: React.FC = () => {
             onClose={() => setSelectedRow(null)}
           />
         )}
+      </div>
       </div>
     </Layout>
   );

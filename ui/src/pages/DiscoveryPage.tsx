@@ -65,7 +65,7 @@ const DiscoveryPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="bg-paper border-b border-steel p-6 shrink-0">
+      <div className="bg-paper p-6 shrink-0 shadow-[0_8px_24px_-4px_rgba(0,0,0,0.3)] relative z-10">
         <form onSubmit={handleSearch} className="max-w-6xl mx-auto grid grid-cols-12 gap-6">
           <div className="col-span-3">
             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Context Scope</label>
@@ -124,7 +124,9 @@ const DiscoveryPage: React.FC = () => {
         </form>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="h-2 bg-gradient-to-b from-black/10 to-transparent shrink-0" />
+        <div className="flex-1 flex overflow-hidden">
         <FacetSidebar
           facets={facets}
           onToggleValue={toggleFacetValue}
@@ -168,6 +170,7 @@ const DiscoveryPage: React.FC = () => {
             onClose={() => setSelectedRow(null)}
           />
         )}
+      </div>
       </div>
     </Layout>
   );
