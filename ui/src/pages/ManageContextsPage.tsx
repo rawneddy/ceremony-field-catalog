@@ -9,7 +9,7 @@ import { useContexts } from '../hooks/useContexts';
 import { useContextMutations } from '../hooks/useContextMutations';
 import type { Context, ContextWithCount } from '../types';
 
-const ContextsPage: React.FC = () => {
+const ManageContextsPage: React.FC = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingContext, setEditingContext] = useState<Context | null>(null);
   const [filter, setFilter] = useState('');
@@ -59,7 +59,7 @@ const ContextsPage: React.FC = () => {
         <div className="flex items-center gap-8 px-2">
           <div className="w-56 shrink-0">
             <h1 className="text-2xl font-black text-ink uppercase tracking-tight">Contexts</h1>
-            <p className="text-slate-500 text-sm font-medium">Business observation points</p>
+            <p className="text-slate-500 text-sm font-medium">Schema Boundaries</p>
           </div>
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -112,4 +112,4 @@ const ContextsPage: React.FC = () => {
   );
 };
 
-export default ContextsPage;
+export default ManageContextsPage;

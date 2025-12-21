@@ -511,4 +511,30 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         query.addCriteria(Criteria.where("contextid").is(contextId));
         return mongoTemplate.count(query, CatalogEntry.class);
     }
+
+    @Override
+    public Map<String, Long> countGroupedByContextId() {
+        // Use aggregation to get all counts in a single query
+        // Pipeline: $group by contextId with $sum for count
+        List<AggregationOperation> pipeline = new ArrayList<>();
+        pipeline.add(Aggregation.group("contextid").count().as("count"));
+
+        AggregationResults<Document> results = mongoTemplate.aggregate(
+            Aggregation.newAggregation(pipeline),
+            "catalog_fields",
+            Document.class
+        );
+
+        // Convert results to Map<contextId, count>
+        Map<String, Long> counts = new java.util.HashMap<>();
+        for (Document doc : results.getMappedResults()) {
+            String contextId = doc.getString("_id");
+            // MongoDB returns Integer for count, need to convert to Long
+            Number count = doc.get("count", Number.class);
+            if (contextId != null && count != null) {
+                counts.put(contextId, count.longValue());
+            }
+        }
+        return counts;
+    }
 }

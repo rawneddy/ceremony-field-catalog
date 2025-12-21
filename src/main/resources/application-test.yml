@@ -40,7 +40,7 @@ app:
       max-page-size: 50
       timeout: PT5S
     validation:
-      max-xpath-length: 200  # Restrictive for tests
+      max-field-path-length: 200  # Restrictive for tests
       max-context-id-length: 20
       max-metadata-key-length: 20
       max-metadata-value-length: 50

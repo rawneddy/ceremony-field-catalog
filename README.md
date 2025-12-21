@@ -52,7 +52,7 @@ winget install Apache.Maven
 | [docs/api/API_SPECIFICATION.md](docs/api/API_SPECIFICATION.md) | Complete REST API reference |
 | [docs/api/TESTING.md](docs/api/TESTING.md) | Testing guide and patterns |
 | [docs/sdk/README.md](docs/sdk/README.md) | Client SDK documentation (.NET, Python) |
-| [docs/ui/](docs/ui/) | UI requirements and implementation plan |
+| [plans/releases/01/](plans/releases/01/) | UI requirements and implementation plan |
 | [tests/CatalogSmokeTests.http](tests/CatalogSmokeTests.http) | REST Client test file for manual API testing |
 
 ## Full Stack Quick Start
@@ -111,8 +111,8 @@ npm run dev
 
 Once everything is running:
 1. Open the **UI** in your browser.
-2. Navigate to the **Context Management** page to verify the API connection.
-3. Use the **Upload** page to ingest sample XMLs from `docs/samples/`.
+2. Navigate to the **Manage Contexts** tab to verify the API connection.
+3. Use the **Submit Data** tab to ingest sample XMLs from `docs/samples/`.
 
 ## Alternative Development Workflows
 ---

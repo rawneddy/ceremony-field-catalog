@@ -81,4 +81,13 @@ public interface CatalogCustomRepository {
      * @return the number of fields in the context
      */
     long countByContextId(String contextId);
+
+    /**
+     * Count fields grouped by context ID using a single aggregation query.
+     * This is more efficient than calling countByContextId() for each context
+     * when you need counts for multiple contexts.
+     *
+     * @return map of contextId to field count
+     */
+    Map<String, Long> countGroupedByContextId();
 }

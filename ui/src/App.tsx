@@ -3,10 +3,10 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import ErrorBoundary from './components/layout/ErrorBoundary';
-import DiscoveryPage from './pages/DiscoveryPage';
-import FieldSearchPage from './pages/FieldSearchPage';
-import ContextsPage from './pages/ContextsPage';
-import UploadPage from './pages/UploadPage';
+import DiscoverFieldsPage from './pages/DiscoverFieldsPage';
+import ExploreSchemaPage from './pages/ExploreSchemaPage';
+import SubmitDataPage from './pages/SubmitDataPage';
+import ManageContextsPage from './pages/ManageContextsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,10 +23,10 @@ const App: React.FC = () => {
       <ErrorBoundary>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<DiscoveryPage />} />
-            <Route path="/search" element={<FieldSearchPage />} />
-            <Route path="/contexts" element={<ContextsPage />} />
-            <Route path="/upload" element={<UploadPage />} />
+            <Route path="/" element={<DiscoverFieldsPage />} />
+            <Route path="/schema" element={<ExploreSchemaPage />} />
+            <Route path="/submit" element={<SubmitDataPage />} />
+            <Route path="/contexts" element={<ManageContextsPage />} />
           </Routes>
         </BrowserRouter>
         <Toaster

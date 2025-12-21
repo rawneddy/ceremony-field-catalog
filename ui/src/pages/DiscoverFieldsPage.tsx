@@ -16,7 +16,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { config } from '../config';
 import type { AggregatedField } from '../types';
 
-const DiscoveryPage: React.FC = () => {
+const DiscoverFieldsPage: React.FC = () => {
   const [contextId, setContextId] = useState('');
   const [metadata, setMetadata] = useState<Record<string, string[]>>({});
   const [fieldPath, setFieldPath] = useState('');
@@ -106,8 +106,8 @@ const DiscoveryPage: React.FC = () => {
         {/* Row 1: Title + Primary Controls */}
         <div className={`flex items-center ${ROW_GAP}`}>
           <div className={`${TITLE_WIDTH} shrink-0`}>
-            <h1 className="text-2xl font-black text-ink uppercase tracking-tight">Discovery</h1>
-            <p className="text-slate-500 text-sm font-medium">Explore field patterns</p>
+            <h1 className="text-2xl font-black text-ink uppercase tracking-tight">Fields</h1>
+            <p className="text-slate-500 text-sm font-medium">Field Filters</p>
           </div>
           <form onSubmit={handleSearch} className="flex-1 flex items-center gap-4">
             <div className="w-48 shrink-0">
@@ -192,4 +192,4 @@ const DiscoveryPage: React.FC = () => {
   );
 };
 
-export default DiscoveryPage;
+export default DiscoverFieldsPage;

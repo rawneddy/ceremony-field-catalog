@@ -1,8 +1,11 @@
 package com.ceremony.catalog.service;
 
+import com.ceremony.catalog.api.dto.CatalogObservationDTO;
 import com.ceremony.catalog.api.dto.ContextDefinitionDTO;
+import com.ceremony.catalog.api.dto.ContextWithCountDTO;
 import com.ceremony.catalog.api.dto.MetadataExtractionRuleDTO;
 import com.ceremony.catalog.domain.Context;
+import com.ceremony.catalog.persistence.CatalogRepository;
 import com.ceremony.catalog.persistence.ContextRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +18,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -33,12 +37,19 @@ class ContextServiceTest {
 
     @Autowired
     ContextService contextService;
-    
+
+    @Autowired
+    CatalogService catalogService;
+
     @Autowired
     ContextRepository contextRepository;
-    
+
+    @Autowired
+    CatalogRepository catalogRepository;
+
     @BeforeEach
     void cleanDatabase() {
+        catalogRepository.deleteAll();
         contextRepository.deleteAll();
     }
     
@@ -803,5 +814,126 @@ class ContextServiceTest {
 
         assertThat(created.getMetadataRules().get("productcode").getValidationRegex())
             .isEqualTo("^(DDA|SAV|CD)[0-9]{2}[A-Z]?$");
+    }
+
+    // ===== CONTEXT WITH COUNTS TESTS =====
+
+    @Test
+    void getAllContextsWithCountsReturnsCorrectCounts() {
+        // Create multiple contexts
+        var deposits = ContextDefinitionDTO.builder()
+            .contextId("deposits")
+            .displayName("Deposits")
+            .description("Deposit processing")
+            .requiredMetadata(List.of("productcode"))
+            .optionalMetadata(null)
+            .active(true)
+            .build();
+        contextService.createContext(deposits);
+
+        var loans = ContextDefinitionDTO.builder()
+            .contextId("loans")
+            .displayName("Loans")
+            .description("Loan processing")
+            .requiredMetadata(List.of("loantype"))
+            .optionalMetadata(null)
+            .active(true)
+            .build();
+        contextService.createContext(loans);
+
+        var empty = ContextDefinitionDTO.builder()
+            .contextId("empty-context")
+            .displayName("Empty")
+            .description("No fields")
+            .requiredMetadata(List.of("field"))
+            .optionalMetadata(null)
+            .active(true)
+            .build();
+        contextService.createContext(empty);
+
+        // Add field observations to deposits (3 distinct fields)
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(Map.of("productcode", "DDA"), "/ceremony/amount", 1, false, false),
+            new CatalogObservationDTO(Map.of("productcode", "DDA"), "/ceremony/date", 1, false, false),
+            new CatalogObservationDTO(Map.of("productcode", "SAV"), "/ceremony/balance", 1, false, false)
+        ));
+
+        // Add field observations to loans (2 distinct fields)
+        catalogService.merge("loans", List.of(
+            new CatalogObservationDTO(Map.of("loantype", "MORTGAGE"), "/loan/principal", 1, false, false),
+            new CatalogObservationDTO(Map.of("loantype", "MORTGAGE"), "/loan/rate", 1, false, false)
+        ));
+
+        // Get contexts with counts
+        List<ContextWithCountDTO> results = contextService.getAllContextsWithCounts();
+
+        assertThat(results).hasSize(3);
+
+        // Find each context and verify counts
+        var depositsResult = results.stream()
+            .filter(c -> "deposits".equals(c.contextId()))
+            .findFirst();
+        assertThat(depositsResult).isPresent();
+        assertThat(depositsResult.get().fieldCount()).isEqualTo(3);
+
+        var loansResult = results.stream()
+            .filter(c -> "loans".equals(c.contextId()))
+            .findFirst();
+        assertThat(loansResult).isPresent();
+        assertThat(loansResult.get().fieldCount()).isEqualTo(2);
+
+        var emptyResult = results.stream()
+            .filter(c -> "empty-context".equals(c.contextId()))
+            .findFirst();
+        assertThat(emptyResult).isPresent();
+        assertThat(emptyResult.get().fieldCount()).isEqualTo(0);
+    }
+
+    @Test
+    void getAllContextsWithCountsHandlesNoContexts() {
+        List<ContextWithCountDTO> results = contextService.getAllContextsWithCounts();
+        assertThat(results).isEmpty();
+    }
+
+    @Test
+    void getAllContextsWithCountsUsesAggregation() {
+        // This test verifies that the aggregation approach works correctly
+        // by creating many contexts and verifying all counts are retrieved in one call
+        int contextCount = 10;
+
+        for (int i = 0; i < contextCount; i++) {
+            var dto = ContextDefinitionDTO.builder()
+                .contextId("context-" + i)
+                .displayName("Context " + i)
+                .description("Description " + i)
+                .requiredMetadata(List.of("field"))
+                .optionalMetadata(null)
+                .active(true)
+                .build();
+            contextService.createContext(dto);
+
+            // Add i+1 fields to each context
+            for (int j = 0; j <= i; j++) {
+                catalogService.merge("context-" + i, List.of(
+                    new CatalogObservationDTO(Map.of("field", "value"), "/path/field" + j, 1, false, false)
+                ));
+            }
+        }
+
+        List<ContextWithCountDTO> results = contextService.getAllContextsWithCounts();
+
+        assertThat(results).hasSize(contextCount);
+
+        // Verify each context has the correct count
+        for (int i = 0; i < contextCount; i++) {
+            final int index = i;
+            var result = results.stream()
+                .filter(c -> ("context-" + index).equals(c.contextId()))
+                .findFirst();
+            assertThat(result).isPresent();
+            assertThat(result.get().fieldCount())
+                .as("context-%d should have %d fields", i, i + 1)
+                .isEqualTo(i + 1);
+        }
     }
 }

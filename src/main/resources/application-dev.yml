@@ -44,7 +44,7 @@ app:
       max-page-size: 250  # Aligned with UI expectations
       timeout: PT10S
     validation:
-      max-xpath-length: 500  # More restrictive for testing
+      max-field-path-length: 500  # More restrictive for testing
       max-context-id-length: 50
       max-metadata-key-length: 50
       max-metadata-value-length: 200

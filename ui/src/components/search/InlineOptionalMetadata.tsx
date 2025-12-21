@@ -2,7 +2,7 @@ import React from 'react';
 import type { Context } from '../../types';
 import { TagInput } from '../ui';
 
-interface OptionalMetadataFiltersProps {
+interface InlineOptionalMetadataProps {
   context: Context;
   values: Record<string, string[]>;
   onChange: (key: string, values: string[]) => void;
@@ -11,11 +11,11 @@ interface OptionalMetadataFiltersProps {
 }
 
 /**
- * Renders optional metadata fields as multi-value TagInput filters.
- * Supports OR within each field (multiple values) and AND between fields.
- * Suggestions cascade based on context + required metadata + other optional selections.
+ * Inline optional metadata inputs for the header row.
+ * Renders as a horizontal flex layout that fits alongside required metadata.
+ * Supports multi-value selection for each field.
  */
-const OptionalMetadataFilters: React.FC<OptionalMetadataFiltersProps> = ({
+const InlineOptionalMetadata: React.FC<InlineOptionalMetadataProps> = ({
   context,
   values,
   onChange,
@@ -24,7 +24,6 @@ const OptionalMetadataFilters: React.FC<OptionalMetadataFiltersProps> = ({
   const optionalKeys = context.optionalMetadata || [];
 
   // Build cascading metadata context for each field
-  // Includes required metadata + all OTHER optional metadata selections
   const getMetadataForField = (currentKey: string): Record<string, string> => {
     const metadata: Record<string, string> = {};
 
@@ -36,11 +35,8 @@ const OptionalMetadataFilters: React.FC<OptionalMetadataFiltersProps> = ({
     }
 
     // Add other optional metadata (first value only for suggestion filtering)
-    // This creates AND behavior - if you selected ABC in field1, field2 suggestions
-    // are constrained to values that co-exist with ABC
     for (const [key, vals] of Object.entries(values)) {
       if (key !== currentKey && vals.length > 0 && vals[0]) {
-        // Use first value for cascading (simplification)
         metadata[key] = vals[0];
       }
     }
@@ -53,22 +49,19 @@ const OptionalMetadataFilters: React.FC<OptionalMetadataFiltersProps> = ({
   }
 
   return (
-    <div className="flex flex-wrap gap-4">
+    <div className="flex items-end gap-4">
       {optionalKeys.map((key) => {
         const cascadingMetadata = getMetadataForField(key);
 
         return (
-          <div key={key} className="min-w-[160px] flex-1 max-w-xs">
-            <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-tighter mb-1">
-              {key}
-            </label>
+          <div key={key} className="min-w-[160px]">
             <TagInput
               field={`metadata.${key}`}
               values={values[key] || []}
               onChange={(vals) => onChange(key, vals)}
               contextId={context.contextId}
               metadata={Object.keys(cascadingMetadata).length > 0 ? cascadingMetadata : undefined}
-              placeholder={`Filter by ${key}...`}
+              placeholder={`${key}...`}
             />
           </div>
         );
@@ -77,4 +70,4 @@ const OptionalMetadataFilters: React.FC<OptionalMetadataFiltersProps> = ({
   );
 };
 
-export default OptionalMetadataFilters;
+export default InlineOptionalMetadata;

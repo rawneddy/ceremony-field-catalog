@@ -48,7 +48,7 @@ app:
       max-page-size: ${CATALOG_MAX_PAGE_SIZE:250}  # Aligned with UI expectations
       timeout: ${CATALOG_SEARCH_TIMEOUT:PT30S}
     validation:
-      max-xpath-length: ${VALIDATION_MAX_XPATH_LENGTH:1000}
+      max-field-path-length: ${VALIDATION_MAX_FIELD_PATH_LENGTH:1000}
       max-context-id-length: ${VALIDATION_MAX_CONTEXT_ID_LENGTH:100}
       max-metadata-key-length: ${VALIDATION_MAX_METADATA_KEY_LENGTH:100}
       max-metadata-value-length: ${VALIDATION_MAX_METADATA_VALUE_LENGTH:500}

@@ -42,7 +42,7 @@ const InlineRequiredMetadata: React.FC<InlineRequiredMetadataProps> = ({
         const isLast = index === requiredKeys.length - 1;
 
         return (
-          <div key={key} className="min-w-[120px]">
+          <div key={key} className="min-w-[160px]">
             <TagInput
               field={`metadata.${key}`}
               values={values[key] ? [values[key]] : []}

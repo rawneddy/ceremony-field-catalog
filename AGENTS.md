@@ -6,17 +6,32 @@
 - `src/main/resources/` holds `application.yml` plus env overrides like `application-dev.yml`.
 - `docs/` includes architecture, API, testing, and SDK guidance; `sdks/` contains .NET and Python clients.
 - `tests/` stores manual REST Client scripts such as `CatalogSmokeTests.http`.
-- `ui/src/index.css` `@theme` block defines all colors, fonts, and shadows (Tailwind v4 central palette).
+- `ui/` contains the React/TypeScript frontend with Tailwind v4 theming in `ui/src/index.css`.
 - Root `docker-compose.yml` and `Dockerfile` define containerized builds and local runtime.
+
+## UI Navigation & Pages
+| Route | Tab Name | Page Component | Purpose |
+|-------|----------|----------------|---------|
+| `/` | Discover Fields | `DiscoverFieldsPage` | Reactive field exploration with facets |
+| `/schema` | Explore Schema | `ExploreSchemaPage` | Generate exact schemas for export |
+| `/submit` | Submit Data | `SubmitDataPage` | Upload XML to extract observations |
+| `/contexts` | Manage Contexts | `ManageContextsPage` | Create/edit schema containers |
 
 ## Build, Test, and Development Commands
 ```sh
+# Backend
 docker-compose up --build    # Run API + MongoDB in Docker
 docker-compose up mongodb    # Start MongoDB only (for local app runs)
 mvn spring-boot:run          # Run API locally (expects MongoDB on :27017)
 mvn clean package            # Build the runnable JAR
 mvn clean test               # Run unit + integration tests (uses Testcontainers)
 mvn test -Dtest=CatalogServiceTest  # Run a single test class
+
+# UI (run from ui/ directory)
+npm run dev                  # Development server
+npm run typecheck            # Type check (MUST pass before committing)
+npm run build                # Production build
+npm run lint                 # Lint check
 ```
 
 ## Coding Style & Naming Conventions
