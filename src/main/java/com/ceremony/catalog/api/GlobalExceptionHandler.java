@@ -1,5 +1,6 @@
 package com.ceremony.catalog.api;
 
+import com.ceremony.catalog.api.dto.ErrorResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,6 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -24,39 +24,39 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException e) {
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException e) {
         log.warn("Illegal argument: {}", e.getMessage());
-        Map<String, Object> errorResponse = Map.of(
-            "message", e.getMessage(),
-            "status", 400,
-            "timestamp", Instant.now(),
-            "error", "Bad Request"
+        ErrorResponse errorResponse = new ErrorResponse(
+            e.getMessage(),
+            400,
+            Instant.now(),
+            "Bad Request"
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException e) {
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e) {
         log.warn("Validation error: {}", e.getMessage());
-        
+
         List<String> errors = e.getBindingResult()
             .getFieldErrors()
             .stream()
             .map(error -> error.getField() + ": " + error.getDefaultMessage())
             .collect(Collectors.toList());
-        
-        Map<String, Object> errorResponse = Map.of(
-            "message", "Validation failed",
-            "errors", errors,
-            "status", 400,
-            "timestamp", Instant.now(),
-            "error", "Validation Error"
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "Validation failed",
+            400,
+            Instant.now(),
+            "Validation Error",
+            errors
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     @ExceptionHandler(HandlerMethodValidationException.class)
-    public ResponseEntity<Map<String, Object>> handleHandlerMethodValidation(HandlerMethodValidationException e) {
+    public ResponseEntity<ErrorResponse> handleHandlerMethodValidation(HandlerMethodValidationException e) {
         log.warn("Handler method validation error: {}", e.getMessage());
 
         List<String> errors = new ArrayList<>();
@@ -75,88 +75,88 @@ public class GlobalExceptionHandler {
             });
         });
 
-        Map<String, Object> errorResponse = Map.of(
-            "message", "Validation failed",
-            "errors", errors,
-            "status", 400,
-            "timestamp", Instant.now(),
-            "error", "Validation Error"
+        ErrorResponse errorResponse = new ErrorResponse(
+            "Validation failed",
+            400,
+            Instant.now(),
+            "Validation Error",
+            errors
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException e) {
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException e) {
         log.warn("Constraint violation: {}", e.getMessage());
-        
+
         List<String> errors = e.getConstraintViolations()
             .stream()
             .map(ConstraintViolation::getMessage)
             .collect(Collectors.toList());
-        
-        Map<String, Object> errorResponse = Map.of(
-            "message", "Constraint violation",
-            "errors", errors,
-            "status", 400,
-            "timestamp", Instant.now(),
-            "error", "Validation Error"
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "Constraint violation",
+            400,
+            Instant.now(),
+            "Validation Error",
+            errors
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
         log.warn("Type mismatch: {}", e.getMessage());
 
         Class<?> requiredType = e.getRequiredType();
         String typeName = requiredType != null ? requiredType.getSimpleName() : "unknown";
         String message = String.format("Invalid value '%s' for parameter '%s'. Expected type: %s",
             e.getValue(), e.getName(), typeName);
-        
-        Map<String, Object> errorResponse = Map.of(
-            "message", message,
-            "status", 400,
-            "timestamp", Instant.now(),
-            "error", "Type Mismatch"
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            message,
+            400,
+            Instant.now(),
+            "Type Mismatch"
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, Object>> handleMessageNotReadable(HttpMessageNotReadableException e) {
+    public ResponseEntity<ErrorResponse> handleMessageNotReadable(HttpMessageNotReadableException e) {
         log.warn("Message not readable: {}", e.getMessage());
-        
-        Map<String, Object> errorResponse = Map.of(
-            "message", "Invalid request body format",
-            "status", 400,
-            "timestamp", Instant.now(),
-            "error", "Malformed JSON"
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "Invalid request body format",
+            400,
+            Instant.now(),
+            "Malformed JSON"
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
     @ExceptionHandler(DataAccessException.class)
-    public ResponseEntity<Map<String, Object>> handleDataAccess(DataAccessException e) {
+    public ResponseEntity<ErrorResponse> handleDataAccess(DataAccessException e) {
         log.error("Database error", e);
-        
-        Map<String, Object> errorResponse = Map.of(
-            "message", "Database operation failed",
-            "status", 500,
-            "timestamp", Instant.now(),
-            "error", "Internal Server Error"
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "Database operation failed",
+            500,
+            Instant.now(),
+            "Internal Server Error"
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGeneral(Exception e) {
+    public ResponseEntity<ErrorResponse> handleGeneral(Exception e) {
         log.error("Unexpected error", e);
-        
-        Map<String, Object> errorResponse = Map.of(
-            "message", "An unexpected error occurred",
-            "status", 500,
-            "timestamp", Instant.now(),
-            "error", "Internal Server Error"
+
+        ErrorResponse errorResponse = new ErrorResponse(
+            "An unexpected error occurred",
+            500,
+            Instant.now(),
+            "Internal Server Error"
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }

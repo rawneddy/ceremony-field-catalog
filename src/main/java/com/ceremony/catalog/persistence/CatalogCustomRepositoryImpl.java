@@ -82,6 +82,20 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         String searchPattern = criteriaDto.getSearchPattern();
 
         // Build the discovery OR conditions (match ANY field)
+        //
+        // The third condition uses MongoDB aggregation operators to search across all metadata values:
+        //
+        // $objectToArray: Converts the metadata object (e.g., {"productCode": "DDA", "channel": "Online"})
+        //                 into an array of {k, v} pairs: [{k: "productCode", v: "DDA"}, {k: "channel", v: "Online"}]
+        //                 This allows iteration over dynamic/unknown metadata keys.
+        //
+        // $map: Iterates over each {k, v} pair from $objectToArray and applies $regexMatch to the value ($$m.v).
+        //       Returns an array of booleans indicating whether each metadata value matches the search pattern.
+        //
+        // $anyElementTrue: Returns true if ANY element in the boolean array is true.
+        //                  This achieves "match if any metadata value contains the search term" behavior.
+        //
+        // Example: searching for "online" would match a document with metadata.channel = "Online"
         Document discoveryConditions = new Document("$or", Arrays.asList(
             new Document("fieldpath", new Document("$regex", searchPattern)),
             new Document("contextid", new Document("$regex", searchPattern)),
@@ -424,6 +438,7 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         String searchPattern = escapeRegex(searchTerm.toLowerCase());
 
         // Build the discovery match conditions (OR across all fields)
+        // See executeGlobalSearch() for detailed explanation of $objectToArray/$anyElementTrue operators
         Document discoveryConditions = new Document("$or", Arrays.asList(
             new Document("fieldpath", new Document("$regex", searchPattern)),
             new Document("contextid", new Document("$regex", searchPattern)),

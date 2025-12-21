@@ -27,14 +27,18 @@
 
 # Low Priority
 
-## Backend
-- [ ] Add controller/REST-level integration tests to validate full request/response cycle (currently only service/domain tests exist)
+## Production Readiness
 - [ ] Add structured logging (JSON format via logback) for production observability
-- [ ] Document API versioning plan in API_SPECIFICATION.md for future evolution
-- [ ] Add comments explaining the `$objectToArray` and `$anyElementTrue` operators in `CatalogCustomRepositoryImpl.executeGlobalSearch()` for maintainability
-- [ ] Unify error handler to return `ErrorResponse` record instead of `Map<String, Object>` for consistent OpenAPI/client typing
-- [ ] Consider Micrometer metrics for observation submission rate, search execution time, and MongoDB query latency
+- [ ] Add Micrometer metrics for observation submission rate, search execution time, and MongoDB query latency
 
-## UI
+## Quality Assurance
+- [ ] Add controller/REST-level integration tests to validate full request/response cycle (currently only service/domain tests exist)
 - [ ] Add minimal UI tests for core hooks/components (useXmlUpload, xmlParser) to protect against regressions
-- [ ] Add tooltips for long field paths in FieldTable to reduce reliance on detail panel
+
+## Documentation
+- [ ] Document API versioning plan in API_SPECIFICATION.md for future evolution
+
+## Completed
+- [x] Add comments explaining the `$objectToArray` and `$anyElementTrue` operators in `CatalogCustomRepositoryImpl.executeGlobalSearch()` for maintainability
+- [x] Unify error handler to return `ErrorResponse` record instead of `Map<String, Object>` for consistent OpenAPI/client typing
+- [x] Add tooltips for long field paths in FieldTable to reduce reliance on detail panel

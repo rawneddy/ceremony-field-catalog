@@ -335,7 +335,7 @@ const FieldTable: React.FC<FieldTableProps> = ({
             <td className="px-2 py-3">
               <WarningBadges warnings={warnings} />
             </td>
-            <td className="px-4 py-3 font-mono text-sm truncate">
+            <td className="px-4 py-3 font-mono text-sm truncate" title={entry.fieldPath}>
               {highlightMatch(entry.fieldPath)}
             </td>
             <td className="px-4 py-3 text-center text-sm font-medium">{entry.minOccurs}</td>
