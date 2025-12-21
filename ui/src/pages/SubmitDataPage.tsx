@@ -11,7 +11,7 @@ import type { UploadBin } from '../types';
 
 const MAX_FILES = 25;
 
-const UploadPage: React.FC = () => {
+const SubmitDataPage: React.FC = () => {
   const [contextId, setContextId] = useState('');
   const [step, setStep] = useState(1);
   const [editingBin, setEditingBin] = useState<UploadBin | null>(null);
@@ -106,8 +106,8 @@ const UploadPage: React.FC = () => {
       <div className="bg-paper p-6 shrink-0 shadow-header relative z-10">
         <div className="flex items-center justify-between px-2">
           <div className="w-56 shrink-0">
-            <h1 className="text-2xl font-black text-ink uppercase tracking-tight">Upload</h1>
-            <p className="text-slate-500 text-sm font-medium">Smart field extraction</p>
+            <h1 className="text-2xl font-black text-ink uppercase tracking-tight">Data</h1>
+            <p className="text-slate-500 text-sm font-medium">XML Uploads</p>
           </div>
           <div className="flex items-center gap-4">
             <button
@@ -157,6 +157,7 @@ const UploadPage: React.FC = () => {
                       value={contextId}
                       onChange={handleContextChange}
                       contexts={contexts || []}
+                      required
                     />
                     <p className="mt-4 text-xs text-slate-400 italic">Select a context to load its extraction rules.</p>
                   </div>
@@ -271,4 +272,4 @@ const UploadPage: React.FC = () => {
   );
 };
 
-export default UploadPage;
+export default SubmitDataPage;

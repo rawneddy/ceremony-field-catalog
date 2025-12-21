@@ -14,7 +14,7 @@
     "docs/MOTIVATION.md",
     "docs/ARCHITECTURE.md",
     "docs/api/API_SPECIFICATION.md",
-    "docs/ui/REQUIREMENTS.md",
+    "plans/releases/01/REQUIREMENTS.md",
     "CLAUDE.md"
   ],
   "backend_key_files": {
@@ -47,11 +47,10 @@
   },
   "frontend_key_files": {
     "pages": [
-      "ui/src/pages/DiscoveryPage.tsx",
-      "ui/src/pages/FieldSearchPage.tsx",
-      "ui/src/pages/ContextsPage.tsx",
-      "ui/src/pages/UploadPage.tsx",
-      "ui/src/pages/QuickSearchPage.tsx"
+      "ui/src/pages/DiscoverFieldsPage.tsx",
+      "ui/src/pages/ExploreSchemaPage.tsx",
+      "ui/src/pages/SubmitDataPage.tsx",
+      "ui/src/pages/ManageContextsPage.tsx"
     ],
     "core_components": [
       "ui/src/components/search/FieldTable.tsx",

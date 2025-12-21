@@ -162,6 +162,15 @@ GET /catalog/fields?fieldPathContains=/Ceremony/Amount
 
 ## UI Development
 
+### Navigation Structure
+The UI has four main tabs (in order):
+| Route | Tab Name | Page Component | Purpose |
+|-------|----------|----------------|---------|
+| `/` | Discover Fields | `DiscoverFieldsPage` | Reactive field exploration with faceted filtering |
+| `/schema` | Explore Schema | `ExploreSchemaPage` | Generate exact schemas for export |
+| `/submit` | Submit Data | `SubmitDataPage` | Upload XML files to extract field observations |
+| `/contexts` | Manage Contexts | `ManageContextsPage` | Create/edit schema containers for observations |
+
 ### Commands
 ```bash
 cd ui

@@ -15,7 +15,7 @@ import { useContexts } from '../hooks/useContexts';
 import { config } from '../config';
 import type { CatalogEntry } from '../types';
 
-const FieldSearchPage: React.FC = () => {
+const ExploreSchemaPage: React.FC = () => {
   // URL params for bookmarkable/shareable searches
   const [urlParams, setUrlParams] = useSearchParams();
 
@@ -228,8 +228,8 @@ const FieldSearchPage: React.FC = () => {
         {/* Row 1: Title + Primary Controls (Context, Required Metadata, Optional Metadata, Search Button) */}
         <div className={`flex items-center ${ROW_GAP}`}>
           <div className={`${TITLE_WIDTH} shrink-0`}>
-            <h1 className="text-2xl font-black text-ink uppercase tracking-tight">Schema Search</h1>
-            <p className="text-slate-500 text-sm font-medium">Generate exact schemas</p>
+            <h1 className="text-2xl font-black text-ink uppercase tracking-tight">Schema</h1>
+            <p className="text-slate-500 text-sm font-medium">Data Structures</p>
           </div>
           <div className="flex-1 flex items-center gap-4">
             <div className="w-48 shrink-0">
@@ -295,11 +295,11 @@ const FieldSearchPage: React.FC = () => {
             <div className="flex-1 flex bg-white">
               <EmptyState
                 icon={FileCode}
-                title="Schema Search"
+                title="Explore Schema"
                 description={
                   contextId
                     ? "Complete the required metadata above, then search to generate an exact schema."
-                    : "Select a context to begin. You'll need to fill in required metadata to search for an exact schema."
+                    : "Select a context to begin. You'll need to fill in required metadata to explore the schema."
                 }
                 className="flex-1"
               />
@@ -377,4 +377,4 @@ const FieldSearchPage: React.FC = () => {
   );
 };
 
-export default FieldSearchPage;
+export default ExploreSchemaPage;

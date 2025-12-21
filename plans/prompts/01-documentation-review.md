@@ -10,6 +10,21 @@ Create a perfect documentation strategy where:
 
 ---
 
+## Critical: Codebase Is Source of Truth
+
+**The codebase is the authoritative source of truth, not the existing documentation.**
+
+When conducting this review:
+- **Read the actual code** - explore `src/`, `ui/src/`, configuration files, tests, and all implementation details
+- **Verify documentation claims** - existing docs in `/docs` may be outdated, incomplete, or incorrect; cross-reference everything against the code
+- **Understand actual behavior** - look at what the system actually does, not just what docs say it does
+- **Identify doc drift** - flag any places where documentation has diverged from implementation
+- **Use tests as specification** - test files often reveal intended behavior more accurately than prose docs
+
+Existing documentation can provide insight and context, but treat it as a starting point for investigation, not gospel. The target state documentation should accurately reflect the *actual* system.
+
+---
+
 ## Primary Design Principle: LLM-First Documentation
 
 **LLMs are the #1 priority.** Documentation must be structured so that:
@@ -22,10 +37,14 @@ Create a perfect documentation strategy where:
 
 ### LLM Routing Strategy
 
-The `CLAUDE.md` file (or equivalent) should serve as a routing table that tells an LLM:
+Both `CLAUDE.md` and `AGENTS.md` serve as LLM entry points and should be treated identically in purpose:
+- Quick-hitting, efficient routing documents
+- Minimal prose, maximum signal
 - "For X type of question, look at Y document"
 - "For modifying Z, you need to understand A and B"
 - Clear signals for when to dig deeper vs when the summary is sufficient
+
+These files should be optimized for fast orientation, not comprehensive coverage.
 
 ---
 
@@ -44,7 +63,8 @@ Define the future state of documentation:
 ### 2. LLM Navigation Design
 
 Design the routing strategy for LLM consumers:
-- How should `CLAUDE.md` be structured to route LLMs to the right documents?
+- How should `CLAUDE.md` and `AGENTS.md` be structured to route LLMs to the right documents?
+- Should these two files be identical, or serve slightly different purposes?
 - What signals/keywords should each document have so LLMs know when to load it?
 - How do we minimize the number of documents an LLM needs for common tasks?
 - What information should be duplicated (for self-containment) vs referenced?
@@ -86,7 +106,7 @@ What documentation is missing entirely? What exists but is insufficient?
 | **Predictable Structure** | Consistent headings and organization across all docs |
 | **Task-Oriented Breakdown** | Organize by "what you're trying to do" not just "what exists" |
 | **Code-Doc Proximity** | Inline comments for micro-context, external docs for macro-context |
-| **Routing Document** | `CLAUDE.md` serves as the index/router for all other documentation |
+| **Routing Documents** | `CLAUDE.md` and `AGENTS.md` serve as index/routers for all other documentation |
 
 ### Secondary: Human Stakeholders
 
@@ -107,7 +127,7 @@ What documentation is missing entirely? What exists but is insufficient?
 |----------|----------------|
 | **What's the ideal document size?** | Too large = context waste; too small = too many files to route between |
 | **When should info be duplicated?** | Self-containment vs single source of truth trade-off |
-| **How should CLAUDE.md route?** | Keyword matching, task descriptions, or explicit "go here for X" |
+| **How should CLAUDE.md/AGENTS.md route?** | Keyword matching, task descriptions, or explicit "go here for X" |
 | **What belongs inline in code?** | Comments that help LLMs understand code without loading external docs |
 | **How do we handle cross-cutting concerns?** | Topics that span multiple areas (e.g., error handling, security) |
 | **Should docs declare their own scope?** | Header section like "This document covers X, Y, Z. For A, B, C see [other doc]" |
@@ -133,7 +153,7 @@ A single comprehensive markdown file at `/plans/documentation-alignment.md` that
 
 1. Prioritize LLM efficiency above all else
 2. Provide concrete file structure with estimated token sizes
-3. Define the CLAUDE.md routing strategy
+3. Define the `CLAUDE.md` and `AGENTS.md` routing strategy (same purpose, quick-hitting LLM entry points)
 4. Include migration steps from current to target state
 
 This plan will be reviewed before implementation begins.

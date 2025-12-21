@@ -81,7 +81,7 @@ The backend normalizes data to **lowercase** for case-insensitive matching:
 
 The UI provides two distinct search views optimized for different use cases:
 
-#### Discovery View (Home Page)
+#### Discover Fields Page (Home: `/`)
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
@@ -90,7 +90,7 @@ The UI provides two distinct search views optimized for different use cases:
 | REQ-2.3 | Multi-value metadata filters | Tag/chip-based metadata filter inputs supporting multiple values per field with OR logic within field, AND logic between fields. Results only refresh when a tag is added/removed (not while typing). |
 | REQ-2.4 | String/Regex toggle | Field path input includes toggle between String (default) and Regex modes. In String mode: input treated as literal text. In Regex mode: input treated as regex pattern. |
 
-#### Field Search View
+#### Explore Schema Page (`/schema`)
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
@@ -112,7 +112,7 @@ The UI provides two distinct search views optimized for different use cases:
 | REQ-3.7 | Truncation warning | Prominent warning banner when results exceed `MAX_RESULTS_PER_PAGE`, showing total count and guidance to refine search. |
 | REQ-3.8 | Faceted metadata filtering | Left sidebar shows metadata keys present in results (NOT contextId). Header displays result count with tooltip explaining counts are based on loaded results (max 250). Active facets pinned to top with visual indicator. Clicking a key opens popover with mode toggle ("Include any" OR vs "Require one" AND) and value checkboxes/radios. Disjunctive counting: current facet counts stay constant while other facet counts update. Sidebar is collapsible. |
 
-### REQ-4: XML Upload
+### REQ-4: Submit Data (XML Upload)
 
 | ID | Requirement | Acceptance Criteria |
 |----|-------------|---------------------|
@@ -178,7 +178,7 @@ All colors are defined in `ui/src/index.css` `@theme` block (Tailwind v4 central
 
 ### Layout Principles
 
-- Fixed header with navigation (Discovery, Field Search, Contexts, Upload)
+- Fixed header with navigation (Discover Fields, Explore Schema, Submit Data, Manage Contexts)
 - Main content area with optional left sidebar (facets) and right panel (details)
 - Detail panels slide out from right
 - Navy blue corporate-minimalist aesthetic

@@ -82,10 +82,10 @@ ui/
 │   ├── utils/
 │   │   └── queryKeys.ts           # React Query key factory
 │   ├── pages/
-│   │   ├── DiscoveryPage.tsx      # Home - reactive search with filters
-│   │   ├── FieldSearchPage.tsx    # Submit-based global search
-│   │   ├── ContextsPage.tsx       # Context management
-│   │   └── UploadPage.tsx         # XML upload workflow
+│   │   ├── DiscoverFieldsPage.tsx # Home - reactive field exploration
+│   │   ├── ExploreSchemaPage.tsx  # Generate exact schemas for export
+│   │   ├── SubmitDataPage.tsx     # XML upload workflow
+│   │   └── ManageContextsPage.tsx # Context management
 │   ├── App.tsx                    # Router and providers
 │   ├── main.tsx                   # Entry point
 │   └── index.css                  # Tailwind + theme (@theme block)
@@ -99,25 +99,25 @@ ui/
 
 ## Routes
 
-| Path | Page | Description |
-|------|------|-------------|
-| `/` | DiscoveryPage | Reactive search with context/metadata filters (home) |
-| `/search` | FieldSearchPage | Submit-based global search with autocomplete |
-| `/contexts` | ContextsPage | Context list with CRUD operations |
-| `/upload` | UploadPage | Three-step XML upload workflow |
+| Path | Tab Name | Page | Description |
+|------|----------|------|-------------|
+| `/` | Discover Fields | DiscoverFieldsPage | Reactive field exploration with faceted filtering |
+| `/schema` | Explore Schema | ExploreSchemaPage | Generate exact schemas for export |
+| `/submit` | Submit Data | SubmitDataPage | Upload XML to extract field observations |
+| `/contexts` | Manage Contexts | ManageContextsPage | Schema containers for field observations |
 
 ---
 
 ## Search Design
 
-### Discovery Page (Home: `/`)
+### Discover Fields Page (Home: `/`)
 
 The primary search interface with reactive filtering and comprehensive options.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│  DISCOVERY                                                                              │
-│  Explore field patterns                                                                 │
+│  DISCOVER FIELDS                                                                        │
+│  Explore field patterns across schemas                                                                 │
 │                                                                                         │
 │  [Context ▼]  [🔍 Type anything to discover fields...        ] [String ▼]              │
 │                                                                                         │
@@ -210,14 +210,14 @@ Facet filters applied client-side
 Display filtered results
 ```
 
-### Field Search Page (`/search`)
+### Explore Schema Page (`/schema`)
 
-A simpler search interface requiring explicit submit action.
+A focused search interface for generating exact schemas for export.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────┐
-│  FIELD SEARCH                                                                     │
-│  Substring mode                                                                   │
+│  EXPLORE SCHEMA                                                                   │
+│  Generate exact schemas for export                                                │
 │                                                                                   │
 │  [🔍 Search field paths...                    ] [String ▼] [Search]              │
 │     ┌───────────────────┐                                                         │
@@ -226,12 +226,12 @@ A simpler search interface requiring explicit submit action.
 │     └───────────────────┘                                                         │
 ├───────────────────┬───────────────────────────────────────────────────────────────┤
 │                   │                                                               │
-│  (Before search)  │  [Icon] Field Search                                         │
-│                   │  Enter an XPath or search term above to explore...           │
+│  (Before search)  │  [Icon] Explore Schema                                        │
+│                   │  Select a context to begin exploring the schema...           │
 │                   │                                                               │
 ├───────────────────┼───────────────────────────────────────────────────────────────┤
 │                   │                                                               │
-│  (After search)   │  Same layout as Discovery with facets and results            │
+│  (After search)   │  Same layout as Discover Fields with facets and results      │
 │                   │                                                               │
 └───────────────────┴───────────────────────────────────────────────────────────────┘
 ```
@@ -374,7 +374,7 @@ Display in table
 
 ---
 
-## Context Management
+## Context Management (Manage Contexts Page)
 
 ### Context Card Grid
 
@@ -382,8 +382,8 @@ Displays all contexts in a responsive grid with filtering:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  CONTEXTS                                                                    │
-│  Business observation points                                                 │
+│  MANAGE CONTEXTS                                                             │
+│  Schema containers for field observations                                                 │
 │                                                                             │
 │  [🔍 Filter contexts...                                        ] [+ New]   │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -425,14 +425,14 @@ metadataRules: {
 
 ---
 
-## Upload Workflow
+## Submit Data Workflow (Submit Data Page)
 
 ### Three-Step Process
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  UPLOAD                     ①─────②─────③                                   │
-│  Smart field extraction   Context  Scan  Review                             │
+│  SUBMIT DATA                ①─────②─────③                                   │
+│  Smart field extraction from XML   Context  Scan  Review                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 
 Step 1: Select Context
@@ -689,12 +689,12 @@ All pages follow consistent patterns for loading, error, and empty states.
 
 | Page | Condition | Message |
 |------|-----------|---------|
-| Discovery | No results match filters | "No fields match your criteria. Try adjusting filters." |
-| Field Search | Before first search | "Enter an XPath or search term above to explore..." |
-| Field Search | No results | "No fields found matching your search." |
-| Contexts | No contexts exist | "No contexts yet. Create your first context..." |
-| Contexts | Filter matches nothing | "No matches. Try a different filter term." |
-| Upload | No files scanned | (Step 2 drop zone is the empty state) |
+| Discover Fields | No results match filters | "No fields match your criteria. Try adjusting filters." |
+| Explore Schema | Before first search | "Select a context to begin exploring the schema." |
+| Explore Schema | No results | "No fields found matching your search." |
+| Manage Contexts | No contexts exist | "No contexts yet. Create your first context..." |
+| Manage Contexts | Filter matches nothing | "No matches. Try a different filter term." |
+| Submit Data | No files scanned | (Step 2 drop zone is the empty state) |
 
 **EmptyState component:** Icon + title + description, centered in content area.
 
@@ -868,12 +868,12 @@ Use via Tailwind classes: `bg-paper`, `text-ink`, `border-ceremony`, etc.
 | Component | Implements Requirements |
 |-----------|------------------------|
 | **Context Components** | |
-| `ContextsPage.tsx` | REQ-1.1 (view contexts) |
+| `ManageContextsPage.tsx` | REQ-1.1 (view contexts) |
 | `ContextCard.tsx` | REQ-1.1 (display info), REQ-1.5 (inactive styling) |
 | `ContextFormModal.tsx` | REQ-1.2 (create), REQ-1.3 (edit), REQ-1.6 (extraction rules) |
 | **Search Components** | |
-| `DiscoveryPage.tsx` | REQ-2.1 (reactive search), REQ-2.2 (context filter), REQ-2.3 (metadata filters), REQ-2.4 (mode toggle) |
-| `FieldSearchPage.tsx` | REQ-2.5 (submit search), REQ-2.6 (autocomplete), REQ-2.7 (cross-context), REQ-2.8 (mode toggle) |
+| `DiscoverFieldsPage.tsx` | REQ-2.1 (reactive search), REQ-2.2 (context filter), REQ-2.3 (metadata filters), REQ-2.4 (mode toggle) |
+| `ExploreSchemaPage.tsx` | REQ-2.5 (submit search), REQ-2.6 (autocomplete), REQ-2.7 (cross-context), REQ-2.8 (mode toggle) |
 | `ContextSelector.tsx` | REQ-2.2 (context dropdown) |
 | `MetadataFilters.tsx` | REQ-2.3 (tag-based filters) |
 | `TagInput.tsx` | REQ-2.3 (multi-value input) |
@@ -884,8 +884,8 @@ Use via Tailwind classes: `bg-paper`, `text-ink`, `border-ceremony`, etc.
 | `FacetSidebar.tsx` | REQ-3.3, REQ-3.8 (faceted filtering) |
 | `FacetPopover.tsx` | REQ-3.8 (mode toggle, value selection) |
 | `FieldDetailPanel.tsx` | REQ-3.4 (detail panel) |
-| **Upload Components** | |
-| `UploadPage.tsx` | REQ-4.1 (step workflow), REQ-4.2 (context select), REQ-4.3 (file drop) |
+| **Submit Data Components** | |
+| `SubmitDataPage.tsx` | REQ-4.1 (step workflow), REQ-4.2 (context select), REQ-4.3 (file drop) |
 | `BinRow.tsx` | REQ-4.6 (bin display) |
 | `MetadataEditorModal.tsx` | REQ-4.5 (metadata editing) |
 | `useXmlUpload.ts` | REQ-4.4 (smart extraction), REQ-4.7 (progress) |
@@ -901,7 +901,7 @@ Use via Tailwind classes: `bg-paper`, `text-ink`, `border-ceremony`, etc.
 
 | Purpose | File |
 |---------|------|
-| Requirements | `docs/ui/REQUIREMENTS.md` |
+| Requirements | `plans/releases/01/REQUIREMENTS.md` |
 | API contract | `docs/api/API_SPECIFICATION.md` |
 | Theme/colors | `ui/src/index.css` (@theme block) |
 | Configuration | `ui/src/config.ts` |

@@ -1,15 +1,15 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, Database, Upload, BarChart3 } from 'lucide-react';
+import { Database, Upload, Compass, FileCode } from 'lucide-react';
 
 const Header: React.FC = () => {
   const location = useLocation();
 
   const navItems = [
-    { path: '/', label: 'Discovery', icon: BarChart3 },
-    { path: '/search', label: 'Field Search', icon: Search },
-    { path: '/contexts', label: 'Contexts', icon: Database },
-    { path: '/upload', label: 'Upload', icon: Upload },
+    { path: '/', label: 'Discover Fields', icon: Compass },
+    { path: '/schema', label: 'Explore Schema', icon: FileCode },
+    { path: '/submit', label: 'Submit Data', icon: Upload },
+    { path: '/contexts', label: 'Manage Contexts', icon: Database },
   ];
 
   return (
@@ -23,8 +23,7 @@ const Header: React.FC = () => {
       <nav className="flex items-center gap-1 h-full">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.path || 
-                           (item.path === '/search' && location.pathname === '/search');
+          const isActive = location.pathname === item.path;
           
           return (
             <Link
