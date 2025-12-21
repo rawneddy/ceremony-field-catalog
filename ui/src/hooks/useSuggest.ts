@@ -29,14 +29,17 @@ export const useSuggest = (
     const fetchSuggestions = async () => {
       setIsLoading(true);
       abortControllerRef.current = new AbortController();
+      const signal = abortControllerRef.current.signal;
 
       try {
         // Allow empty prefix - backend returns initial suggestions
-        const results = await catalogApi.suggest(field, debouncedPrefix || '', contextId, metadata);
+        const results = await catalogApi.suggest(field, debouncedPrefix || '', contextId, metadata, signal);
         setSuggestions(results);
-      } catch {
-        // Silently fail - suggestions are non-critical
-        setSuggestions([]);
+      } catch (error) {
+        // Ignore aborted requests, silently fail for others - suggestions are non-critical
+        if (error instanceof Error && error.name !== 'AbortError' && error.name !== 'CanceledError') {
+          setSuggestions([]);
+        }
       } finally {
         setIsLoading(false);
       }

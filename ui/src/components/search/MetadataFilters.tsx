@@ -9,7 +9,7 @@ interface MetadataFiltersProps {
 }
 
 const MetadataFilters: React.FC<MetadataFiltersProps> = ({ context, values, onChange }) => {
-  const allMetadataKeys = [...context.requiredMetadata, ...context.optionalMetadata];
+  const allMetadataKeys = [...context.requiredMetadata, ...(context.optionalMetadata || [])];
 
   return (
     <div className="flex flex-wrap gap-4">

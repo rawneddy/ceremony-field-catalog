@@ -250,12 +250,12 @@ const ExploreSchemaPage: React.FC = () => {
             )}
 
             {/* Pipe separator between required and optional */}
-            {searchEnabled && selectedContext && selectedContext.optionalMetadata.length > 0 && (
+            {searchEnabled && selectedContext && (selectedContext.optionalMetadata?.length ?? 0) > 0 && (
               <div className="text-slate-300 text-2xl font-light select-none">|</div>
             )}
 
             {/* Optional Metadata (inline, appears after required is filled) */}
-            {searchEnabled && selectedContext && selectedContext.optionalMetadata.length > 0 && (
+            {searchEnabled && selectedContext && (selectedContext.optionalMetadata?.length ?? 0) > 0 && (
               <InlineOptionalMetadata
                 context={selectedContext}
                 values={optionalMetadata}
