@@ -7,6 +7,7 @@ import com.ceremony.catalog.domain.Context;
 import com.ceremony.catalog.domain.ContextKey;
 import com.ceremony.catalog.domain.FieldKey;
 import com.ceremony.catalog.persistence.CatalogRepository;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,79 +22,90 @@ public class CatalogService {
     private final CatalogRepository repository;
     private final ContextService contextService;
     private final InputValidationService validationService;
+    private final ObservabilityService observabilityService;
     
     public void merge(String contextId, List<CatalogObservationDTO> observations) {
         if (observations == null || observations.isEmpty()) return;
-        
-        // Validate and clean context ID
-        String cleanedContextId = validationService.validateAndCleanContextId(contextId);
-        
-        // Validate context exists and is active
-        Context context = contextService.getContext(cleanedContextId)
-            .filter(Context::isActive)
-            .orElseThrow(() -> new IllegalArgumentException("Context not found or inactive: " + cleanedContextId));
-        
-        // Validate and clean observations against context requirements
-        List<CatalogObservationDTO> cleanedObservations = validateAndCleanObservations(observations);
-        validateObservations(context, cleanedObservations);
-        
-        // Collect all field IDs for batch query (using only required metadata for field identity)
-        Set<String> fieldIds = cleanedObservations.stream()
-            .map(dto -> new FieldKey(cleanedContextId, filterToRequiredMetadata(context, dto.metadata()), dto.fieldPath()).toString())
-            .collect(LinkedHashSet::new, Set::add, Set::addAll);
-        
-        // Single batch query to get all existing entries
-        Map<String, CatalogEntry> existingEntries = repository.findAllById(fieldIds)
-            .stream()
-            .collect(HashMap::new, (map, entry) -> map.put(entry.getId(), entry), HashMap::putAll);
-        
-        // Use LinkedHashMap to dedupe entries by ID while preserving insertion order
-        Map<String, CatalogEntry> entriesToSave = new LinkedHashMap<>();
-        java.time.Instant now = java.time.Instant.now();
 
-        for (CatalogObservationDTO dto : cleanedObservations) {
-            Map<String, String> requiredMetadata = filterToRequiredMetadata(context, dto.metadata());
-            Map<String, String> allowedMetadata = filterToAllowedMetadata(context, dto.metadata());
-            FieldKey fieldKey = new FieldKey(cleanedContextId, requiredMetadata, dto.fieldPath());
-            String id = fieldKey.toString();
+        // Start timing the merge operation
+        Timer.Sample mergeTimer = observabilityService.startMergeTimer();
 
-            // Check both DB entries AND entries we've created in this batch
-            CatalogEntry entry = existingEntries.get(id);
-            if (entry != null) {
-                // Update existing entry (from DB or created earlier in this batch)
-                entry.setMaxOccurs(Math.max(entry.getMaxOccurs(), dto.count()));
-                entry.setMinOccurs(Math.min(entry.getMinOccurs(), dto.count()));
-                entry.setAllowsNull(entry.isAllowsNull() || dto.hasNull());
-                entry.setAllowsEmpty(entry.isAllowsEmpty() || dto.hasEmpty());
-                entry.setLastObservedAt(now);
-                // Also update metadata to include any new optional metadata
-                entry.setMetadata(allowedMetadata);
-                entriesToSave.put(id, entry);
-            } else {
-                // Create new entry - store all allowed metadata (required + optional)
-                CatalogEntry newEntry = CatalogEntry.builder()
-                    .id(id)
-                    .contextId(cleanedContextId)
-                    .metadata(allowedMetadata)
-                    .fieldPath(dto.fieldPath())
-                    .maxOccurs(dto.count())
-                    .minOccurs(dto.count())
-                    .allowsNull(dto.hasNull())
-                    .allowsEmpty(dto.hasEmpty())
-                    .firstObservedAt(now)
-                    .lastObservedAt(now)
-                    .build();
-                // Track new entry so duplicates later in batch will merge into it
-                existingEntries.put(id, newEntry);
-                entriesToSave.put(id, newEntry);
+        try {
+            // Validate and clean context ID
+            String cleanedContextId = validationService.validateAndCleanContextId(contextId);
+
+            // Validate context exists and is active
+            Context context = contextService.getContext(cleanedContextId)
+                .filter(Context::isActive)
+                .orElseThrow(() -> new IllegalArgumentException("Context not found or inactive: " + cleanedContextId));
+
+            // Validate and clean observations against context requirements
+            List<CatalogObservationDTO> cleanedObservations = validateAndCleanObservations(observations);
+            validateObservations(context, cleanedObservations);
+
+            // Collect all field IDs for batch query (using only required metadata for field identity)
+            Set<String> fieldIds = cleanedObservations.stream()
+                .map(dto -> new FieldKey(cleanedContextId, filterToRequiredMetadata(context, dto.metadata()), dto.fieldPath()).toString())
+                .collect(LinkedHashSet::new, Set::add, Set::addAll);
+
+            // Single batch query to get all existing entries
+            Map<String, CatalogEntry> existingEntries = repository.findAllById(fieldIds)
+                .stream()
+                .collect(HashMap::new, (map, entry) -> map.put(entry.getId(), entry), HashMap::putAll);
+
+            // Use LinkedHashMap to dedupe entries by ID while preserving insertion order
+            Map<String, CatalogEntry> entriesToSave = new LinkedHashMap<>();
+            java.time.Instant now = java.time.Instant.now();
+
+            for (CatalogObservationDTO dto : cleanedObservations) {
+                Map<String, String> requiredMetadata = filterToRequiredMetadata(context, dto.metadata());
+                Map<String, String> allowedMetadata = filterToAllowedMetadata(context, dto.metadata());
+                FieldKey fieldKey = new FieldKey(cleanedContextId, requiredMetadata, dto.fieldPath());
+                String id = fieldKey.toString();
+
+                // Check both DB entries AND entries we've created in this batch
+                CatalogEntry entry = existingEntries.get(id);
+                if (entry != null) {
+                    // Update existing entry (from DB or created earlier in this batch)
+                    entry.setMaxOccurs(Math.max(entry.getMaxOccurs(), dto.count()));
+                    entry.setMinOccurs(Math.min(entry.getMinOccurs(), dto.count()));
+                    entry.setAllowsNull(entry.isAllowsNull() || dto.hasNull());
+                    entry.setAllowsEmpty(entry.isAllowsEmpty() || dto.hasEmpty());
+                    entry.setLastObservedAt(now);
+                    // Also update metadata to include any new optional metadata
+                    entry.setMetadata(allowedMetadata);
+                    entriesToSave.put(id, entry);
+                } else {
+                    // Create new entry - store all allowed metadata (required + optional)
+                    CatalogEntry newEntry = CatalogEntry.builder()
+                        .id(id)
+                        .contextId(cleanedContextId)
+                        .metadata(allowedMetadata)
+                        .fieldPath(dto.fieldPath())
+                        .maxOccurs(dto.count())
+                        .minOccurs(dto.count())
+                        .allowsNull(dto.hasNull())
+                        .allowsEmpty(dto.hasEmpty())
+                        .firstObservedAt(now)
+                        .lastObservedAt(now)
+                        .build();
+                    // Track new entry so duplicates later in batch will merge into it
+                    existingEntries.put(id, newEntry);
+                    entriesToSave.put(id, newEntry);
+                }
             }
-        }
 
-        // Single batch save operation
-        repository.saveAll(entriesToSave.values());
-        
-        // Handle single-context cleanup
-        handleSingleContextCleanup(cleanedContextId, cleanedObservations);
+            // Single batch save operation
+            repository.saveAll(entriesToSave.values());
+
+            // Handle single-context cleanup
+            handleSingleContextCleanup(cleanedContextId, cleanedObservations);
+
+            // Record metrics
+            observabilityService.recordObservationsSubmitted(cleanedObservations.size());
+        } finally {
+            observabilityService.stopMergeTimer(mergeTimer);
+        }
     }
     
     private List<CatalogObservationDTO> validateAndCleanObservations(List<CatalogObservationDTO> observations) {
@@ -197,11 +209,18 @@ public class CatalogService {
     }
     
     public Page<CatalogEntry> find(CatalogSearchCriteria criteria, Pageable pageable) {
-        // Sanitize search criteria
-        CatalogSearchCriteria sanitizedCriteria = sanitizeSearchCriteria(criteria);
-        // Get active context IDs to filter results - inactive contexts are invisible to searches
-        Set<String> activeContextIds = contextService.getActiveContextIds();
-        return repository.searchByCriteria(sanitizedCriteria, activeContextIds, pageable);
+        Timer.Sample searchTimer = observabilityService.startSearchTimer();
+        try {
+            // Sanitize search criteria
+            CatalogSearchCriteria sanitizedCriteria = sanitizeSearchCriteria(criteria);
+            // Get active context IDs to filter results - inactive contexts are invisible to searches
+            Set<String> activeContextIds = contextService.getActiveContextIds();
+            Page<CatalogEntry> results = repository.searchByCriteria(sanitizedCriteria, activeContextIds, pageable);
+            observabilityService.recordSearchExecuted();
+            return results;
+        } finally {
+            observabilityService.stopSearchTimer(searchTimer);
+        }
     }
 
     public List<String> suggestValues(String field, String prefix, String contextId, Map<String, String> metadata, int limit) {

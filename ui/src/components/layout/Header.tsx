@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Database, Upload, Compass, FileCode } from 'lucide-react';
+import { Database, Upload, Compass, FileCode, Activity } from 'lucide-react';
 
 const Header: React.FC = () => {
   const location = useLocation();
@@ -10,6 +10,7 @@ const Header: React.FC = () => {
     { path: '/schema', label: 'Explore Schema', icon: FileCode },
     { path: '/submit', label: 'Submit Data', icon: Upload },
     { path: '/contexts', label: 'Manage Contexts', icon: Database },
+    { path: '/system', label: 'System Health', icon: Activity },
   ];
 
   return (

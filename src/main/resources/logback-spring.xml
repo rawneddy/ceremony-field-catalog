@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Include Spring Boot's default logging configuration -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- Define log pattern for console output (human-readable for dev) -->
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %clr(%-5level) %clr([%15.15thread]){faint} %clr(%-40.40logger{39}){cyan} : %msg%n"/>
+
+    <!-- ==================== Development Profile ==================== -->
+    <springProfile name="dev,default">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+
+        <!-- Application-specific logging -->
+        <logger name="com.ceremony.catalog" level="DEBUG"/>
+
+        <!-- Reduce noise from MongoDB driver -->
+        <logger name="org.mongodb.driver" level="WARN"/>
+
+        <!-- Spring framework logging -->
+        <logger name="org.springframework" level="INFO"/>
+        <logger name="org.springframework.data.mongodb" level="WARN"/>
+    </springProfile>
+
+    <!-- ==================== Production Profile ==================== -->
+    <springProfile name="prod">
+        <!-- JSON structured logging for production -->
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <!-- Include common fields -->
+                <includeMdcKeyName>traceId</includeMdcKeyName>
+                <includeMdcKeyName>spanId</includeMdcKeyName>
+                <includeMdcKeyName>requestId</includeMdcKeyName>
+
+                <!-- Custom fields -->
+                <customFields>{"application":"ceremony-field-catalog","environment":"prod"}</customFields>
+
+                <!-- Include caller info for debugging -->
+                <includeCallerData>false</includeCallerData>
+
+                <!-- Shorten field names for efficiency -->
+                <shortenedLoggerNameLength>36</shortenedLoggerNameLength>
+
+                <!-- Timestamp format -->
+                <timestampPattern>yyyy-MM-dd'T'HH:mm:ss.SSSZ</timestampPattern>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </root>
+
+        <!-- Application-specific logging -->
+        <logger name="com.ceremony.catalog" level="INFO"/>
+
+        <!-- Reduce noise in production -->
+        <logger name="org.mongodb.driver" level="WARN"/>
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="org.springframework.data.mongodb" level="WARN"/>
+        <logger name="org.springframework.web" level="WARN"/>
+    </springProfile>
+
+    <!-- ==================== Test Profile ==================== -->
+    <springProfile name="test">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            </encoder>
+        </appender>
+
+        <root level="WARN">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+
+        <!-- Only show errors during tests to reduce noise -->
+        <logger name="com.ceremony.catalog" level="INFO"/>
+        <logger name="org.mongodb.driver" level="ERROR"/>
+        <logger name="org.testcontainers" level="WARN"/>
+    </springProfile>
+</configuration>

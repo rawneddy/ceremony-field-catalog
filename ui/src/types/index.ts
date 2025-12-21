@@ -30,3 +30,12 @@ export type { ErrorResponse } from './api.types';
 // Aggregated types
 export type { TriState, AggregatedField } from './aggregated.types';
 export { formatSchemaKey } from './aggregated.types';
+
+// System types
+export type {
+  MemoryInfo,
+  SystemHealth,
+  LatencyStats,
+  ContextFieldCount,
+  SystemStats,
+} from './system.types';

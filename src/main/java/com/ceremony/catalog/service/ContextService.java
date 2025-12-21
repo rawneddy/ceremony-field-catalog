@@ -27,6 +27,7 @@ public class ContextService {
     private final ContextRepository repository;
     private final CatalogRepository catalogRepository;
     private final InputValidationService validationService;
+    private final ObservabilityService observabilityService;
 
     public Context createContext(ContextDefinitionDTO dto) {
         // Validate and lowercase contextId
@@ -53,7 +54,9 @@ public class ContextService {
             .createdAt(Instant.now())
             .build();
 
-        return repository.save(context);
+        Context saved = repository.save(context);
+        observabilityService.recordContextCreated();
+        return saved;
     }
     
     public Optional<Context> updateContext(String contextId, ContextDefinitionDTO dto) {

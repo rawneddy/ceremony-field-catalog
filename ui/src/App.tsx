@@ -7,6 +7,7 @@ import DiscoverFieldsPage from './pages/DiscoverFieldsPage';
 import ExploreSchemaPage from './pages/ExploreSchemaPage';
 import SubmitDataPage from './pages/SubmitDataPage';
 import ManageContextsPage from './pages/ManageContextsPage';
+import SystemHealthPage from './pages/SystemHealthPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,6 +28,7 @@ const App: React.FC = () => {
             <Route path="/schema" element={<ExploreSchemaPage />} />
             <Route path="/submit" element={<SubmitDataPage />} />
             <Route path="/contexts" element={<ManageContextsPage />} />
+            <Route path="/system" element={<SystemHealthPage />} />
           </Routes>
         </BrowserRouter>
         <Toaster
