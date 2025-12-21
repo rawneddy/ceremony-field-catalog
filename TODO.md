@@ -31,10 +31,10 @@
 - [ ] Add controller/REST-level integration tests to validate full request/response cycle (currently only service/domain tests exist)
 - [ ] Add structured logging (JSON format via logback) for production observability
 - [ ] Document API versioning plan in API_SPECIFICATION.md for future evolution
-- [ ] Add comments explaining the `$objectToArray` and `$anyElementTrue` operators in `CatalogCustomRepositoryImpl.executeGlobalSearch()` for maintainability
-- [ ] Unify error handler to return `ErrorResponse` record instead of `Map<String, Object>` for consistent OpenAPI/client typing
+- [x] Add comments explaining the `$objectToArray` and `$anyElementTrue` operators in `CatalogCustomRepositoryImpl.executeGlobalSearch()` for maintainability
+- [x] Unify error handler to return `ErrorResponse` record instead of `Map<String, Object>` for consistent OpenAPI/client typing
 - [ ] Consider Micrometer metrics for observation submission rate, search execution time, and MongoDB query latency
 
 ## UI
 - [ ] Add minimal UI tests for core hooks/components (useXmlUpload, xmlParser) to protect against regressions
-- [ ] Add tooltips for long field paths in FieldTable to reduce reliance on detail panel
+- [x] Add tooltips for long field paths in FieldTable to reduce reliance on detail panel
