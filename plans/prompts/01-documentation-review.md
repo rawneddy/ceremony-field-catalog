@@ -112,7 +112,6 @@ What documentation is missing entirely? What exists but is insufficient?
 
 | Persona | Description | Primary Needs |
 |---------|-------------|---------------|
-| **SDK Integrator (.NET)** | Developer integrating the catalog into their .NET application | Installation, configuration, usage patterns, examples. Ignore Python SDK for this exercise. |
 | **Engineering Team** | Frontend, backend, and database developers maintaining this application | Local setup, architecture decisions, coding patterns, troubleshooting, testing |
 | **Product Owner** | Stakeholder needing business context | Use cases solved, current capabilities, roadmap, future phases |
 | **Architect** | Technical decision maker | System structure, data flow, integration points, technology choices, trade-offs |
@@ -149,7 +148,7 @@ What documentation is missing entirely? What exists but is insufficient?
 
 ## Expected Deliverable
 
-A single comprehensive markdown file at `/plans/documentation-alignment.md` that serves as the authoritative plan for documentation refactoring. This plan should:
+A single comprehensive markdown file at `/plans/reviews/documentation-alignment.md` that serves as the authoritative plan for documentation refactoring. This plan should:
 
 1. Prioritize LLM efficiency above all else
 2. Provide concrete file structure with estimated token sizes
