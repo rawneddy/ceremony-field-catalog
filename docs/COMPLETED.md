@@ -23,14 +23,30 @@ This document records completed development work and improvements made to the pr
 - Error response documentation with sample error formats
 - API organized by logical tags (Field Catalog, Context Management)
 
-### 5. Add Observability Dependencies
+### 5. Add Observability Dependencies ✅ (COMPLETED)
 **Goal**: Add monitoring and health check capabilities.
 
 **Tasks**:
-- [ ] Add Actuator dependency for health checks and metrics
-- [ ] Add Prometheus metrics registry
-- [ ] Configure management endpoints
-- [ ] Add application info and build info
+- [x] Add Actuator dependency for health checks and metrics
+- [x] Add Prometheus metrics registry
+- [x] Configure management endpoints
+- [x] Add custom application metrics (counters, timers, gauges)
+- [x] Add structured JSON logging for production
+- [x] Create UI-friendly system health/stats API endpoints
+- [x] Build System Health UI page with auto-refresh
+
+**Results**:
+- **Spring Boot Actuator** configured with health, metrics, and prometheus endpoints
+- **Micrometer/Prometheus** integration for metrics export
+- **Custom metrics** implemented via `ObservabilityService`:
+  - Counters: observations submitted, batches processed, searches executed, contexts created
+  - Timers: search latency, merge latency with p50/p95/p99 percentiles
+  - Gauges: active contexts, total fields
+- **Instrumented services**: CatalogService.merge(), CatalogService.find(), ContextService.createContext()
+- **Structured logging** via logback-spring.xml with profile-based configuration (dev/prod/test)
+- **SystemController** with `/api/system/health` and `/api/system/stats` endpoints
+- **System Health UI** at `/system` with health cards, activity stats, latency metrics, and context breakdown
+- Full documentation in `docs/OBSERVABILITY.md`
 
 ### 6. Enhanced Configuration Management ✅ (COMPLETED)
 **Goal**: Replace hardcoded values with environment-specific configuration.

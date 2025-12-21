@@ -440,6 +440,112 @@ GET /catalog/suggest?field=metadata.productCode&prefix=DD&contextId=deposits
 
 ---
 
+### System Health & Metrics
+
+#### 9. Get System Health
+
+**Endpoint:** `GET /api/system/health`
+
+**Purpose:** Get system health status including MongoDB connection and memory usage
+
+**Response:** `200 OK`
+```json
+{
+  "status": "UP",
+  "uptime": "2d 5h 30m",
+  "uptimeMillis": 191400000,
+  "mongoStatus": "UP",
+  "memory": {
+    "usedMb": 256,
+    "maxMb": 512,
+    "usagePercent": 50.0
+  },
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+**Response Fields:**
+- `status`: Overall system status (UP/DOWN)
+- `uptime`: Human-readable uptime string
+- `uptimeMillis`: Uptime in milliseconds
+- `mongoStatus`: MongoDB connection status
+- `memory`: JVM heap memory usage details
+- `timestamp`: Time of health check
+
+**Error Response:** `503 Service Unavailable` if system is unhealthy
+
+---
+
+#### 10. Get System Statistics
+
+**Endpoint:** `GET /api/system/stats`
+
+**Purpose:** Get operational statistics and performance metrics
+
+**Response:** `200 OK`
+```json
+{
+  "observationsSubmitted": 12450,
+  "batchesProcessed": 245,
+  "searchesExecuted": 892,
+  "contextsCreated": 5,
+  "activeContexts": 3,
+  "totalFields": 45231,
+  "searchLatency": {
+    "count": 892,
+    "meanMs": 45.5,
+    "maxMs": 250.0,
+    "p50Ms": 35.0,
+    "p95Ms": 120.0,
+    "p99Ms": 200.0
+  },
+  "mergeLatency": {
+    "count": 245,
+    "meanMs": 12.3,
+    "maxMs": 100.0,
+    "p50Ms": 8.0,
+    "p95Ms": 45.0,
+    "p99Ms": 80.0
+  },
+  "contextFieldCounts": [
+    {
+      "contextId": "deposits",
+      "displayName": "Deposits",
+      "fieldCount": 45231,
+      "active": true
+    }
+  ]
+}
+```
+
+**Response Fields:**
+- `observationsSubmitted`: Total observations since startup
+- `batchesProcessed`: Total batches processed since startup
+- `searchesExecuted`: Total search queries since startup
+- `contextsCreated`: Total contexts created since startup
+- `activeContexts`: Current number of active contexts
+- `totalFields`: Total catalog fields across all contexts
+- `searchLatency`: Search operation latency statistics (ms)
+- `mergeLatency`: Observation merge latency statistics (ms)
+- `contextFieldCounts`: Per-context field counts and status
+
+---
+
+### Actuator Endpoints
+
+The following Spring Boot Actuator endpoints are available:
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /actuator/health` | Raw health check with component details |
+| `GET /actuator/metrics` | List of available metrics |
+| `GET /actuator/metrics/{name}` | Specific metric details |
+| `GET /actuator/prometheus` | Prometheus-format metrics export |
+
+See `docs/OBSERVABILITY.md` for detailed metrics documentation.
+
+---
+
 ## Data Models
 
 ### Context
