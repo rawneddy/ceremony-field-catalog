@@ -8,6 +8,8 @@ import io.micrometer.core.instrument.Timer;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.actuate.health.CompositeHealth;
+import org.springframework.boot.actuate.health.HealthComponent;
 import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.boot.actuate.health.Status;
 import org.springframework.http.ResponseEntity;
@@ -37,15 +39,17 @@ public class SystemController {
     @Operation(summary = "Get system health status", description = "Returns overall system health including MongoDB status and memory usage")
     public ResponseEntity<SystemHealthDTO> getHealth() {
         // Get overall health status
-        var health = healthEndpoint.health();
+        HealthComponent health = healthEndpoint.health();
         String status = health.getStatus().getCode();
 
         // Get MongoDB status from health components
         String mongoStatus = "UNKNOWN";
-        var components = health.getComponents();
-        if (components != null && components.containsKey("mongo")) {
-            var mongoHealth = components.get("mongo");
-            mongoStatus = mongoHealth != null ? mongoHealth.getStatus().getCode() : "UNKNOWN";
+        if (health instanceof CompositeHealth compositeHealth) {
+            var components = compositeHealth.getComponents();
+            if (components != null && components.containsKey("mongo")) {
+                var mongoHealth = components.get("mongo");
+                mongoStatus = mongoHealth != null ? mongoHealth.getStatus().getCode() : "UNKNOWN";
+            }
         }
 
         // Calculate uptime
