@@ -172,6 +172,23 @@ This works for:
 - MongoDB Compass
 - Any MongoDB client
 
+## Pre-Push Verification
+---
+
+**Before pushing changes or creating a PR, always verify your code compiles:**
+
+```sh
+# Backend - verify Java compilation
+mvn clean compile
+
+# Frontend - verify TypeScript types
+cd ui && npm run typecheck && npm run build
+```
+
+This catches compilation errors before they fail in GitHub Actions CI.
+
+---
+
 ## Testing
 ---
 

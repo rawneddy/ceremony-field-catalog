@@ -204,6 +204,44 @@ The UI uses strict TypeScript configuration with Nexus-level type checking:
 - **components/**: Organized by feature area with barrel exports
 - **Theming**: All colors, fonts, and shadows are defined in `ui/src/index.css` `@theme` block (Tailwind v4)
 
+## Pre-Commit Verification (CRITICAL)
+
+**Before committing ANY changes, you MUST verify the code compiles and passes checks:**
+
+### Backend (Java/Spring Boot)
+```bash
+# ALWAYS run this before committing Java changes
+mvn clean compile
+
+# If tests are affected, also run:
+mvn clean test
+```
+
+### Frontend (React/TypeScript)
+```bash
+cd ui
+
+# ALWAYS run this before committing UI changes
+npm run typecheck
+
+# Also verify build works:
+npm run build
+```
+
+### Full Stack Verification
+If you've made changes to both backend and frontend:
+```bash
+# Backend compilation
+mvn clean compile
+
+# Frontend type check
+cd ui && npm run typecheck && npm run build
+```
+
+**Why this matters:** GitHub Actions will fail the PR if compilation errors exist. Running these checks locally catches errors before they reach CI, saving time and preventing broken builds.
+
+---
+
 ## Development Guidelines
 
 ### Making Changes
