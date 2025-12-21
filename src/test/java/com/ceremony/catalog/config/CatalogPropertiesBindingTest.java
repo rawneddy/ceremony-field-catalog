@@ -3,7 +3,12 @@ package com.ceremony.catalog.config;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.mongodb.MongoDBContainer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -13,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * (e.g., YAML uses different property names than Java expects).
  */
 @SpringBootTest
+@Testcontainers
 @TestPropertySource(properties = {
     "app.catalog.validation.max-field-path-length=999",
     "app.catalog.validation.max-context-id-length=88",
@@ -20,6 +26,16 @@ import static org.assertj.core.api.Assertions.assertThat;
     "app.catalog.validation.max-metadata-value-length=666"
 })
 class CatalogPropertiesBindingTest {
+
+    @SuppressWarnings("resource")
+    @Container
+    static MongoDBContainer mongoContainer = new MongoDBContainer("mongo:7")
+            .withReuse(true);
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.uri", mongoContainer::getReplicaSetUrl);
+    }
 
     @Autowired
     private CatalogProperties properties;
