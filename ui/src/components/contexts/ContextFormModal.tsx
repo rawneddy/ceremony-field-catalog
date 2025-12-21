@@ -48,7 +48,7 @@ const ContextFormModal: React.FC<ContextFormModalProps> = ({ context, onClose })
       description: context?.description || '',
       active: context?.active ?? true,
       requiredMetadata: context?.requiredMetadata.join(', ') || '',
-      optionalMetadata: context?.optionalMetadata.join(', ') || '',
+      optionalMetadata: context?.optionalMetadata?.join(', ') || '',
       metadataRules: context?.metadataRules || {},
     },
   });

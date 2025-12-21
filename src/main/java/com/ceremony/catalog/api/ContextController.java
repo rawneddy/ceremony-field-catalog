@@ -114,7 +114,9 @@ public class ContextController {
                 required = true
             )
             @PathVariable String contextId) {
-        return contextService.getContext(contextId)
+        // Normalize to lowercase since context IDs are stored lowercase
+        String normalizedId = contextId.toLowerCase();
+        return contextService.getContext(normalizedId)
             .map(context -> ResponseEntity.ok(context))
             .orElse(ResponseEntity.notFound().build());
     }
@@ -158,7 +160,9 @@ public class ContextController {
                 required = true
             )
             @Valid @RequestBody ContextDefinitionDTO dto) {
-        return contextService.updateContext(contextId, dto)
+        // Normalize to lowercase since context IDs are stored lowercase
+        String normalizedId = contextId.toLowerCase();
+        return contextService.updateContext(normalizedId, dto)
             .map(context -> ResponseEntity.ok(context))
             .orElse(ResponseEntity.notFound().build());
     }
@@ -185,7 +189,9 @@ public class ContextController {
                 required = true
             )
             @PathVariable String contextId) {
-        boolean deleted = contextService.deleteContext(contextId);
+        // Normalize to lowercase since context IDs are stored lowercase
+        String normalizedId = contextId.toLowerCase();
+        boolean deleted = contextService.deleteContext(normalizedId);
         return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 }

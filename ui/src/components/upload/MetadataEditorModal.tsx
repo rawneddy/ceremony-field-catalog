@@ -25,7 +25,7 @@ const MetadataEditorModal: React.FC<MetadataEditorModalProps> = ({
   );
 
   const requiredFields = context.requiredMetadata;
-  const optionalFields = context.optionalMetadata;
+  const optionalFields = context.optionalMetadata || [];
   const allFields = [...requiredFields, ...optionalFields];
 
   // Check if a specific file has all required fields filled

@@ -62,7 +62,7 @@ export const catalogApi = {
   },
 
   // Autocomplete
-  suggest: async (field: string, prefix: string, contextId?: string, metadata?: Record<string, string>): Promise<string[]> => {
+  suggest: async (field: string, prefix: string, contextId?: string, metadata?: Record<string, string>, signal?: AbortSignal): Promise<string[]> => {
     const metadataParams: Record<string, string> = {};
     if (metadata) {
       Object.entries(metadata).forEach(([key, value]) => {
@@ -77,6 +77,7 @@ export const catalogApi = {
         contextId,
         ...metadataParams,
       },
+      signal,
     });
     return response.data;
   },

@@ -184,19 +184,22 @@ const FieldTable: React.FC<FieldTableProps> = ({
 
   const highlightMatch = (text: string) => {
     if (!query || query.length < 2) return text;
-    
+
     // Remove leading / for highlight if it's there
     const cleanQuery = query.startsWith('/') ? query.substring(1) : query;
     if (!cleanQuery) return text;
 
+    // Escape regex special characters to prevent errors with user input like "[test" or "(test"
+    const escapedQuery = cleanQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
     try {
-      const parts = text.split(new RegExp(`(${cleanQuery})`, 'gi'));
-      return parts.map((part, i) => 
+      const parts = text.split(new RegExp(`(${escapedQuery})`, 'gi'));
+      return parts.map((part, i) =>
         part.toLowerCase() === cleanQuery.toLowerCase() ? (
           <mark key={i} className="bg-mint/40 text-ink rounded-sm px-0.5">{part}</mark>
         ) : part
       );
-    } catch (e) {
+    } catch {
       return text;
     }
   };

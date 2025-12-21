@@ -8,7 +8,7 @@ export interface Context {
   displayName: string;
   description: string | null;
   requiredMetadata: string[];
-  optionalMetadata: string[];
+  optionalMetadata: string[] | null;
   metadataRules: Record<string, MetadataExtractionRule>;
   active: boolean;
   createdAt: string;

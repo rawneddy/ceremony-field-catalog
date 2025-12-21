@@ -244,7 +244,7 @@ const SubmitDataPage: React.FC = () => {
                           context={selectedContext}
                           isReady={isBinReady(bin, selectedContext.requiredMetadata)}
                           onEditClick={() => setEditingBin(bin)}
-                          onSubmit={() => submitBin(bin.id, contextId, selectedContext.optionalMetadata)}
+                          onSubmit={() => submitBin(bin.id, contextId, selectedContext.optionalMetadata || [])}
                         />
                       ))}
                     </div>
