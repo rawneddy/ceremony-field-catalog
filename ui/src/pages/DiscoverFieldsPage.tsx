@@ -246,6 +246,7 @@ const DiscoverFieldsPage: React.FC = () => {
           <VariantExplorerPanel
             aggregatedField={selectedField}
             onClose={() => setSelectedField(null)}
+            facetFilters={facetFilters}
           />
         )}
       </div>
