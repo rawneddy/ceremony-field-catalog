@@ -43,6 +43,9 @@
 ### Documentation
 - [ ] Document API versioning plan in API_SPECIFICATION.md
 
+### Scaling
+- [ ] Add wildcard index `metadata.$**` for efficient metadata field queries at scale
+
 ---
 
 ## Recently Completed
@@ -67,6 +70,8 @@ Items moved here after completion, then archived to `docs/history/completed.md`:
 - **Tree view**: Hierarchical display of field paths
 - **Field comparison**: Compare fields across contexts or metadata variants
 - **Saved searches**: Bookmark and share search queries
+- **Column header filters**: Inline filtering in data grid headers (Field Path, Context, Null?, Empty?)
+- **Shareable URL state**: Sync search/filter state to URL for bookmarkable searches
 
 ---
 

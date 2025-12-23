@@ -1,4 +1,4 @@
-# UI Implementation
+# RELEASE01 - Ceremony Field Catalog UI - Design & Implementation
 
 ## Document Purpose
 
@@ -1003,46 +1003,3 @@ CORS configured for `http://localhost:5173` (Vite dev server) in `WebConfig.java
 ### Global Search
 `GET /catalog/fields?q=term` searches fieldPath, contextId, and metadata values with OR logic.
 
----
-
-## Gaps and Areas for Improvement
-
-This section identifies features specified in requirements or identified through code review that are not yet implemented, along with technical improvements that would enhance the system.
-
-### Unimplemented Features
-
-| Feature | Priority | Description | Related Requirement |
-|---------|----------|-------------|---------------------|
-| **Export functionality** | High | CSV/JSON export of search results with all metadata columns | Originally REQ-3.6 |
-| **Field path tooltips** | Low | Hover tooltip showing full path for truncated field paths in table | UX improvement |
-| **Facet mode switch warning** | Low | Warning dialog when switching from "Include any" to "Require one" with multiple selections | Originally REQ-3.8 |
-| **Tree view** | Future | Hierarchical display of field paths | Future enhancement |
-| **Saved searches** | Future | Bookmark and share search queries via URL | Future enhancement |
-
-### Technical Improvements
-
-| Area | Issue | Recommendation |
-|------|-------|----------------|
-| **Type safety** | `optionalMetadata` can be null from API but typed as `string[]` | Update `Context` interface to use `string[] \| null` and add null guards in components |
-| **Type safety** | `getContexts` always typed as `ContextWithCount[]` even without `includeCounts` | Create separate types for with/without count responses |
-| **N+1 queries** | `ContextService.getAllContextsWithCounts` performs separate count query per context | Replace with grouped count aggregation query |
-| **Configuration mismatch** | `max-xpath-length` in YAML vs `max-field-path-length` in properties | Align property names in `application.yml` and `CatalogProperties.java` |
-| **Merge deduplication** | Duplicate observations in single batch can skew min/max stats | Pre-aggregate observations by field identity before merge |
-| **Test coverage** | No UI tests, minimal controller/repository tests | Add hook/component tests, API endpoint tests for search behavior |
-| **Context ID normalization** | Context endpoints accept case-sensitive IDs causing 404s | Normalize context IDs in controller endpoints |
-
-### Performance Considerations
-
-| Area | Current State | Improvement |
-|------|---------------|-------------|
-| **Metadata indexing** | Current index on `metadata` as whole object doesn't help dot-notation queries | Add wildcard index `metadata.$**` |
-| **Global discovery** | Uses `$objectToArray` on metadata (inherently unindexed) | Materialized searchText field with text index |
-| **Single-context cleanup** | Loads and filters full entries in memory | Use targeted query or update-by-field-path |
-
-### Observability Gaps
-
-| Area | Current State | Improvement |
-|------|---------------|-------------|
-| **Request logging** | Standard Spring logging | Add request/response logging or query timing instrumentation |
-| **Performance monitoring** | Cache/performance config exists but not wired | Integrate performance configuration with runtime monitoring |
-| **API versioning** | Not implemented | Add versioning plan to API spec for future evolution |
