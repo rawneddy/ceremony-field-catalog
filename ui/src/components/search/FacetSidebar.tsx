@@ -7,7 +7,7 @@ import FacetPopover from './FacetPopover';
 interface FacetSidebarProps {
   facets: FacetIndex;
   onToggleValue: (key: string, value: string) => void;
-  onSetMode: (key: string, mode: 'any' | 'one') => void;
+  onSetMode: (key: string, mode: 'any' | 'all') => void;
   onClearFacet: (key: string) => void;
   onClearAll: () => void;
   fieldCount: number;

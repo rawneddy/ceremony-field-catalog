@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { Search, Filter } from 'lucide-react';
 import AggregatedFieldTable from '../components/search/AggregatedFieldTable';
@@ -16,17 +17,34 @@ import { useDebounce } from '../hooks/useDebounce';
 import { config } from '../config';
 import type { AggregatedField } from '../types';
 
+// Type for incoming state when returning from Schema page
+interface DiscoveryIncomingState {
+  contextId: string;
+  metadata: Record<string, string[]>;
+  facetFilters: Record<string, string[]>;
+  facetModes: Record<string, 'any' | 'all'>;
+  searchQuery: string;
+  isRegex: boolean;
+  selectedFieldPath: string;
+}
+
 const DiscoverFieldsPage: React.FC = () => {
-  const [contextId, setContextId] = useState('');
+  const location = useLocation();
+  const incomingState = location.state as DiscoveryIncomingState | undefined;
+
+  const [contextId, setContextId] = useState(incomingState?.contextId ?? '');
   // Server-side metadata filters (from header bar) - triggers API calls
-  const [metadata, setMetadata] = useState<Record<string, string[]>>({});
+  const [metadata, setMetadata] = useState<Record<string, string[]>>(incomingState?.metadata ?? {});
   // Client-side facet filters (from sidebar) - filters loaded results locally
-  const [facetFilters, setFacetFilters] = useState<Record<string, string[]>>({});
-  // Facet mode per key: 'any' = multi-select OR, 'one' = single-select
-  const [facetModes, setFacetModes] = useState<Record<string, 'any' | 'one'>>({});
-  const [fieldPath, setFieldPath] = useState('');
-  const [isRegex, setIsRegex] = useState(false);
+  const [facetFilters, setFacetFilters] = useState<Record<string, string[]>>(incomingState?.facetFilters ?? {});
+  // Facet mode per key: 'any' = OR (match any selected value), 'all' = AND (match all selected values)
+  const [facetModes, setFacetModes] = useState<Record<string, 'any' | 'all'>>(incomingState?.facetModes ?? {});
+  const [fieldPath, setFieldPath] = useState(incomingState?.searchQuery ?? '');
+  const [isRegex, setIsRegex] = useState(incomingState?.isRegex ?? false);
   const [selectedField, setSelectedField] = useState<AggregatedField | null>(null);
+  const [pendingSelectedFieldPath, setPendingSelectedFieldPath] = useState<string | undefined>(
+    incomingState?.selectedFieldPath
+  );
 
   // Debounce only the text-based search (fieldPath)
   // Metadata is not debounced - updates are explicit (chip add/remove)
@@ -47,6 +65,17 @@ const DiscoverFieldsPage: React.FC = () => {
   // Aggregate entries by fieldPath for discovery view
   const aggregatedFields = useAggregatedFields(data?.content);
 
+  // Restore selected field when returning from Schema page
+  useEffect(() => {
+    if (pendingSelectedFieldPath && aggregatedFields.length > 0) {
+      const field = aggregatedFields.find(f => f.fieldPath === pendingSelectedFieldPath);
+      if (field) {
+        setSelectedField(field);
+      }
+      setPendingSelectedFieldPath(undefined); // Clear pending so we don't re-select
+    }
+  }, [pendingSelectedFieldPath, aggregatedFields]);
+
   // Apply client-side facet filters to aggregated fields
   const filteredAggregatedFields = useMemo(() => {
     if (Object.keys(facetFilters).length === 0) {
@@ -55,67 +84,65 @@ const DiscoverFieldsPage: React.FC = () => {
 
     return aggregatedFields.filter(field => {
       // Field passes if ALL facet filters match (AND between keys)
-      // For each key, at least one variant must have a matching value (OR within key)
       return Object.entries(facetFilters).every(([key, selectedValues]) => {
         if (selectedValues.length === 0) return true;
 
+        const mode = facetModes[key] || 'any';
+
         if (key === 'contextId') {
-          // Check if any variant has a matching contextId
-          return field.variants.some(v => selectedValues.includes(v.contextId));
+          if (mode === 'all') {
+            // AND: field must have variants covering ALL selected contexts
+            return selectedValues.every(sv =>
+              field.variants.some(v => v.contextId === sv)
+            );
+          } else {
+            // OR: field must have at least one variant with ANY selected context
+            return field.variants.some(v => selectedValues.includes(v.contextId));
+          }
         } else {
-          // Check if any variant has a matching metadata value
-          return field.variants.some(v => {
-            const value = v.metadata[key];
-            return value !== undefined && selectedValues.includes(value);
-          });
+          if (mode === 'all') {
+            // AND: field must have variants covering ALL selected values
+            return selectedValues.every(sv =>
+              field.variants.some(v => v.metadata[key] === sv)
+            );
+          } else {
+            // OR: field must have at least one variant with ANY selected value
+            return field.variants.some(v => {
+              const value = v.metadata[key];
+              return value !== undefined && selectedValues.includes(value);
+            });
+          }
         }
       });
     });
-  }, [aggregatedFields, facetFilters]);
+  }, [aggregatedFields, facetFilters, facetModes]);
 
   // Build facet index from UNFILTERED results (counts stay stable)
   // Pass facetFilters only for highlighting which values are selected
   const facets = useDiscoveryFacets(aggregatedFields, facetFilters, facetModes);
 
   // Splunk-style: clicking a facet value filters client-side (no API call)
+  // Both 'any' and 'all' modes are multi-select, just different logic
   const handleFacetSelect = (key: string, value: string) => {
-    const mode = facetModes[key] || 'any';
-
     setFacetFilters(prev => {
       const currentValues = prev[key] || [];
 
-      if (mode === 'one') {
-        // Single-select: replace selection or clear if clicking same value
-        if (currentValues.includes(value)) {
+      // Toggle value in list (multi-select for both modes)
+      if (currentValues.includes(value)) {
+        const newValues = currentValues.filter(v => v !== value);
+        if (newValues.length === 0) {
           const { [key]: _, ...rest } = prev;
           return rest;
         }
-        return { ...prev, [key]: [value] };
-      } else {
-        // Multi-select: toggle value in list
-        if (currentValues.includes(value)) {
-          const newValues = currentValues.filter(v => v !== value);
-          if (newValues.length === 0) {
-            const { [key]: _, ...rest } = prev;
-            return rest;
-          }
-          return { ...prev, [key]: newValues };
-        }
-        return { ...prev, [key]: [...currentValues, value] };
+        return { ...prev, [key]: newValues };
       }
+      return { ...prev, [key]: [...currentValues, value] };
     });
   };
 
-  const handleSetMode = (key: string, mode: 'any' | 'one') => {
+  const handleSetMode = (key: string, mode: 'any' | 'all') => {
     setFacetModes(prev => ({ ...prev, [key]: mode }));
-    // When switching to 'one' mode with multiple selections, keep only the first
-    setFacetFilters(prev => {
-      const currentValues = prev[key] || [];
-      if (mode === 'one' && currentValues.length > 1) {
-        return { ...prev, [key]: [currentValues[0]!] };
-      }
-      return prev;
-    });
+    // Both modes support multi-select, no need to truncate selections
   };
 
   const handleClearFacet = (key: string) => {
@@ -247,6 +274,14 @@ const DiscoverFieldsPage: React.FC = () => {
             aggregatedField={selectedField}
             onClose={() => setSelectedField(null)}
             facetFilters={facetFilters}
+            discoveryState={{
+              contextId,
+              metadata,
+              facetFilters,
+              facetModes,
+              searchQuery: fieldPath,
+              isRegex
+            }}
           />
         )}
       </div>

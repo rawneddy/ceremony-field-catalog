@@ -3,7 +3,7 @@ import type { CatalogEntry, FacetIndex, FacetValue } from '../types';
 
 export const useFacets = (results: CatalogEntry[] | undefined) => {
   const [selectedFacets, setSelectedFacets] = useState<Record<string, Set<string>>>({});
-  const [facetModes, setFacetModes] = useState<Record<string, 'any' | 'one'>>({});
+  const [facetModes, setFacetModes] = useState<Record<string, 'any' | 'all'>>({});
 
   // Reset facets when results change (new server-side search)
   useEffect(() => {
@@ -70,35 +70,19 @@ export const useFacets = (results: CatalogEntry[] | undefined) => {
     });
   }, [results, selectedFacets]);
 
-  const setFacetMode = (key: string, mode: 'any' | 'one') => {
+  const setFacetMode = (key: string, mode: 'any' | 'all') => {
     setFacetModes(prev => ({ ...prev, [key]: mode }));
-    // If switching to 'one', keep only the first selected value if multiple exist
-    const currentSelected = selectedFacets[key];
-    if (mode === 'one' && currentSelected && currentSelected.size > 1) {
-        const firstValue = Array.from(currentSelected)[0];
-        if (firstValue !== undefined) {
-          setSelectedFacets(prev => ({ ...prev, [key]: new Set([firstValue]) }));
-        }
-    }
+    // Both modes support multi-select, no need to truncate selections
   };
 
   const toggleFacetValue = (key: string, value: string) => {
-    const mode = facetModes[key] || 'any';
+    // Both 'any' and 'all' modes support multi-select toggle
     setSelectedFacets(prev => {
       const current = new Set(prev[key] || []);
-      if (mode === 'one') {
-        if (current.has(value)) {
-          current.clear();
-        } else {
-          current.clear();
-          current.add(value);
-        }
+      if (current.has(value)) {
+        current.delete(value);
       } else {
-        if (current.has(value)) {
-          current.delete(value);
-        } else {
-          current.add(value);
-        }
+        current.add(value);
       }
       return { ...prev, [key]: current };
     });

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import { Search, FileCode } from 'lucide-react';
 import FieldTable from '../components/search/FieldTable';
@@ -9,16 +9,25 @@ import ContextSelector from '../components/search/ContextSelector';
 import InlineRequiredMetadata from '../components/search/InlineRequiredMetadata';
 import InlineOptionalMetadata from '../components/search/InlineOptionalMetadata';
 import SchemaExportButtons from '../components/search/SchemaExportButtons';
+import DiscoveryReturnBanner from '../components/search/DiscoveryReturnBanner';
 import { ModeToggle, ErrorBanner, EmptyState } from '../components/ui';
 import { useFieldSearch } from '../hooks/useFieldSearch';
 import { useContexts } from '../hooks/useContexts';
 import { config } from '../config';
 import type { CatalogEntry } from '../types';
+import type { DiscoveryReturnState } from '../components/search/VariantExplorerPanel';
 import { getDominantCasing } from '../utils/casingUtils';
 
 const ExploreSchemaPage: React.FC = () => {
   // URL params for bookmarkable/shareable searches
   const [urlParams, setUrlParams] = useSearchParams();
+  const location = useLocation();
+
+  // Check if we came from Discovery page
+  const discoveryReturnState = location.state as DiscoveryReturnState | undefined;
+  const [showReturnBanner, setShowReturnBanner] = useState(
+    discoveryReturnState?.returnTo === 'discovery'
+  );
 
   // Context and metadata state
   const [contextId, setContextId] = useState('');
@@ -295,6 +304,15 @@ const ExploreSchemaPage: React.FC = () => {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="h-2 bg-gradient-to-b from-black/10 to-transparent shrink-0" />
+
+        {/* Discovery return banner - shown when jumped from Discovery page */}
+        {showReturnBanner && discoveryReturnState && (
+          <DiscoveryReturnBanner
+            returnState={discoveryReturnState}
+            onDismiss={() => setShowReturnBanner(false)}
+          />
+        )}
+
         <div className="flex-1 flex overflow-hidden">
           {!hasSearched ? (
             <div className="flex-1 flex bg-white">

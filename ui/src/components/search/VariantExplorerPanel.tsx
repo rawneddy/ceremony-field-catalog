@@ -6,11 +6,31 @@ import { X, ExternalLink, Layers, Clock, Filter, Eye, EyeOff } from 'lucide-reac
 import { TriStateBadge } from '../ui';
 import { config } from '../../config';
 
+/**
+ * State to preserve when navigating from Discovery to Schema,
+ * allowing return to Discovery in the same state.
+ */
+export interface DiscoveryReturnState {
+  returnTo: 'discovery';
+  fieldPath: string;
+  discoveryState: {
+    contextId: string;
+    metadata: Record<string, string[]>;
+    facetFilters: Record<string, string[]>;
+    facetModes: Record<string, 'any' | 'all'>;
+    searchQuery: string;
+    isRegex: boolean;
+    selectedFieldPath: string;
+  };
+}
+
 interface VariantExplorerPanelProps {
   aggregatedField: AggregatedField;
   onClose: () => void;
   /** Active facet filters - used to highlight/filter variants */
   facetFilters?: Record<string, string[]>;
+  /** Full discovery state for return navigation */
+  discoveryState?: Omit<DiscoveryReturnState['discoveryState'], 'selectedFieldPath'>;
 }
 
 /**
@@ -64,7 +84,8 @@ const variantMatchesFilters = (
 const VariantExplorerPanel: React.FC<VariantExplorerPanelProps> = ({
   aggregatedField,
   onClose,
-  facetFilters = {}
+  facetFilters = {},
+  discoveryState
 }) => {
   const [showAllVariants, setShowAllVariants] = useState(false);
 
@@ -269,6 +290,14 @@ const VariantExplorerPanel: React.FC<VariantExplorerPanelProps> = ({
                   <td className="px-3 py-3 text-center">
                     <Link
                       to={buildSchemaSearchUrl(variant)}
+                      state={discoveryState ? {
+                        returnTo: 'discovery',
+                        fieldPath: aggregatedField.fieldPath,
+                        discoveryState: {
+                          ...discoveryState,
+                          selectedFieldPath: aggregatedField.fieldPath
+                        }
+                      } as DiscoveryReturnState : undefined}
                       className={`inline-block p-1 transition-colors ${
                         isHiddenByFilter
                           ? 'text-slate-300 hover:text-slate-400'

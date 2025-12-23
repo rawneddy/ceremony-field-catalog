@@ -13,7 +13,7 @@ import type { AggregatedField, FacetValue, FacetIndex } from '../types';
 export const useDiscoveryFacets = (
   aggregatedFields: AggregatedField[],
   activeFilters: Record<string, string[]> = {},
-  facetModes: Record<string, 'any' | 'one'> = {}
+  facetModes: Record<string, 'any' | 'all'> = {}
 ): FacetIndex => {
   return useMemo(() => {
     if (!aggregatedFields || aggregatedFields.length === 0) {
