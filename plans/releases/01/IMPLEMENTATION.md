@@ -1,4 +1,4 @@
-# UI Implementation
+# RELEASE01 - Ceremony Field Catalog UI - Design & Implementation
 
 ## Document Purpose
 
@@ -902,7 +902,7 @@ Use via Tailwind classes: `bg-paper`, `text-ink`, `border-ceremony`, etc.
 | Purpose | File |
 |---------|------|
 | Requirements | `plans/releases/01/REQUIREMENTS.md` |
-| API contract | `docs/api/API_SPECIFICATION.md` |
+| API contract | `/swagger-ui.html` (live docs) |
 | Theme/colors | `ui/src/index.css` (@theme block) |
 | Configuration | `ui/src/config.ts` |
 | Context domain | `src/main/java/com/ceremony/catalog/domain/Context.java` |
@@ -1003,48 +1003,3 @@ CORS configured for `http://localhost:5173` (Vite dev server) in `WebConfig.java
 ### Global Search
 `GET /catalog/fields?q=term` searches fieldPath, contextId, and metadata values with OR logic.
 
----
-
-## Gaps and Areas for Improvement
-
-This section identifies features specified in requirements or identified through code review that are not yet implemented, along with technical improvements that would enhance the system.
-
-### Unimplemented Features
-
-| Feature | Priority | Description | Related Requirement |
-|---------|----------|-------------|---------------------|
-| **Export functionality** | High | CSV/JSON export of search results with all metadata columns | Originally REQ-3.6 |
-| **Field path tooltips** | Low | Hover tooltip showing full path for truncated field paths in table | UX improvement |
-| **Facet mode switch warning** | Low | Warning dialog when switching from "Include any" to "Require one" with multiple selections | Originally REQ-3.8 |
-| **Tree view** | Future | Hierarchical display of field paths | Future enhancement |
-| **Saved searches** | Future | Bookmark and share search queries via URL | Future enhancement |
-
-### Technical Improvements
-
-| Area | Issue | Recommendation |
-|------|-------|----------------|
-| **Type safety** | `optionalMetadata` can be null from API but typed as `string[]` | Update `Context` interface to use `string[] \| null` and add null guards in components |
-| **Type safety** | `getContexts` always typed as `ContextWithCount[]` even without `includeCounts` | Create separate types for with/without count responses |
-| **N+1 queries** | `ContextService.getAllContextsWithCounts` performs separate count query per context | Replace with grouped count aggregation query |
-| **Configuration mismatch** | `max-xpath-length` in YAML vs `max-field-path-length` in properties | Align property names in `application.yml` and `CatalogProperties.java` |
-| **Merge deduplication** | Duplicate observations in single batch can skew min/max stats | Pre-aggregate observations by field identity before merge |
-| **Test coverage** | No UI tests, minimal controller/repository tests | Add hook/component tests, API endpoint tests for search behavior |
-| **Context ID normalization** | Context endpoints accept case-sensitive IDs causing 404s | Normalize context IDs in controller endpoints |
-
-### Performance Considerations
-
-See `docs/MONGODB_PERFORMANCE.md` for comprehensive indexing strategy at scale.
-
-| Area | Current State | Improvement |
-|------|---------------|-------------|
-| **Metadata indexing** | Current index on `metadata` as whole object doesn't help dot-notation queries | Add wildcard index `metadata.$**` - see performance doc |
-| **Global discovery** | Uses `$objectToArray` on metadata (inherently unindexed) | Materialized searchText field with text index - see performance doc |
-| **Single-context cleanup** | Loads and filters full entries in memory | Use targeted query or update-by-field-path |
-
-### Observability Gaps
-
-| Area | Current State | Improvement |
-|------|---------------|-------------|
-| **Request logging** | Standard Spring logging | Add request/response logging or query timing instrumentation |
-| **Performance monitoring** | Cache/performance config exists but not wired | Integrate performance configuration with runtime monitoring |
-| **API versioning** | Not implemented | Add versioning plan to API spec for future evolution |

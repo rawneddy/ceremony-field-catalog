@@ -7,7 +7,7 @@ A Spring Boot + MongoDB API for tracking and cataloging observed XML fields acro
 - RESTful API for submitting and querying observed field data
 - MongoDB persistence with dynamic search and pagination
 - Testcontainers-based integration tests for reliable CI/CD
-- Built with Java 21, Spring Boot 3, and Lombok
+- Built with Java 17, Spring Boot 3, and Lombok
 
 ## Prerequisites
 ---
@@ -43,16 +43,16 @@ winget install EclipseAdoptium.Temurin.21.JDK
 winget install Apache.Maven
 ```
 
-## See Also
+## Documentation
 ---
 | Document | Description |
 |----------|-------------|
-| [docs/MOTIVATION.md](docs/MOTIVATION.md) | Business context explaining why the catalog is needed |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Technical architecture, components, and data model |
-| [docs/api/API_SPECIFICATION.md](docs/api/API_SPECIFICATION.md) | Complete REST API reference |
-| [docs/api/TESTING.md](docs/api/TESTING.md) | Testing guide and patterns |
+| [docs/domain/motivation.md](docs/domain/motivation.md) | Business context explaining why the catalog is needed |
+| [docs/domain/glossary.md](docs/domain/glossary.md) | Canonical terminology |
+| [docs/how-to/](docs/how-to/) | Task-oriented guides (search, contexts, observations, testing) |
+| [docs/reference/](docs/reference/) | Deep architecture reference (backend, frontend, configuration) |
+| `/swagger-ui.html` | Live API documentation (when server running) |
 | [docs/sdk/README.md](docs/sdk/README.md) | Client SDK documentation (.NET, Python) |
-| [plans/releases/01/](plans/releases/01/) | UI requirements and implementation plan |
 | [tests/CatalogSmokeTests.http](tests/CatalogSmokeTests.http) | REST Client test file for manual API testing |
 
 ## Full Stack Quick Start

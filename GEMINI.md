@@ -1,109 +1,160 @@
-# Ceremony Field Catalog
+# CLAUDE.md
 
-## Project Overview
+A dynamic field observation catalog that tracks XML field usage patterns across business contexts. Spring Boot + MongoDB backend, React + TypeScript frontend.
 
-The **Ceremony Field Catalog** is a comprehensive system designed to "reverse engineer" and catalog XML field usage patterns across legacy applications. It enables organizations to track which XML fields are actually being used in production across different business contexts, even when no formal schema exists.
+---
 
-**Core Components:**
+## Quick Navigation by Task
 
-1.  **Catalog API (Java/Spring Boot):** The central brain of the system. A RESTful API backed by MongoDB that accepts field observations, merges them intelligently, and provides powerful search capabilities.
-2.  **SDKs (Python & .NET):** Lightweight, "fire-and-forget" client libraries designed to be embedded in legacy applications with zero impact on performance or stability.
+### Changing Search/Autocomplete/Filtering
+→ `docs/how-to/search.md`
 
-**Key Features:**
+### Changing Contexts/Metadata Rules
+→ `docs/how-to/contexts.md`
 
-*   **Dynamic Contexts:** Supports unlimited business domains (e.g., "Loans", "Deposits") with self-service schema definition.
-*   **Field Discovery:** Automatically discovers and indexes XML paths (XPaths) as they are observed.
-*   **Zero-Impact Telemetry:** SDKs use background processing and safe failure modes to ensure the main application is never affected.
-*   **Data Persistence:** Uses MongoDB for flexible, schema-less storage of observed fields.
+### Changing Observation Merge/Upload Parsing/SDK
+→ `docs/how-to/observations.md`
 
-## Building and Running
+### Changing Schema Export (XSD/JSON)
+→ `docs/how-to/schema-export.md`
 
-### Prerequisites
+### Running/Writing Tests
+→ `docs/how-to/testing.md`
 
-*   **Docker:** Essential for running the full stack (API + MongoDB) easily.
-*   **Java 21:** Required for local API development.
-*   **Maven:** Build tool for the Java API.
+### Understanding the Domain
+→ `docs/domain/motivation.md`, `docs/domain/glossary.md`
 
-### Quick Start (Docker Compose)
+### System Design & Data Flow
+→ `docs/ARCHITECTURE.md` (integration, deployment, data model, scaling)
 
-The recommended way to run the application is using Docker Compose, which spins up both the API and the MongoDB database.
+### Code Navigation (where things are)
+→ `docs/reference/backend.md` (Java packages, classes)
+→ `docs/reference/frontend.md` (React components, hooks)
 
-```bash
-# Start API and MongoDB
-docker-compose up --build
+### Configuration/Environment Variables
+→ `docs/reference/configuration.md`
 
-# Run in background
-docker-compose up -d --build
+### Integrating SDKs (.NET/Python)
+→ `sdks/dotnet/net48/README.md`, `sdks/python/README.md`
 
-# Stop everything
-docker-compose down
-```
+### API Details (endpoints, request/response)
+→ Run server, visit `/swagger-ui.html` for OpenAPI spec
+→ Or inspect `@Operation` annotations in `*Controller.java`
 
-*   **API URL:** `http://localhost:8080`
-*   **Swagger UI:** `http://localhost:8080/swagger-ui.html`
-*   **MongoDB:** `localhost:27017`
+### Project Backlog/Known Issues
+→ `plans/BACKLOG.md`
 
-### Local Development (Java API)
+### Maintaining Documentation
+→ `docs/meta/DOCUMENTATION.md`
 
-To run the API locally while keeping MongoDB in a container:
+---
 
-1.  **Start MongoDB:**
-    ```bash
-    docker-compose up mongodb
-    ```
-
-2.  **Run API:**
-    ```bash
-    mvn spring-boot:run
-    ```
-
-### Testing
-
-The project uses **Testcontainers** to run integration tests against a real MongoDB instance. **Docker must be running.**
+## Essential Commands
 
 ```bash
-# Run all tests
-mvn clean test
+# Backend
+docker-compose up --build        # Full stack with MongoDB
+mvn spring-boot:run              # Local (needs MongoDB on :27017)
+mvn clean test                   # Tests (needs Docker for Testcontainers)
 
-# Run a specific test
-mvn test -Dtest=CatalogServiceTest
+# UI (from ui/ directory)
+npm run dev                      # Development server
+npm run typecheck                # MUST pass before committing
+npm run build                    # Production build
 ```
 
-## Development Conventions
+---
 
-### Code Structure
+## UI Navigation
 
-*   `src/main/java/`: Main Spring Boot application code.
-    *   `api/`: REST Controllers and DTOs.
-    *   `domain/`: Core business entities (`Context`, `CatalogEntry`).
-    *   `service/`: Business logic (`CatalogService`, `ContextService`).
-    *   `persistence/`: MongoDB repositories and custom query implementations.
-*   `sdks/`: Client SDKs for different languages.
-    *   `python/`: Python SDK.
-    *   `dotnet/`: .NET SDK.
+| Route | Tab | Page Component | Purpose |
+|-------|-----|----------------|---------|
+| `/` | Discover Fields | `DiscoverFieldsPage` | Reactive field exploration with facets |
+| `/schema` | Explore Schema | `ExploreSchemaPage` | Generate schemas for export |
+| `/submit` | Submit Data | `SubmitDataPage` | Upload XML to extract observations |
+| `/contexts` | Manage Contexts | `ManageContextsPage` | Create/edit context schemas |
 
-### Standards
+---
 
-*   **Language:** Java 21.
-*   **Framework:** Spring Boot 3.4.1.
-*   **Database:** MongoDB.
-*   **Lombok:** Used extensively for boilerplate reduction (`@Data`, `@Builder`, etc.).
-*   **Testing:** Integration-first approach using JUnit 5 and Testcontainers.
+## Core Invariants
 
-## SDKs
+- **Metadata normalization:** All metadata keys/values normalized to lowercase
+- **Field identity:** `hash(contextId + requiredMetadata + fieldPath)` - optional metadata doesn't affect identity
+- **Required metadata immutability:** Cannot change after context creation
+- **Active context filtering:** Only active contexts appear in search/dropdowns by default
+- **Multi-value metadata:** `metadata.key=a&metadata.key=b` → OR within field, AND between fields
 
-### Python SDK (`sdks/python`)
-A fire-and-forget library for Python 3.11+ applications.
-*   **Install:** `pip install .` (from the python directory)
-*   **Tests:** `pytest`
+---
 
-### .NET SDK (`sdks/dotnet`)
-A thread-safe, non-blocking SDK for .NET applications (targeted at .NET Framework 4.8 for legacy support).
-*   **Features:** Background worker thread, bounded blocking collection, exception swallowing for safety.
+## Key File Locations
 
-## Useful References
+### Backend
+- Domain models: `src/main/java/com/ceremony/catalog/domain/`
+- Services: `src/main/java/com/ceremony/catalog/service/`
+- Controllers: `src/main/java/com/ceremony/catalog/api/`
+- Custom queries: `src/main/java/com/ceremony/catalog/persistence/CatalogCustomRepositoryImpl.java`
 
-*   `CLAUDE.md`: Contains detailed instructions for AI agents and specific commands.
-*   `docs/ARCHITECTURE.md`: Deep dive into the system design and data model.
-*   `docs/api/API_SPECIFICATION.md`: Full REST API documentation.
-*   `tests/CatalogSmokeTests.http`: VS Code REST Client file for manual API testing.
+### Frontend
+- Pages: `ui/src/pages/`
+- Hooks: `ui/src/hooks/`
+- Components: `ui/src/components/`
+- XML parser: `ui/src/utils/xmlParser.ts`
+- Schema generators: `ui/src/lib/schema/`
+
+### Configuration
+- Backend: `src/main/resources/application.yml`
+- UI: `ui/src/config.ts`
+- Docker: `docker-compose.yml`
+
+---
+
+## Type Safety
+
+The UI uses strict TypeScript. All type errors must be resolved before committing:
+- `noUncheckedIndexedAccess`: Array indexing returns `T | undefined`
+- `noImplicitReturns`: All code paths must return
+- Run `npm run typecheck` to verify
+
+---
+
+## Testing
+
+- Backend uses Testcontainers (real MongoDB) - Docker must be running
+- Manual API tests: `tests/CatalogSmokeTests.http` (VS Code REST Client)
+- See `docs/how-to/testing.md` for patterns
+
+---
+
+## Documentation Structure
+
+```
+docs/
+├── ARCHITECTURE.md   # System architecture overview
+├── how-to/           # Task-oriented guides
+│   ├── search.md
+│   ├── contexts.md
+│   ├── observations.md
+│   ├── schema-export.md
+│   └── testing.md
+├── reference/        # Deep architecture
+│   ├── backend.md
+│   ├── frontend.md
+│   └── configuration.md
+├── domain/           # Business context
+│   ├── motivation.md
+│   ├── vision.md
+│   └── glossary.md
+├── sdk/              # SDK index
+│   └── README.md
+├── samples/          # Sample XML files
+│   └── README.md
+├── history/          # Historical archives
+│   └── releases/     # Release primers
+└── meta/             # Doc maintenance
+    └── DOCUMENTATION.md
+sdks/                 # Co-located SDK docs
+├── dotnet/net48/README.md
+└── python/README.md
+plans/
+└── BACKLOG.md        # Project backlog
+```

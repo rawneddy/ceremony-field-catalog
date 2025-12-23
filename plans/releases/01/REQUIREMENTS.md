@@ -1,4 +1,4 @@
-# Ceremony Field Catalog UI - Requirements
+# RELEASE01 - Ceremony Field Catalog UI - Requirements
 
 ## Document Purpose
 
@@ -221,16 +221,3 @@ Configurable values defined in `ui/src/config.ts`:
 - Sonner for toast notifications
 - Graceful error handling with ErrorBoundary
 
----
-
-## Future Enhancements
-
-These items are out of scope for initial release but inform architectural decisions:
-
-- **Export functionality**: CSV/JSON export of search results with metadata
-- **Column header filters**: Text/dropdown filters in table column headers
-- **Tree view**: Hierarchical display of field paths
-- **Field comparison**: Compare fields across contexts or metadata variants
-- **Usage analytics**: Charts showing field usage patterns
-- **Saved searches**: Bookmark and share search queries
-- **Field path tooltips**: Hover to see full path for truncated values
