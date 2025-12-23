@@ -21,6 +21,7 @@
 - [x] **Context ID normalization**: Read/update/delete endpoints in `ContextController` accept case-sensitive IDs without normalization, which can cause surprising 404s when the stored ID is lowercase.
 
 ## UI
+- [ ] **Route from discovery to schema tab broken:** When clicking the link icon in the metadata detail right-hand slide out on the Discovery tab, it opens to a page that stays white/empty
 - [x] **UI nullable optionalMetadata**: `context.types.ts` models `optionalMetadata` as `string[]` but API can return null. Can break MetadataFilters and upload flows at runtime.
 - [x] **useSuggest AbortController ineffective**: AbortController is created but signal is not passed through to axios requests, so request cancellation doesn't actually work.
 - [x] **Match highlighting regex edge case**: `FieldTable.tsx` builds regex from user input in string mode without escaping special characters, which can mis-highlight or throw errors.
