@@ -101,7 +101,7 @@ Manages observation point definitions (contexts).
 | `/catalog/contexts` | GET | List all contexts |
 | `/catalog/contexts/{contextId}` | GET | Get specific context |
 | `/catalog/contexts/{contextId}` | PUT | Update context (optional metadata only) |
-| `/catalog/contexts/{contextId}` | DELETE | Deactivate context |
+| `/catalog/contexts/{contextId}` | DELETE | Delete context and all its entries |
 
 #### Catalog Controller
 Handles field observations and searches.
@@ -110,6 +110,7 @@ Handles field observations and searches.
 |----------|--------|---------|
 | `/catalog/contexts/{contextId}/observations` | POST | Submit field observations |
 | `/catalog/fields` | GET | Search catalog with filters |
+| `/catalog/suggest` | GET | Autocomplete field paths |
 
 #### Dynamic Parameter Resolver
 Converts any unknown query parameter into a metadata filter. Enables searches like:
@@ -169,6 +170,12 @@ MongoDB document store with two collections:
   "description": "Fields sent to PDF Generation API per document",
   "requiredMetadata": ["documentCode"],             // Determines field identity
   "optionalMetadata": ["productCode", "productSubCode"],
+  "metadataRules": {                               // Optional extraction rules
+    "documentcode": {
+      "xpaths": ["/document/code", "/doc/@code"],
+      "validationRegex": "^[A-Z]{4}[0-9]{3}$"
+    }
+  },
   "active": true,
   "createdAt": ISODate("2024-01-15T10:30:00Z"),
   "updatedAt": ISODate("2024-01-20T14:22:00Z")
@@ -184,6 +191,7 @@ MongoDB document store with two collections:
 | `description` | String | Purpose description |
 | `requiredMetadata` | Array<String> | Metadata fields that determine field identity |
 | `optionalMetadata` | Array<String> | Additional metadata that can be stored but doesn't affect identity |
+| `metadataRules` | Object | Optional XPath extraction rules for metadata fields |
 | `active` | Boolean | Whether context accepts observations |
 | `createdAt` | DateTime | Creation timestamp |
 | `updatedAt` | DateTime | Last modification timestamp |
@@ -203,7 +211,9 @@ MongoDB document store with two collections:
   "maxOccurs": 3,
   "minOccurs": 0,
   "allowsNull": true,
-  "allowsEmpty": false
+  "allowsEmpty": false,
+  "firstObservedAt": ISODate("2024-01-15T10:30:00Z"),
+  "lastObservedAt": ISODate("2024-01-20T14:22:00Z")
 }
 ```
 
@@ -219,6 +229,8 @@ MongoDB document store with two collections:
 | `minOccurs` | Integer | Minimum times (0 = sometimes absent) |
 | `allowsNull` | Boolean | Has been observed with null value |
 | `allowsEmpty` | Boolean | Has been observed with empty string |
+| `firstObservedAt` | DateTime | When field was first observed |
+| `lastObservedAt` | DateTime | When field was last observed |
 
 ### Field Identity Algorithm
 
@@ -285,6 +297,7 @@ For complete API documentation including request/response examples, see [API_SPE
 | `/catalog/contexts/{id}` | GET/PUT/DELETE | Manage specific context |
 | `/catalog/contexts/{id}/observations` | POST | Submit field observations |
 | `/catalog/fields` | GET | Search catalog (supports dynamic metadata filters) |
+| `/catalog/suggest` | GET | Autocomplete field paths |
 
 ---
 
@@ -451,27 +464,11 @@ volumes:
 
 ## Monitoring & Observability
 
-### Key Metrics
+### Current State
 
-| Metric | Description |
-|--------|-------------|
-| `observations.received` | Count of observation batches received |
-| `observations.fields.count` | Total fields processed |
-| `merge.duration` | Time to process observation batch |
-| `search.duration` | Time to execute search queries |
-| `mongodb.connections` | Active MongoDB connections |
-
-### Health Endpoints
-
-- `/actuator/health` - Overall health status
-- `/actuator/health/mongo` - MongoDB connectivity
-- `/actuator/info` - Application info
-
-### Logging
-
-Query performance logging available via `QueryPerformanceAspect`:
-- Logs slow queries (configurable threshold)
-- Can be enabled/disabled via configuration
+- **Metrics:** Not implemented. See `plans/BACKLOG.md` for Micrometer integration plans.
+- **Health Endpoints:** Not implemented. Requires `spring-boot-starter-actuator`.
+- **Query Logging:** Available via `QueryPerformanceAspect` - logs slow queries with configurable threshold.
 
 ---
 
@@ -479,15 +476,16 @@ Query performance logging available via `QueryPerformanceAspect`:
 
 ### Potential Enhancements
 
-1. **Export API**: Generate XSD/JSON Schema from catalog data
-2. **Diff API**: Compare field lists between product codes or time periods
-3. **Web UI**: Dashboard for browsing and analyzing catalog
-4. **Webhooks**: Notify external systems when new fields discovered
-5. **Retention Policy**: Archive/purge old observation data
+1. **Diff API**: Compare field lists between product codes or time periods
+2. **Webhooks**: Notify external systems when new fields discovered
+3. **Retention Policy**: Archive/purge old observation data
+4. **Field Value Capture**: Store observed values (not just paths) - see `plans/field-value-capture.md`
+
+> **Completed:** Web UI (React/TypeScript), Schema Export (XSD/JSON from UI)
 
 ### Extension Points
 
 - **New Contexts**: Add via API, no code changes
 - **New Metadata**: Add to optional metadata, no code changes
 - **New Search Filters**: Extend `CatalogSearchCriteria` and custom repository
-- **New Integrations**: SDK for other languages (Java, Python)
+- **New Integrations**: SDKs available in `sdks/` (.NET production, Python for testing)

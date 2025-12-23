@@ -62,9 +62,17 @@ Items moved here after completion, then archived to `docs/history/completed.md`:
 
 ---
 
+## Future Ideas (Not Prioritized)
+
+- **Tree view**: Hierarchical display of field paths
+- **Field comparison**: Compare fields across contexts or metadata variants
+- **Saved searches**: Bookmark and share search queries
+
+---
+
 ## Planning Documents
 
 For feature designs and requirements, see:
-- `plans/field-value-capture.md` - Field value capture feature design
+- `plans/ideas/field-value-capture.md` - Field value capture feature design
 - `plans/releases/01/REQUIREMENTS.md` - UI requirements
 - `plans/releases/01/IMPLEMENTATION.md` - UI implementation plan
