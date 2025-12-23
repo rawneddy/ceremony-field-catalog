@@ -2,8 +2,6 @@
 
 This plan defines an LLM-first documentation target state and a migration path from the repo’s current `.md` set to a coherent, low-context-waste structure. The codebase (`src/`, `ui/src/`, `sdks/`, `tests/`, config) is the source of truth; documentation must be continuously verified against it.
 
----
-
 ## 1. Target State
 
 ### 1.1 Current Inventory (Baseline) — All Markdown in Repo
@@ -25,7 +23,7 @@ Notes:
 | `docs/sdk/README.md` | 2,079 | SDK overview | Incorrect Python path reference (`sdks/python/...` is real). Claims Python SDK is “test only,” but code is written as a usable SDK; intent needs clarification. | Move SDK docs next to SDK code (`sdks/python/README.md`, `sdks/dotnet/net48/README.md`); keep a short index doc under `docs/`. |
 | `docs/samples/README.md` | 783 | Sample XML set + expected parsing | Aligned with `ui/src/utils/xmlParser.ts` (leaf extraction, `xsi:nil`, empty semantics). | Keep; tighten to match parser exactly; link from upload/parser docs. |
 | `docs/ui/planning/DECISIONS.md` | 830 | UI pre-implementation decisions | References `REQUIREMENTS.md` as if in docs; in repo it’s `plans/releases/01/REQUIREMENTS.md`. Several decisions are now “historical”; keep as ADR/history. | Convert to ADR(s) or move to `docs/history/ui/`; remove “implemented ✅” claims unless verified continuously. |
-| `docs/ui/planning/ROADMAP.md` | 1,733 | UI future enhancements | Good as product/UX roadmap, but references `REQUIREMENTS.md` location incorrectly. | Move under `docs/product/` or `docs/history/ui/`; keep out of main router. |
+| `docs/ui/planning/ROADMAP.md` | 1,733 | UI future enhancements | Good as product/UX roadmap, but references `REQUIREMENTS.md` location incorrectly. | Move under `docs/product/` or `docs/history/ui/`; keep out of main router. |∏
 | `docs/MOTIVATION.md` | 2,403 | Business justification (“why”) | Narrative; mostly independent of code. | Keep under `docs/product/` as a product doc; reduce length if needed. |
 | `docs/VISION.md` | 2,204 | Narrative of desired UX impact | Narrative; contains UI behavior assumptions that can drift. | Keep under `docs/product/`; ensure clearly labeled as aspirational if not fully implemented. |
 | `docs/COMPLETED.md` | 2,671 | Changelog + future plans + patterns | Mixes “completed” and “planned”; includes claims about Actuator/OpenAPI paths that can drift. | Move to `docs/history/`; consider replacing with a real `CHANGELOG.md` or rely on git history. |
