@@ -41,4 +41,7 @@ public class CatalogEntry {
 
     @Field("lastobservedat")
     private java.time.Instant lastObservedAt;
+
+    @Field("casingcounts")
+    private Map<String, Long> casingCounts;
 }

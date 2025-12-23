@@ -14,6 +14,7 @@ import { useFieldSearch } from '../hooks/useFieldSearch';
 import { useContexts } from '../hooks/useContexts';
 import { config } from '../config';
 import type { CatalogEntry } from '../types';
+import { getDominantCasing } from '../utils/casingUtils';
 
 const ExploreSchemaPage: React.FC = () => {
   // URL params for bookmarkable/shareable searches
@@ -196,7 +197,7 @@ const ExploreSchemaPage: React.FC = () => {
   // Raw results from API
   const rawResults = data?.content || [];
 
-  // Apply client-side filter to results
+  // Apply client-side filter to results (case-insensitive against dominant casing)
   const results = useMemo(() => {
     if (!filter.trim()) {
       return rawResults;
@@ -205,16 +206,20 @@ const ExploreSchemaPage: React.FC = () => {
     if (isRegex) {
       try {
         const regex = new RegExp(filter, 'i');
-        return rawResults.filter(entry => regex.test(entry.fieldPath));
+        return rawResults.filter(entry => {
+          const displayPath = getDominantCasing(entry.casingCounts, entry.fieldPath);
+          return regex.test(displayPath);
+        });
       } catch {
         // Invalid regex, return all results
         return rawResults;
       }
     } else {
       const lowerFilter = filter.toLowerCase();
-      return rawResults.filter(entry =>
-        entry.fieldPath.toLowerCase().includes(lowerFilter)
-      );
+      return rawResults.filter(entry => {
+        const displayPath = getDominantCasing(entry.casingCounts, entry.fieldPath);
+        return displayPath.toLowerCase().includes(lowerFilter);
+      });
     }
   }, [rawResults, filter, isRegex]);
 

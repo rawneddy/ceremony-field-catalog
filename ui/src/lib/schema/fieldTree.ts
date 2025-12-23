@@ -7,6 +7,7 @@
 
 import type { CatalogEntry } from '../../types/catalog.types';
 import type { FieldTreeNode, SchemaExportPolicy } from './types';
+import { getDominantCasing } from '../../utils/casingUtils';
 
 /**
  * Creates an empty tree node with default values.
@@ -62,7 +63,9 @@ export function buildFieldTree(entries: CatalogEntry[]): FieldTreeNode {
   root.isLeaf = false;
 
   for (const entry of entries) {
-    const segments = parsePathSegments(entry.fieldPath);
+    // Use dominant casing for schema export (falls back to lowercase fieldPath)
+    const displayPath = getDominantCasing(entry.casingCounts, entry.fieldPath);
+    const segments = parsePathSegments(displayPath);
     if (segments.length === 0) continue;
 
     let currentNode = root;

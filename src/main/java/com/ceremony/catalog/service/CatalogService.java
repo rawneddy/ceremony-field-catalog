@@ -21,6 +21,13 @@ public class CatalogService {
     private final CatalogRepository repository;
     private final ContextService contextService;
     private final InputValidationService validationService;
+
+    /**
+     * Internal record holding cleaned observation DTO along with the original field path casing.
+     * The DTO contains normalized (lowercase) fieldPath for identity, while originalFieldPath
+     * preserves the casing as observed for tracking in casingCounts.
+     */
+    private record CleanedObservation(CatalogObservationDTO dto, String originalFieldPath) {}
     
     public void merge(String contextId, List<CatalogObservationDTO> observations) {
         if (observations == null || observations.isEmpty()) return;
@@ -34,12 +41,12 @@ public class CatalogService {
             .orElseThrow(() -> new IllegalArgumentException("Context not found or inactive: " + cleanedContextId));
         
         // Validate and clean observations against context requirements
-        List<CatalogObservationDTO> cleanedObservations = validateAndCleanObservations(observations);
-        validateObservations(context, cleanedObservations);
+        List<CleanedObservation> cleanedObservations = validateAndCleanObservations(observations);
+        validateObservations(context, cleanedObservations.stream().map(CleanedObservation::dto).toList());
         
         // Collect all field IDs for batch query (using only required metadata for field identity)
         Set<String> fieldIds = cleanedObservations.stream()
-            .map(dto -> new FieldKey(cleanedContextId, filterToRequiredMetadata(context, dto.metadata()), dto.fieldPath()).toString())
+            .map(co -> new FieldKey(cleanedContextId, filterToRequiredMetadata(context, co.dto().metadata()), co.dto().fieldPath()).toString())
             .collect(LinkedHashSet::new, Set::add, Set::addAll);
         
         // Single batch query to get all existing entries
@@ -51,7 +58,10 @@ public class CatalogService {
         Map<String, CatalogEntry> entriesToSave = new LinkedHashMap<>();
         java.time.Instant now = java.time.Instant.now();
 
-        for (CatalogObservationDTO dto : cleanedObservations) {
+        for (CleanedObservation cleanedObs : cleanedObservations) {
+            CatalogObservationDTO dto = cleanedObs.dto();
+            String originalFieldPath = cleanedObs.originalFieldPath();
+
             Map<String, String> requiredMetadata = filterToRequiredMetadata(context, dto.metadata());
             Map<String, String> allowedMetadata = filterToAllowedMetadata(context, dto.metadata());
             FieldKey fieldKey = new FieldKey(cleanedContextId, requiredMetadata, dto.fieldPath());
@@ -68,9 +78,17 @@ public class CatalogService {
                 entry.setLastObservedAt(now);
                 // Also update metadata to include any new optional metadata
                 entry.setMetadata(allowedMetadata);
+                // Track casing variant with count
+                if (entry.getCasingCounts() == null) {
+                    entry.setCasingCounts(new HashMap<>());
+                }
+                entry.getCasingCounts().merge(originalFieldPath, 1L, Long::sum);
                 entriesToSave.put(id, entry);
             } else {
                 // Create new entry - store all allowed metadata (required + optional)
+                Map<String, Long> initialCasingCounts = new HashMap<>();
+                initialCasingCounts.put(originalFieldPath, 1L);
+
                 CatalogEntry newEntry = CatalogEntry.builder()
                     .id(id)
                     .contextId(cleanedContextId)
@@ -82,6 +100,7 @@ public class CatalogService {
                     .allowsEmpty(dto.hasEmpty())
                     .firstObservedAt(now)
                     .lastObservedAt(now)
+                    .casingCounts(initialCasingCounts)
                     .build();
                 // Track new entry so duplicates later in batch will merge into it
                 existingEntries.put(id, newEntry);
@@ -93,27 +112,29 @@ public class CatalogService {
         repository.saveAll(entriesToSave.values());
         
         // Handle single-context cleanup
-        handleSingleContextCleanup(cleanedContextId, cleanedObservations);
+        handleSingleContextCleanup(cleanedContextId, cleanedObservations.stream().map(CleanedObservation::dto).toList());
     }
     
-    private List<CatalogObservationDTO> validateAndCleanObservations(List<CatalogObservationDTO> observations) {
+    private List<CleanedObservation> validateAndCleanObservations(List<CatalogObservationDTO> observations) {
         return observations.stream()
             .map(this::validateAndCleanObservation)
             .toList();
     }
-    
-    private CatalogObservationDTO validateAndCleanObservation(CatalogObservationDTO observation) {
-        String cleanedFieldPath = validationService.validateAndCleanFieldPath(observation.fieldPath());
+
+    private CleanedObservation validateAndCleanObservation(CatalogObservationDTO observation) {
+        InputValidationService.CleanedFieldPath cleanedFieldPath =
+            validationService.validateAndCleanFieldPathWithCasing(observation.fieldPath());
         Map<String, String> cleanedMetadata = validationService.validateAndCleanMetadata(observation.metadata());
-        
-        // Return new DTO with cleaned values
-        return new CatalogObservationDTO(
+
+        // Return DTO with normalized (lowercase) fieldPath for identity, plus original casing for tracking
+        CatalogObservationDTO cleanedDto = new CatalogObservationDTO(
             cleanedMetadata,
-            cleanedFieldPath,
+            cleanedFieldPath.normalized(),
             observation.count(),
             observation.hasNull(),
             observation.hasEmpty()
         );
+        return new CleanedObservation(cleanedDto, cleanedFieldPath.original());
     }
     
     private void validateObservations(Context context, List<CatalogObservationDTO> observations) {

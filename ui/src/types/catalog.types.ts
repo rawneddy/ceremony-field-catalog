@@ -20,6 +20,8 @@ export interface CatalogEntry {
   allowsEmpty: boolean;
   firstObservedAt: string;
   lastObservedAt: string;
+  /** Map of observed field path casings to their counts. Null for legacy entries. */
+  casingCounts?: Record<string, number>;
 }
 
 export interface CatalogObservation {
