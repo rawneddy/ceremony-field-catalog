@@ -27,7 +27,7 @@ const buildSchemaSearchUrl = (entry: CatalogEntry): string => {
   // Use highlight param to scroll to field without filtering results
   params.set('highlight', entry.fieldPath);
 
-  return `/search?${params.toString()}`;
+  return `/schema?${params.toString()}`;
 };
 
 /**

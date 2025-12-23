@@ -16,7 +16,7 @@
 - (none currently)
 
 ### UI
-- [ ] **Route from discovery to schema broken**: Clicking the link icon in metadata detail slide-out opens empty/white page
+- (none currently)
 
 ---
 
@@ -52,6 +52,7 @@
 
 Items moved here after completion, then incorporated into release primers:
 
+- [x] **Route from discovery to schema broken**: Fixed incorrect route `/search` to `/schema` in VariantExplorerPanel.tsx
 - [x] **Merge deduplication bug**: Pre-aggregate observations by field identity within `CatalogService.merge()`
 - [x] **Config binding mismatch**: Fixed `max-xpath-length` vs `maxFieldPathLength`
 - [x] **N+1 counts in ContextService**: Replaced with aggregation-based approach
