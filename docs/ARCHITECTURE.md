@@ -286,7 +286,7 @@ Example:
 
 ## API Specification
 
-For complete API documentation including request/response examples, see [API_SPECIFICATION.md](api/API_SPECIFICATION.md).
+For complete API documentation, run the server and visit `/swagger-ui.html`.
 
 **Quick Reference:**
 
@@ -488,3 +488,9 @@ volumes:
 - **New Metadata**: Add to optional metadata, no code changes
 - **New Search Filters**: Extend `CatalogSearchCriteria` and custom repository
 - **New Integrations**: SDKs available in `sdks/` (.NET production, Python for testing)
+
+### API Stability
+
+- Current API endpoints will remain stable
+- New features will be additive (new endpoints, optional parameters)
+- Breaking changes will be versioned (e.g., `/v2/catalog/fields`)

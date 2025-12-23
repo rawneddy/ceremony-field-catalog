@@ -41,7 +41,7 @@
 - [ ] Add minimal UI tests for core hooks/components (useXmlUpload, xmlParser)
 
 ### Documentation
-- [ ] Document API versioning plan in API_SPECIFICATION.md
+- [ ] Document API versioning plan (add to ARCHITECTURE.md or OpenAPI annotations)
 
 ### Scaling
 - [ ] Add wildcard index `metadata.$**` for efficient metadata field queries at scale

@@ -51,7 +51,7 @@ winget install Apache.Maven
 | [docs/domain/glossary.md](docs/domain/glossary.md) | Canonical terminology |
 | [docs/how-to/](docs/how-to/) | Task-oriented guides (search, contexts, observations, testing) |
 | [docs/reference/](docs/reference/) | Deep architecture reference (backend, frontend, configuration) |
-| [docs/api/API_SPECIFICATION.md](docs/api/API_SPECIFICATION.md) | Complete REST API reference |
+| `/swagger-ui.html` | Live API documentation (when server running) |
 | [docs/sdk/README.md](docs/sdk/README.md) | Client SDK documentation (.NET, Python) |
 | [tests/CatalogSmokeTests.http](tests/CatalogSmokeTests.http) | REST Client test file for manual API testing |
 

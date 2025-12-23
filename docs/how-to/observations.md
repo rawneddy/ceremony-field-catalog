@@ -56,6 +56,23 @@ Content-Type: application/json
 ]
 ```
 
+### Validation Rules
+
+Observations are validated before processing:
+
+| Field | Rule |
+|-------|------|
+| `metadata` | Must include all `requiredMetadata` fields from context |
+| `metadata` | Cannot include fields not in `requiredMetadata` or `optionalMetadata` |
+| `fieldPath` | Required, valid XPath format, max length enforced |
+| `count` | Required, non-negative integer |
+| `hasNull` / `hasEmpty` | Required booleans |
+
+**Common rejection reasons:**
+- Missing required metadata field
+- Unexpected metadata field not in context schema
+- Context not found or inactive
+
 ---
 
 ## Merge Algorithm

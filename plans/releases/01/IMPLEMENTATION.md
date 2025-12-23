@@ -902,7 +902,7 @@ Use via Tailwind classes: `bg-paper`, `text-ink`, `border-ceremony`, etc.
 | Purpose | File |
 |---------|------|
 | Requirements | `plans/releases/01/REQUIREMENTS.md` |
-| API contract | `docs/api/API_SPECIFICATION.md` |
+| API contract | `/swagger-ui.html` (live docs) |
 | Theme/colors | `ui/src/index.css` (@theme block) |
 | Configuration | `ui/src/config.ts` |
 | Context domain | `src/main/java/com/ceremony/catalog/domain/Context.java` |

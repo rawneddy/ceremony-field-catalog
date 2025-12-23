@@ -37,6 +37,10 @@ A dynamic field observation catalog that tracks XML field usage patterns across 
 ### Integrating SDKs (.NET/Python)
 → `sdks/dotnet/net48/README.md`, `sdks/python/README.md`
 
+### API Details (endpoints, request/response)
+→ Run server, visit `/swagger-ui.html` for OpenAPI spec
+→ Or inspect `@Operation` annotations in `*Controller.java`
+
 ### Project Backlog/Known Issues
 → `plans/BACKLOG.md`
 
@@ -126,8 +130,6 @@ The UI uses strict TypeScript. All type errors must be resolved before committin
 ```
 docs/
 ├── ARCHITECTURE.md   # System architecture overview
-├── api/              # API documentation
-│   └── API_SPECIFICATION.md
 ├── how-to/           # Task-oriented guides
 │   ├── search.md
 │   ├── contexts.md
