@@ -385,7 +385,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_DATA_MONGODB_URI=mongodb://mongo:27017/ceremony_catalog
+      - MONGODB_URI=mongodb://mongo:27017/ceremony_catalog
     depends_on:
       - mongo
     deploy:

@@ -31,7 +31,7 @@ Field identity is computed as: `hash(contextId + requiredMetadata + fieldPath)`
 
 ### Endpoints
 - **Development:** `http://localhost:8080`
-- **Production:** Configure via environment variable `SPRING_DATA_MONGODB_URI`
+- **Production:** Configure via environment variable `MONGODB_URI`
 
 ### Authentication
 - **Current:** No authentication required

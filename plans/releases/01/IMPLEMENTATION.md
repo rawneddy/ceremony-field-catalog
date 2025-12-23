@@ -1033,12 +1033,10 @@ This section identifies features specified in requirements or identified through
 
 ### Performance Considerations
 
-See `docs/MONGODB_PERFORMANCE.md` for comprehensive indexing strategy at scale.
-
 | Area | Current State | Improvement |
 |------|---------------|-------------|
-| **Metadata indexing** | Current index on `metadata` as whole object doesn't help dot-notation queries | Add wildcard index `metadata.$**` - see performance doc |
-| **Global discovery** | Uses `$objectToArray` on metadata (inherently unindexed) | Materialized searchText field with text index - see performance doc |
+| **Metadata indexing** | Current index on `metadata` as whole object doesn't help dot-notation queries | Add wildcard index `metadata.$**` |
+| **Global discovery** | Uses `$objectToArray` on metadata (inherently unindexed) | Materialized searchText field with text index |
 | **Single-context cleanup** | Loads and filters full entries in memory | Use targeted query or update-by-field-path |
 
 ### Observability Gaps
