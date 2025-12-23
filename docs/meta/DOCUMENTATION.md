@@ -70,8 +70,7 @@ Business context:
 ### History Docs (`docs/history/`)
 
 Non-authoritative archives:
-- `completed.md` - Historical changelog
-- `reviews/` - AI-generated reviews
+- `releases/` - Release primers (compressed summaries of what was built and why)
 
 ---
 

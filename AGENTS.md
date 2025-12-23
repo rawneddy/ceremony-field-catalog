@@ -1,4 +1,4 @@
-# AGENTS.md
+# CLAUDE.md
 
 A dynamic field observation catalog that tracks XML field usage patterns across business contexts. Spring Boot + MongoDB backend, React + TypeScript frontend.
 
@@ -25,7 +25,7 @@ A dynamic field observation catalog that tracks XML field usage patterns across 
 → `docs/domain/motivation.md`, `docs/domain/glossary.md`
 
 ### Deep Architecture Reference
-→ `docs/reference/backend.md`, `docs/reference/frontend.md`
+→ `docs/ARCHITECTURE.md`, `docs/reference/backend.md`, `docs/reference/frontend.md`
 
 ### Configuration/Environment Variables
 → `docs/reference/configuration.md`
@@ -121,6 +121,9 @@ The UI uses strict TypeScript. All type errors must be resolved before committin
 
 ```
 docs/
+├── ARCHITECTURE.md   # System architecture overview
+├── api/              # API documentation
+│   └── API_SPECIFICATION.md
 ├── how-to/           # Task-oriented guides
 │   ├── search.md
 │   ├── contexts.md
@@ -137,6 +140,10 @@ docs/
 │   └── glossary.md
 ├── sdk/              # SDK index
 │   └── README.md
+├── samples/          # Sample XML files
+│   └── README.md
+├── history/          # Historical archives
+│   └── releases/     # Release primers
 └── meta/             # Doc maintenance
     └── DOCUMENTATION.md
 sdks/                 # Co-located SDK docs

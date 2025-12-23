@@ -2,7 +2,7 @@
 
 **Purpose:** Consolidated view of open work items and priorities
 **Update when:** Adding new issues, completing work, or re-prioritizing
-**Historical record:** See `docs/history/completed.md` for completed work
+**Historical record:** See `docs/history/releases/` for release primers
 
 ---
 
@@ -10,7 +10,7 @@
 
 ### Cross-Functional
 - [ ] **Case sensitivity for schema export**: Now that we have export schema, we need to support true casing again (not lowercase everything). Discovery page needs case-insensitive querying.
-- [ ] **Support field values**: Client-dictated value capture. See `plans/field-value-capture.md`
+- [ ] **Support field values**: Client-dictated value capture. See `plans/ideas/field-value-capture.md`
 
 ### Backend
 - (none currently)
@@ -50,7 +50,7 @@
 
 ## Recently Completed
 
-Items moved here after completion, then archived to `docs/history/completed.md`:
+Items moved here after completion, then incorporated into release primers:
 
 - [x] **Merge deduplication bug**: Pre-aggregate observations by field identity within `CatalogService.merge()`
 - [x] **Config binding mismatch**: Fixed `max-xpath-length` vs `maxFieldPathLength`
