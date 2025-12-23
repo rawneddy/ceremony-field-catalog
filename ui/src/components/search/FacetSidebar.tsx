@@ -10,7 +10,8 @@ interface FacetSidebarProps {
   onSetMode: (key: string, mode: 'any' | 'one') => void;
   onClearFacet: (key: string) => void;
   onClearAll: () => void;
-  resultCount: number;
+  fieldCount: number;
+  observationCount?: number;
 }
 
 const FacetSidebar: React.FC<FacetSidebarProps> = ({
@@ -19,7 +20,8 @@ const FacetSidebar: React.FC<FacetSidebarProps> = ({
   onSetMode,
   onClearFacet,
   onClearAll,
-  resultCount
+  fieldCount,
+  observationCount
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [openFacet, setOpenFacet] = useState<string | null>(null);
@@ -87,15 +89,20 @@ const FacetSidebar: React.FC<FacetSidebarProps> = ({
 
       <div className="p-4 bg-ink/30 border-b border-white/5">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Filtering Results</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Fields Loaded</span>
           <div className="group relative">
              <Info className="w-3 h-3 text-slate-500 cursor-help" />
-             <div className="absolute left-full ml-2 top-0 w-48 p-2 bg-ink text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                Counts based on loaded results (max 250), not global database.
+             <div className="absolute left-full ml-2 top-0 w-56 p-2 bg-ink text-[10px] rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                Unique field paths from loaded observations. Facet counts show how many fields have each value.
              </div>
           </div>
         </div>
-        <div className="text-2xl font-black text-mint">{resultCount}</div>
+        <div className="text-2xl font-black text-mint">{fieldCount}</div>
+        {observationCount !== undefined && (
+          <div className="text-[10px] text-slate-500 mt-0.5">
+            from {observationCount.toLocaleString()} observations
+          </div>
+        )}
       </div>
 
       {facetKeys.length > 10 && (

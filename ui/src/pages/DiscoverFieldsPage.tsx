@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Layout from '../components/layout/Layout';
 import { Search, Filter } from 'lucide-react';
 import AggregatedFieldTable from '../components/search/AggregatedFieldTable';
@@ -18,7 +18,12 @@ import type { AggregatedField } from '../types';
 
 const DiscoverFieldsPage: React.FC = () => {
   const [contextId, setContextId] = useState('');
+  // Server-side metadata filters (from header bar) - triggers API calls
   const [metadata, setMetadata] = useState<Record<string, string[]>>({});
+  // Client-side facet filters (from sidebar) - filters loaded results locally
+  const [facetFilters, setFacetFilters] = useState<Record<string, string[]>>({});
+  // Facet mode per key: 'any' = multi-select OR, 'one' = single-select
+  const [facetModes, setFacetModes] = useState<Record<string, 'any' | 'one'>>({});
   const [fieldPath, setFieldPath] = useState('');
   const [isRegex, setIsRegex] = useState(false);
   const [selectedField, setSelectedField] = useState<AggregatedField | null>(null);
@@ -42,35 +47,86 @@ const DiscoverFieldsPage: React.FC = () => {
   // Aggregate entries by fieldPath for discovery view
   const aggregatedFields = useAggregatedFields(data?.content);
 
-  // Build facet index from aggregated results (Splunk-style)
-  const facets = useDiscoveryFacets(aggregatedFields, metadata);
+  // Apply client-side facet filters to aggregated fields
+  const filteredAggregatedFields = useMemo(() => {
+    if (Object.keys(facetFilters).length === 0) {
+      return aggregatedFields;
+    }
 
-  // Splunk-style: clicking a facet value adds it to header filter
+    return aggregatedFields.filter(field => {
+      // Field passes if ALL facet filters match (AND between keys)
+      // For each key, at least one variant must have a matching value (OR within key)
+      return Object.entries(facetFilters).every(([key, selectedValues]) => {
+        if (selectedValues.length === 0) return true;
+
+        if (key === 'contextId') {
+          // Check if any variant has a matching contextId
+          return field.variants.some(v => selectedValues.includes(v.contextId));
+        } else {
+          // Check if any variant has a matching metadata value
+          return field.variants.some(v => {
+            const value = v.metadata[key];
+            return value !== undefined && selectedValues.includes(value);
+          });
+        }
+      });
+    });
+  }, [aggregatedFields, facetFilters]);
+
+  // Build facet index from UNFILTERED results (counts stay stable)
+  // Pass facetFilters only for highlighting which values are selected
+  const facets = useDiscoveryFacets(aggregatedFields, facetFilters, facetModes);
+
+  // Splunk-style: clicking a facet value filters client-side (no API call)
   const handleFacetSelect = (key: string, value: string) => {
-    setMetadata(prev => {
+    const mode = facetModes[key] || 'any';
+
+    setFacetFilters(prev => {
       const currentValues = prev[key] || [];
-      // Toggle: if already selected, remove; otherwise add
-      if (currentValues.includes(value)) {
-        const newValues = currentValues.filter(v => v !== value);
-        if (newValues.length === 0) {
+
+      if (mode === 'one') {
+        // Single-select: replace selection or clear if clicking same value
+        if (currentValues.includes(value)) {
           const { [key]: _, ...rest } = prev;
           return rest;
         }
-        return { ...prev, [key]: newValues };
+        return { ...prev, [key]: [value] };
+      } else {
+        // Multi-select: toggle value in list
+        if (currentValues.includes(value)) {
+          const newValues = currentValues.filter(v => v !== value);
+          if (newValues.length === 0) {
+            const { [key]: _, ...rest } = prev;
+            return rest;
+          }
+          return { ...prev, [key]: newValues };
+        }
+        return { ...prev, [key]: [...currentValues, value] };
       }
-      return { ...prev, [key]: [...currentValues, value] };
+    });
+  };
+
+  const handleSetMode = (key: string, mode: 'any' | 'one') => {
+    setFacetModes(prev => ({ ...prev, [key]: mode }));
+    // When switching to 'one' mode with multiple selections, keep only the first
+    setFacetFilters(prev => {
+      const currentValues = prev[key] || [];
+      if (mode === 'one' && currentValues.length > 1) {
+        return { ...prev, [key]: [currentValues[0]!] };
+      }
+      return prev;
     });
   };
 
   const handleClearFacet = (key: string) => {
-    setMetadata(prev => {
+    setFacetFilters(prev => {
       const { [key]: _, ...rest } = prev;
       return rest;
     });
   };
 
   const handleClearAllFacets = () => {
-    setMetadata({});
+    setFacetFilters({});
   };
 
   const handleSearch = (e?: React.FormEvent) => {
@@ -82,6 +138,7 @@ const DiscoverFieldsPage: React.FC = () => {
   const handleContextChange = (newContextId: string) => {
     setContextId(newContextId);
     setMetadata({}); // Reset metadata filters when context changes
+    setFacetFilters({}); // Reset facet filters too
   };
 
   const handleMetadataChange = (key: string, values: string[]) => {
@@ -156,22 +213,27 @@ const DiscoverFieldsPage: React.FC = () => {
         <FacetSidebar
           facets={facets}
           onToggleValue={handleFacetSelect}
-          onSetMode={() => {}} // Mode not used in Splunk-style
+          onSetMode={handleSetMode}
           onClearFacet={handleClearFacet}
           onClearAll={handleClearAllFacets}
-          resultCount={aggregatedFields.length}
+          fieldCount={filteredAggregatedFields.length}
+          observationCount={data?.content?.length}
         />
 
         <div className="flex-1 flex flex-col overflow-hidden bg-white">
           {error && <ErrorBanner title="Discovery Failed" error={error} />}
 
           {data && data.totalElements > data.size && (
-            <TruncationWarning total={data.totalElements} displayed={data.size} />
+            <TruncationWarning
+              total={data.totalElements}
+              displayed={data.size}
+              fieldCount={aggregatedFields.length}
+            />
           )}
 
           <div className="flex-1 overflow-auto">
             <AggregatedFieldTable
-              results={aggregatedFields}
+              results={filteredAggregatedFields}
               isLoading={isLoading}
               selectedFieldPath={selectedField?.fieldPath}
               onSelectRow={setSelectedField}

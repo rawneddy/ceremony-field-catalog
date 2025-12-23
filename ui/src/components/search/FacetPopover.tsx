@@ -82,7 +82,7 @@ const FacetPopover: React.FC<FacetPopoverProps> = ({
               className="accent-ceremony"
             />
             <span className="truncate flex-1">{v.value}</span>
-            <span className="text-[10px] font-mono text-slate-400">({v.count})</span>
+            <span className="text-[10px] text-slate-400">in {v.count} field paths</span>
           </label>
         ))}
         {filteredValues.length === 0 && (

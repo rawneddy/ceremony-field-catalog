@@ -12,7 +12,8 @@ import type { AggregatedField, FacetValue, FacetIndex } from '../types';
  */
 export const useDiscoveryFacets = (
   aggregatedFields: AggregatedField[],
-  activeFilters: Record<string, string[]> = {}
+  activeFilters: Record<string, string[]> = {},
+  facetModes: Record<string, 'any' | 'one'> = {}
 ): FacetIndex => {
   return useMemo(() => {
     if (!aggregatedFields || aggregatedFields.length === 0) {
@@ -71,7 +72,7 @@ export const useDiscoveryFacets = (
 
       facets['contextId'] = {
         values: contextValues,
-        mode: 'one' as const,
+        mode: facetModes['contextId'] || 'any',
         selected: selectedContexts,
       };
     }
@@ -86,13 +87,13 @@ export const useDiscoveryFacets = (
 
       facets[key] = {
         values,
-        mode: 'one' as const,
+        mode: facetModes[key] || 'any',
         selected: selectedValues,
       };
     }
 
     return facets;
-  }, [aggregatedFields, activeFilters]);
+  }, [aggregatedFields, activeFilters, facetModes]);
 };
 
 /**

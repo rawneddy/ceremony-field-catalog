@@ -68,16 +68,34 @@ Suggest fields: `fieldPath`, `contextId`, or any `metadata.<key>`
 
 ### Discover Fields Page (`/`)
 
-- **Reactive search:** Results update on every keystroke (debounced)
-- **Context selector:** Narrows results to specific context
-- **Metadata filters:** Tag-based chips with multi-value support
-- **Facet sidebar:** Click facet values to add as filters
+The Discovery page has two distinct filtering mechanisms:
+
+#### Server-Side Filtering (Header Bar)
+These controls trigger API calls and fetch new data from the backend:
+
+- **Search box:** Global search across fieldPath, contextId, and all metadata values (debounced)
+- **Context selector:** Filters to a specific context
+- **Metadata filter chips:** Multi-value tag inputs that scope the API query
+
+When you change these, the API returns a fresh set of up to 250 results matching your criteria.
+
+#### Client-Side Filtering (Facet Sidebar)
+The left-hand facet sidebar does **client-side filtering only** - no API calls:
+
+- **Facet values:** Click to filter the already-loaded results
+- **Counts:** Show how many of the loaded results have each value
+- **Behavior:** Selecting a facet value will always reduce or maintain the result count (never increase)
+
+This Splunk-style approach allows fast drill-down into loaded results without round-trips to the server.
+
+**Important:** Facet counts are based on loaded results (max 250), not the global database. The info icon tooltip indicates this.
 
 **Key files:**
-- `DiscoverFieldsPage.tsx` - page component
-- `useFieldSearch.ts` - search hook
+- `DiscoverFieldsPage.tsx` - page component with both filter types
+- `useFieldSearch.ts` - search hook (server-side)
+- `useDiscoveryFacets.ts` - facet computation (client-side)
 - `FacetSidebar.tsx` - facet display
-- `MetadataFilters.tsx` - filter chips
+- `MetadataFilters.tsx` - header filter chips
 
 ### Explore Schema Page (`/schema`)
 
