@@ -267,6 +267,43 @@ public class CatalogService {
         String cleanedContextId = validationService.validateAndCleanContextId(contextId);
         return repository.countByContextId(cleanedContextId);
     }
+
+    /**
+     * Sets the canonical casing for a field entry.
+     * The canonical casing must be one of the observed casings in casingCounts,
+     * or null to clear the selection.
+     *
+     * @param fieldId The field entry ID
+     * @param canonicalCasing The canonical casing to set, or null to clear
+     * @return The updated CatalogEntry
+     * @throws IllegalArgumentException if field not found or casing not in casingCounts
+     */
+    public CatalogEntry setCanonicalCasing(String fieldId, String canonicalCasing) {
+        if (fieldId == null || fieldId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Field ID is required");
+        }
+
+        CatalogEntry entry = repository.findById(fieldId)
+            .orElseThrow(() -> new IllegalArgumentException("Field not found: " + fieldId));
+
+        // If clearing canonical casing, just set to null
+        if (canonicalCasing == null) {
+            entry.setCanonicalCasing(null);
+            return repository.save(entry);
+        }
+
+        // Validate that the casing exists in casingCounts
+        Map<String, Long> casingCounts = entry.getCasingCounts();
+        if (casingCounts == null || !casingCounts.containsKey(canonicalCasing)) {
+            throw new IllegalArgumentException(
+                "Canonical casing must be one of the observed casings: " +
+                (casingCounts != null ? casingCounts.keySet() : "none observed")
+            );
+        }
+
+        entry.setCanonicalCasing(canonicalCasing);
+        return repository.save(entry);
+    }
     
     private CatalogSearchCriteria sanitizeSearchCriteria(CatalogSearchCriteria criteria) {
         // Sanitize global search term (q) - only lowercase, don't escape regex chars

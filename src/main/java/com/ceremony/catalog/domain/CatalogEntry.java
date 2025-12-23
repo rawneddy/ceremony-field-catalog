@@ -44,4 +44,7 @@ public class CatalogEntry {
 
     @Field("casingcounts")
     private Map<String, Long> casingCounts;
+
+    @Field("canonicalcasing")
+    private String canonicalCasing;
 }

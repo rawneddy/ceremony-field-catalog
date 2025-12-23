@@ -69,3 +69,31 @@ export function getSortedCasingVariants(
 
   return Object.entries(casingCounts).sort((a, b) => b[1] - a[1]);
 }
+
+/**
+ * Get the display casing for a field entry.
+ * Priority: canonical casing (if set) > dominant casing > fallback.
+ */
+export function getDisplayCasing(
+  canonicalCasing: string | undefined | null,
+  casingCounts: Record<string, number> | undefined | null,
+  fallback: string
+): string {
+  // If canonical is set, use it
+  if (canonicalCasing) {
+    return canonicalCasing;
+  }
+  // Otherwise use dominant (highest count)
+  return getDominantCasing(casingCounts, fallback);
+}
+
+/**
+ * Check if a field needs casing resolution before export.
+ * Returns true if there are multiple casings and no canonical selection.
+ */
+export function needsCasingResolution(
+  casingCounts: Record<string, number> | undefined | null,
+  canonicalCasing: string | undefined | null
+): boolean {
+  return hasMultipleCasings(casingCounts) && !canonicalCasing;
+}

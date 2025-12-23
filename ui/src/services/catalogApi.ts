@@ -86,4 +86,12 @@ export const catalogApi = {
   submitObservations: async (contextId: string, observations: CatalogObservation[]): Promise<void> => {
     await api.post(`/catalog/contexts/${contextId}/observations`, observations);
   },
+
+  // Canonical Casing
+  setCanonicalCasing: async (fieldId: string, canonicalCasing: string | null): Promise<CatalogEntry> => {
+    const response = await api.patch<CatalogEntry>(`/catalog/fields/${fieldId}/canonical-casing`, {
+      canonicalCasing,
+    });
+    return response.data;
+  },
 };

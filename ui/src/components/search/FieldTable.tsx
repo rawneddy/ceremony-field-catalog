@@ -4,7 +4,8 @@ import { ChevronUp, ChevronDown, ChevronRight, Copy, Check, AlertTriangle, Info,
 import { Skeleton, EmptyState } from '../ui';
 import { config } from '../../config';
 import { computeAllFieldWarnings, type FieldWarning } from '../../lib/schema/fieldWarnings';
-import { getDominantCasing, getTotalObservations, hasMultipleCasings, getSortedCasingVariants } from '../../utils/casingUtils';
+import { getDisplayCasing, getTotalObservations, hasMultipleCasings, getSortedCasingVariants, needsCasingResolution } from '../../utils/casingUtils';
+import { useSetCanonicalCasing } from '../../hooks';
 
 interface FieldTableProps {
   results: CatalogEntry[];
@@ -49,6 +50,9 @@ const FieldTable: React.FC<FieldTableProps> = ({
   const [hasScrolledToHighlight, setHasScrolledToHighlight] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
+
+  // Hook for setting canonical casing
+  const { setCanonicalCasing, isSettingCasing } = useSetCanonicalCasing();
 
   // Compute field warnings once for all results (before sorting so we can sort by it)
   const fieldWarnings = useMemo(() => {
@@ -339,9 +343,11 @@ const FieldTable: React.FC<FieldTableProps> = ({
           const warnings = fieldWarnings.get(entry.fieldPath) || [];
           const hasWarnings = warnings.length > 0;
           const isWarningSeverity = hasWarningSeverity(warnings);
-          const displayPath = getDominantCasing(entry.casingCounts, entry.fieldPath);
+          const displayPath = getDisplayCasing(entry.canonicalCasing, entry.casingCounts, entry.fieldPath);
           const totalCount = getTotalObservations(entry.casingCounts);
           const hasCasingVariants = hasMultipleCasings(entry.casingCounts);
+          const hasCanonical = !!entry.canonicalCasing;
+          const needsResolution = needsCasingResolution(entry.casingCounts, entry.canonicalCasing);
           const isExpanded = expandedRows.has(entry.id);
 
           return (
@@ -384,9 +390,19 @@ const FieldTable: React.FC<FieldTableProps> = ({
                   )}
                   <span className="text-sm font-medium text-slate-600">{totalCount}</span>
                   {hasCasingVariants && (
-                    <span title="Multiple casing variants">
-                      <Layers className="w-3 h-3 text-slate-400" />
-                    </span>
+                    hasCanonical ? (
+                      <span title="Canonical casing set">
+                        <Check className="w-3 h-3 text-emerald-500" />
+                      </span>
+                    ) : needsResolution ? (
+                      <span title="Needs casing resolution for export">
+                        <AlertTriangle className="w-3 h-3 text-amber-500" />
+                      </span>
+                    ) : (
+                      <span title="Multiple casing variants">
+                        <Layers className="w-3 h-3 text-slate-400" />
+                      </span>
+                    )
                   )}
                 </div>
               ) : (
@@ -413,7 +429,11 @@ const FieldTable: React.FC<FieldTableProps> = ({
           </tr>
           {/* Expanded casing variants */}
           {isExpanded && hasCasingVariants && (
-            <CasingVariantRows entry={entry} />
+            <CasingVariantRows
+              entry={entry}
+              onSetCanonical={(casing) => setCanonicalCasing({ fieldId: entry.id, canonicalCasing: casing })}
+              isSettingCasing={isSettingCasing}
+            />
           )}
           </React.Fragment>
           );
@@ -488,30 +508,68 @@ const hasWarningSeverity = (warnings: FieldWarning[]): boolean => {
   return warnings.some(w => w.severity === 'warning');
 };
 
+interface CasingVariantRowsProps {
+  entry: CatalogEntry;
+  onSetCanonical: (casing: string | null) => void;
+  isSettingCasing: boolean;
+}
+
 /**
  * Renders inline sub-rows showing casing variants with their counts.
+ * Includes make/clear canonical actions.
  */
-const CasingVariantRows = ({ entry }: { entry: CatalogEntry }) => {
+const CasingVariantRows: React.FC<CasingVariantRowsProps> = ({ entry, onSetCanonical, isSettingCasing }) => {
   const variants = getSortedCasingVariants(entry.casingCounts);
 
   return (
     <>
-      {variants.map(([casing, count]) => (
-        <tr
-          key={`${entry.id}-${casing}`}
-          className="bg-slate-50/50"
-        >
-          {/* Empty cells for alignment */}
-          <td className="px-4 py-2 border-l-4 border-l-slate-200"></td>
-          <td className="px-2 py-2"></td>
-          <td className="px-2 py-2 text-center">
-            <span className="text-xs font-medium text-slate-500">{count}</span>
-          </td>
-          <td className="px-4 py-2 pl-8" colSpan={7}>
-            <span className="font-mono text-xs text-slate-600">{casing}</span>
-          </td>
-        </tr>
-      ))}
+      {variants.map(([casing, count]) => {
+        const isCanonical = entry.canonicalCasing === casing;
+
+        return (
+          <tr
+            key={`${entry.id}-${casing}`}
+            className="bg-slate-50/50"
+          >
+            {/* Empty cells for alignment */}
+            <td className="px-4 py-2 border-l-4 border-l-slate-200"></td>
+            <td className="px-2 py-2"></td>
+            <td className="px-2 py-2 text-center">
+              <span className="text-xs font-medium text-slate-500">{count}</span>
+            </td>
+            <td className="px-4 py-2 pl-8" colSpan={7}>
+              <div className="flex items-center gap-3">
+                <span className={`font-mono text-xs ${isCanonical ? 'text-emerald-700 font-semibold' : 'text-slate-600'}`}>
+                  {casing}
+                </span>
+                {isCanonical ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 uppercase">
+                    <Check className="w-3 h-3" />
+                    canonical
+                    <button
+                      onClick={() => onSetCanonical(null)}
+                      disabled={isSettingCasing}
+                      className="ml-2 text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                      title="Clear canonical selection"
+                    >
+                      clear
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => onSetCanonical(casing)}
+                    disabled={isSettingCasing}
+                    className="text-[10px] font-bold text-slate-400 hover:text-ceremony uppercase transition-colors disabled:opacity-50"
+                    title="Set as canonical casing"
+                  >
+                    make canonical
+                  </button>
+                )}
+              </div>
+            </td>
+          </tr>
+        );
+      })}
     </>
   );
 };

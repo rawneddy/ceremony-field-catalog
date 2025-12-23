@@ -22,6 +22,8 @@ export interface CatalogEntry {
   lastObservedAt: string;
   /** Map of observed field path casings to their counts. Null for legacy entries. */
   casingCounts?: Record<string, number>;
+  /** User-selected canonical casing for schema export. Null means unresolved (use dominant). */
+  canonicalCasing?: string | null;
 }
 
 export interface CatalogObservation {

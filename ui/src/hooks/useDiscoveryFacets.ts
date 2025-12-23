@@ -19,24 +19,40 @@ export const useDiscoveryFacets = (
       return {};
     }
 
-    // Collect all metadata keys and values from all variants
+    // Collect all metadata keys and values at the AGGREGATED FIELD level (not variant level)
+    // This ensures facet counts match the "Filtering Results" count (unique field paths)
     const metadataMap = new Map<string, Map<string, number>>();
 
     // Also collect contextId as a facet
     const contextCounts = new Map<string, number>();
 
     for (const field of aggregatedFields) {
-      // Count contexts across all variants
-      for (const variant of field.variants) {
-        const currentContextCount = contextCounts.get(variant.contextId) || 0;
-        contextCounts.set(variant.contextId, currentContextCount + 1);
+      // Collect unique contexts for this field (count field once per context it appears in)
+      const fieldContexts = new Set(field.variants.map(v => v.contextId));
+      for (const contextId of fieldContexts) {
+        const currentContextCount = contextCounts.get(contextId) || 0;
+        contextCounts.set(contextId, currentContextCount + 1);
+      }
 
-        // Count metadata values across all variants
+      // Collect unique metadata values for this field (count field once per unique value)
+      // First, gather all unique values per key for this field
+      const fieldMetadata = new Map<string, Set<string>>();
+      for (const variant of field.variants) {
         for (const [key, value] of Object.entries(variant.metadata)) {
-          if (!metadataMap.has(key)) {
-            metadataMap.set(key, new Map());
+          if (!fieldMetadata.has(key)) {
+            fieldMetadata.set(key, new Set());
           }
-          const valueCounts = metadataMap.get(key)!;
+          fieldMetadata.get(key)!.add(value);
+        }
+      }
+
+      // Now count each unique value once per field
+      for (const [key, values] of fieldMetadata) {
+        if (!metadataMap.has(key)) {
+          metadataMap.set(key, new Map());
+        }
+        const valueCounts = metadataMap.get(key)!;
+        for (const value of values) {
           const currentCount = valueCounts.get(value) || 0;
           valueCounts.set(value, currentCount + 1);
         }
