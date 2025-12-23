@@ -62,24 +62,28 @@ Content-Type: application/json
 
 **Field Identity:** `hash(contextId + requiredMetadata + fieldPath)`
 
+**Key Design:** Each unique field has **one document** in MongoDB that is **updated in place**. Individual observations are not stored - only the aggregated statistics. This means:
+- No observation history to purge
+- Constant storage per unique field regardless of observation volume
+- `firstObservedAt` and `lastObservedAt` track the time range
+
 When submitting observations:
 
 1. **Compute identity** for each observation
 2. **Lookup existing** catalog entry by identity
-3. **If exists:** Merge statistics
+3. **If exists:** Update statistics in place
 4. **If new:** Create catalog entry
 
 ### Statistics Merged
 
 | Field | Merge Logic |
 |-------|-------------|
-| `totalCount` | Add observation count |
-| `minOccurs` | Min of existing and observation |
-| `maxOccurs` | Max of existing and observation |
-| `allowsNull` | OR with observation `hasNull` |
-| `allowsEmpty` | OR with observation `hasEmpty` |
-| `lastSeenAt` | Update to current timestamp |
-| `firstSeenAt` | Keep original |
+| `minOccurs` | `min(existing, observation.count)` |
+| `maxOccurs` | `max(existing, observation.count)` |
+| `allowsNull` | `existing OR observation.hasNull` |
+| `allowsEmpty` | `existing OR observation.hasEmpty` |
+| `lastObservedAt` | Update to current timestamp |
+| `firstObservedAt` | Keep original (set on creation) |
 
 **Code:** `CatalogService.mergeObservation()`
 

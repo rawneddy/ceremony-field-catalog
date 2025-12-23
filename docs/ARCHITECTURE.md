@@ -478,8 +478,7 @@ volumes:
 
 1. **Diff API**: Compare field lists between product codes or time periods
 2. **Webhooks**: Notify external systems when new fields discovered
-3. **Retention Policy**: Archive/purge old observation data
-4. **Field Value Capture**: Store observed values (not just paths) - see `plans/ideas/field-value-capture.md`
+3. **Field Value Capture**: Store observed values (not just paths) - see `plans/ideas/field-value-capture.md`
 
 > **Completed:** Web UI (React/TypeScript), Schema Export (XSD/JSON from UI)
 

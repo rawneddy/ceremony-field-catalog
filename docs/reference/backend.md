@@ -42,17 +42,16 @@ Primary document stored in `catalog_fields` collection:
 ```java
 @Document("catalog_fields")
 public class CatalogEntry {
-    String id;                    // MongoDB _id (field_XXXXXXXX)
+    String id;                    // hash(contextId + requiredMetadata + fieldPath)
     String contextId;             // Parent context
     String fieldPath;             // XPath location
     Map<String, String> metadata; // All metadata (required + optional)
-    int totalCount;               // Total observations
-    int minOccurs;                // Minimum occurrences
-    int maxOccurs;                // Maximum occurrences
-    boolean allowsNull;           // Has xsi:nil="true"
-    boolean allowsEmpty;          // Has empty string
-    Instant firstSeenAt;          // First observation
-    Instant lastSeenAt;           // Last observation
+    int minOccurs;                // Minimum occurrences observed
+    int maxOccurs;                // Maximum occurrences observed
+    boolean allowsNull;           // Has xsi:nil="true" been observed
+    boolean allowsEmpty;          // Has empty string been observed
+    Instant firstObservedAt;      // First observation timestamp
+    Instant lastObservedAt;       // Last observation timestamp
 }
 ```
 
