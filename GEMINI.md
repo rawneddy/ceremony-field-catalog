@@ -24,8 +24,12 @@ A dynamic field observation catalog that tracks XML field usage patterns across 
 ### Understanding the Domain
 → `docs/domain/motivation.md`, `docs/domain/glossary.md`
 
-### Deep Architecture Reference
-→ `docs/ARCHITECTURE.md`, `docs/reference/backend.md`, `docs/reference/frontend.md`
+### System Design & Data Flow
+→ `docs/ARCHITECTURE.md` (integration, deployment, data model, scaling)
+
+### Code Navigation (where things are)
+→ `docs/reference/backend.md` (Java packages, classes)
+→ `docs/reference/frontend.md` (React components, hooks)
 
 ### Configuration/Environment Variables
 → `docs/reference/configuration.md`
