@@ -83,8 +83,16 @@ When you change these, the API returns a fresh set of up to 250 results matching
 The left-hand facet sidebar does **client-side filtering only** - no API calls:
 
 - **Facet values:** Click to filter the already-loaded results
-- **Counts:** Show how many of the loaded results have each value
-- **Behavior:** Selecting a facet value will always reduce or maintain the result count (never increase)
+- **Counts:** Show how many of the loaded results have each value (stable, based on unfiltered results)
+
+Each facet supports two modes (toggle via the mode icon):
+
+| Mode | Behavior | Selection |
+|------|----------|-----------|
+| **Include Any** (default) | OR logic - field matches if it has ANY of the selected values | Multi-select |
+| **Require All** | AND logic - field must have variants covering ALL selected values | Multi-select |
+
+With "Include Any" mode, adding more values can *increase* results (broadening the filter). With "Require All" mode, adding values will *reduce* results (narrowing the filter).
 
 This Splunk-style approach allows fast drill-down into loaded results without round-trips to the server.
 

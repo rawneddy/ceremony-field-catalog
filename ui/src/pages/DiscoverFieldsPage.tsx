@@ -130,6 +130,13 @@ const DiscoverFieldsPage: React.FC = () => {
     });
   }, [aggregatedFields, facetFilters, facetModes]);
 
+  // Clear selectedField if it's no longer in the filtered results
+  useEffect(() => {
+    if (selectedField && !filteredAggregatedFields.some(f => f.fieldPath === selectedField.fieldPath)) {
+      setSelectedField(null);
+    }
+  }, [filteredAggregatedFields, selectedField]);
+
   // Build facet index from UNFILTERED results (counts stay stable)
   // Pass facetFilters only for highlighting which values are selected
   const facets = useDiscoveryFacets(aggregatedFields, facetFilters, facetModes);

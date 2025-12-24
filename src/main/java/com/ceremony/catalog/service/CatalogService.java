@@ -79,7 +79,10 @@ public class CatalogService {
                 entry.setLastObservedAt(now);
                 // Also update metadata to include any new optional metadata
                 entry.setMetadata(allowedMetadata);
-                // Track casing variant with count
+                // Track casing variant: counts represent number of observation records (batches/documents)
+                // where this casing was seen, NOT total field occurrences (which would use dto.count()).
+                // This design choice means counts reflect "how many times did we see this casing in uploads"
+                // rather than "how many XML elements used this casing".
                 if (entry.getCasingCounts() == null) {
                     entry.setCasingCounts(new HashMap<>());
                 }
@@ -109,7 +112,11 @@ public class CatalogService {
             }
         }
 
-        // Single batch save operation
+        // Single batch save operation.
+        // NOTE: This performs full-document writes. Concurrent merges or setCanonicalCasing() calls
+        // between the batch fetch (findAllById) and this save can result in lost updates (last write wins).
+        // This is an accepted limitation for now; if concurrent uploads become common, consider using
+        // MongoDB's atomic update operators ($inc, $set) or optimistic locking (@Version).
         repository.saveAll(entriesToSave.values());
         
         // Handle single-context cleanup

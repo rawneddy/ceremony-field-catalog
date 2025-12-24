@@ -23,18 +23,18 @@
 ## Medium Priority
 
 ### Backend
-- [ ] **Document casingCounts semantics**: Clarify whether counts represent "documents observed" vs "total occurrences". Currently merges by `+1` per observation record, not `dto.count()`. Add comment or javadoc. *([CODEX:41-42](reviews/20251223_casing-tracking_CODEX.md), [CODEX:140](reviews/20251223_casing-tracking_CODEX.md))*
-- [ ] **Document canonical casing scope**: Add javadoc to `CatalogEntry` explaining that `canonicalCasing` is scoped per-entry ID (not shared across all variants of a field path). *([AMP:52-54](reviews/20251223_casing-tracking_AMP.md), [AMP:363-365](reviews/20251223_casing-tracking_AMP.md))*
-- [ ] **Document concurrent merge behavior**: Concurrent merges can overwrite `canonicalCasing` due to full-document `saveAll()` writes. Document as known limitation or implement optimistic locking. *([CODEX:49-51](reviews/20251223_casing-tracking_CODEX.md), [AMP:139-142](reviews/20251223_casing-tracking_AMP.md))*
-- [ ] **Document PATCH authorization policy**: Add comment explaining whether `/catalog/fields/{fieldId}/canonical-casing` is admin-only or open to all users. *([AMP:623-627](reviews/20251223_casing-tracking_AMP.md))*
+- [x] ~~**Document casingCounts semantics**: Clarify whether counts represent "documents observed" vs "total occurrences".~~ *(Added comment in CatalogService.merge())*
+- [x] ~~**Document canonical casing scope**: Add javadoc to `CatalogEntry` explaining scoping.~~ *(Added class and field javadoc)*
+- [x] ~~**Document concurrent merge behavior**: Concurrent merges can overwrite `canonicalCasing`.~~ *(Added comment noting this as accepted limitation)*
+- [x] ~~**Document PATCH authorization policy**: Add comment explaining authorization.~~ *(Added comment in CatalogController)*
 
 ### UI
 - [ ] **Schema export stale entries**: After bulk-saving canonical casings, the export dialog may open using stale `entries` prop. Consider applying resolutions locally or waiting for cache updates. *([CODEX:89](reviews/20251223_casing-tracking_CODEX.md), [CODEX:137](reviews/20251223_casing-tracking_CODEX.md))*
-- [ ] **Clear selectedField on filter-out**: When facet filters change such that `selectedField` is no longer in the filtered set, clear or re-validate the selection to avoid empty panels. *([CODEX:88](reviews/20251223_casing-tracking_CODEX.md), [CODEX:135](reviews/20251223_casing-tracking_CODEX.md))*
+- [x] ~~**Clear selectedField on filter-out**: When facet filters change such that `selectedField` is no longer in the filtered set, clear the selection.~~ *(Added useEffect in DiscoverFieldsPage)*
 
 ### Documentation
-- [ ] **Facet sidebar mode documentation**: Add subsection to `docs/how-to/search.md` explaining "Include Any" vs "Require One" modes and Splunk-style drill-down workflow. *([AMP:586-597](reviews/20251223_casing-tracking_AMP.md))*
-- [ ] **Fix multi-select wording**: search.md states selecting a facet "will always reduce or maintain the result count" but multi-select ("Include Any") can broaden results. *([CODEX:121](reviews/20251223_casing-tracking_CODEX.md), [CODEX:144](reviews/20251223_casing-tracking_CODEX.md))*
+- [x] ~~**Facet sidebar mode documentation**: Add subsection to `docs/how-to/search.md` explaining modes.~~ *(Added table with Include Any / Require All modes)*
+- [x] ~~**Fix multi-select wording**: search.md stated selecting a facet "will always reduce" but multi-select can broaden.~~ *(Fixed with mode-specific behavior description)*
 
 ---
 

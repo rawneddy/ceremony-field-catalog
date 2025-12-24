@@ -224,6 +224,9 @@ public class CatalogController {
         return catalogService.suggestValues(field, prefix, contextId, metadata.isEmpty() ? null : metadata, limit);
     }
 
+    // Authorization: Currently open to all authenticated users (no role restriction).
+    // This is intentional for the current single-tenant deployment model where all users
+    // collaborate on schema curation. Add @PreAuthorize("hasRole('ADMIN')") if needed.
     @Operation(
         summary = "Set canonical casing for a field",
         description = "Sets the canonical (preferred) casing for a field path. The canonical casing must be one of the observed casings in the field's casingCounts. This selection is used for schema export. Set to null to clear the selection."
