@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified">
+
+    <!-- Root element -->
+    <xs:element name="loan_info" type="LoanInfoType"/>
+
+    <!-- Main loan info type -->
+    <xs:complexType name="LoanInfoType">
+        <xs:all>
+            <xs:element name="LoanDetails" type="LoanDetailsType"/>
+            <xs:element name="Borrower" type="BorrowerType"/>
+            <xs:element name="Collateral" type="CollateralType" minOccurs="0"/>
+            <xs:element name="Fees" type="FeesType" minOccurs="0"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- Loan details -->
+    <xs:complexType name="LoanDetailsType">
+        <xs:all>
+            <xs:element name="LoanNumber" type="xs:string"/>
+            <xs:element name="LoanType" type="LoanTypeEnum"/>
+            <xs:element name="Amount" type="xs:decimal"/>
+            <xs:element name="InterestRate" type="xs:decimal"/>
+            <xs:element name="Term" type="xs:integer"/>
+            <xs:element name="ApplicationDate" type="xs:date"/>
+            <xs:element name="Status" type="LoanStatusEnum" minOccurs="0"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- Loan type enumeration -->
+    <xs:simpleType name="LoanTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="AUTO"/>
+            <xs:enumeration value="MORTGAGE"/>
+            <xs:enumeration value="HELOC"/>
+            <xs:enumeration value="PERSONAL"/>
+            <xs:enumeration value="STUDENT"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Loan status enumeration -->
+    <xs:simpleType name="LoanStatusEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="PENDING"/>
+            <xs:enumeration value="APPROVED"/>
+            <xs:enumeration value="FUNDED"/>
+            <xs:enumeration value="DENIED"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Borrower information -->
+    <xs:complexType name="BorrowerType">
+        <xs:all>
+            <xs:element name="PrimaryBorrower" type="PersonType"/>
+            <xs:element name="CoBorrower" type="PersonType" minOccurs="0" nillable="true"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- Person type (reusable) -->
+    <xs:complexType name="PersonType">
+        <xs:all>
+            <xs:element name="Name" type="NameType"/>
+            <xs:element name="SSN" type="xs:string" nillable="true"/>
+            <xs:element name="DateOfBirth" type="xs:date" minOccurs="0"/>
+            <xs:element name="Email" type="xs:string" minOccurs="0"/>
+            <xs:element name="Phone" type="xs:string" minOccurs="0"/>
+            <xs:element name="Address" type="AddressType"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- Name type -->
+    <xs:complexType name="NameType">
+        <xs:all>
+            <xs:element name="FirstName" type="xs:string"/>
+            <xs:element name="MiddleName" type="xs:string" minOccurs="0" nillable="true"/>
+            <xs:element name="LastName" type="xs:string"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- Address type -->
+    <xs:complexType name="AddressType">
+        <xs:all>
+            <xs:element name="Street1" type="xs:string"/>
+            <xs:element name="Street2" type="xs:string" minOccurs="0"/>
+            <xs:element name="City" type="xs:string"/>
+            <xs:element name="State" type="xs:string"/>
+            <xs:element name="ZipCode" type="xs:string"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- Collateral information -->
+    <xs:complexType name="CollateralType">
+        <xs:all>
+            <xs:element name="Vehicle" type="VehicleType" minOccurs="0"/>
+            <xs:element name="Property" type="PropertyType" minOccurs="0"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- Vehicle type -->
+    <xs:complexType name="VehicleType">
+        <xs:all>
+            <xs:element name="VIN" type="xs:string"/>
+            <xs:element name="Make" type="xs:string"/>
+            <xs:element name="Model" type="xs:string"/>
+            <xs:element name="Year" type="xs:integer"/>
+            <xs:element name="Mileage" type="xs:integer" minOccurs="0"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- Property type -->
+    <xs:complexType name="PropertyType">
+        <xs:all>
+            <xs:element name="Address" type="AddressType"/>
+            <xs:element name="PropertyType" type="xs:string"/>
+            <xs:element name="EstimatedValue" type="xs:decimal"/>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- Fees -->
+    <xs:complexType name="FeesType">
+        <xs:sequence>
+            <xs:element name="Fee" type="FeeType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Individual fee -->
+    <xs:complexType name="FeeType">
+        <xs:all>
+            <xs:element name="FeeType" type="xs:string"/>
+            <xs:element name="Amount" type="xs:decimal"/>
+            <xs:element name="Description" type="xs:string" minOccurs="0"/>
+        </xs:all>
+        <xs:attribute name="code" type="xs:string" use="optional"/>
+    </xs:complexType>
+
+</xs:schema>

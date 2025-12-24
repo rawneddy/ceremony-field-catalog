@@ -1,0 +1,88 @@
+# Test lane: Auto loan basic scenario
+# Tests the loans context with AUTO loan type
+
+context:
+  contextId: "loans"
+  displayName: "Loans"
+  description: "Auto loan applications for testing"
+  requiredMetadata:
+    loantype: "AUTO"
+  optionalMetadata:
+    region:
+      - "EAST"
+      - "WEST"
+      - "CENTRAL"
+      - "SOUTH"
+    channel:
+      - "ONLINE"
+      - "BRANCH"
+      - "MOBILE"
+      - "PHONE"
+
+generation:
+  defaults:
+    optionalFieldFillRate: 0.7
+    nullRate: 0.05
+    emptyRate: 0.02
+    repeatRange: [1, 3]
+
+  semanticTypes:
+    # Loan details
+    "/loan_info/LoanDetails/LoanNumber": "pattern:LN-{YYYY}-{######}"
+    "/loan_info/LoanDetails/Amount": "decimal(5000, 75000, 2)"
+    "/loan_info/LoanDetails/InterestRate": "decimal(3.0, 18.0, 2)"
+    "/loan_info/LoanDetails/Term": "integer(12, 84)"
+    "/loan_info/LoanDetails/ApplicationDate": "date.past"
+
+    # Primary borrower
+    "/loan_info/Borrower/PrimaryBorrower/Name/FirstName": "person.first_name"
+    "/loan_info/Borrower/PrimaryBorrower/Name/LastName": "person.last_name"
+    "/loan_info/Borrower/PrimaryBorrower/SSN": "ssn"
+    "/loan_info/Borrower/PrimaryBorrower/DateOfBirth": "date.birth"
+    "/loan_info/Borrower/PrimaryBorrower/Email": "email"
+    "/loan_info/Borrower/PrimaryBorrower/Phone": "phone_number"
+    "/loan_info/Borrower/PrimaryBorrower/Address/Street1": "address.street"
+    "/loan_info/Borrower/PrimaryBorrower/Address/City": "address.city"
+    "/loan_info/Borrower/PrimaryBorrower/Address/State": "address.state_abbr"
+    "/loan_info/Borrower/PrimaryBorrower/Address/ZipCode": "address.zipcode"
+
+    # Co-borrower (same semantic types)
+    "/loan_info/Borrower/CoBorrower/Name/FirstName": "person.first_name"
+    "/loan_info/Borrower/CoBorrower/Name/LastName": "person.last_name"
+    "/loan_info/Borrower/CoBorrower/SSN": "ssn"
+    "/loan_info/Borrower/CoBorrower/DateOfBirth": "date.birth"
+    "/loan_info/Borrower/CoBorrower/Email": "email"
+    "/loan_info/Borrower/CoBorrower/Phone": "phone_number"
+    "/loan_info/Borrower/CoBorrower/Address/Street1": "address.street"
+    "/loan_info/Borrower/CoBorrower/Address/City": "address.city"
+    "/loan_info/Borrower/CoBorrower/Address/State": "address.state_abbr"
+    "/loan_info/Borrower/CoBorrower/Address/ZipCode": "address.zipcode"
+
+    # Vehicle collateral
+    "/loan_info/Collateral/Vehicle/VIN": "vehicle.vin"
+    "/loan_info/Collateral/Vehicle/Make": "vehicle.make"
+    "/loan_info/Collateral/Vehicle/Model": "vehicle.model"
+    "/loan_info/Collateral/Vehicle/Year": "year(2015, 2025)"
+    "/loan_info/Collateral/Vehicle/Mileage": "integer(0, 150000)"
+
+    # Fees
+    "/loan_info/Fees/Fee/FeeType": "choice(ORIGINATION, DOCUMENTATION, TITLE, REGISTRATION, GAP)"
+    "/loan_info/Fees/Fee/Amount": "decimal(50, 500, 2)"
+    "/loan_info/Fees/Fee/Description": "text.sentence"
+
+  fieldOverrides:
+    # Co-borrower only in 30% of applications
+    "/loan_info/Borrower/CoBorrower":
+      fillRate: 0.3
+
+    # Vehicle collateral in 80% (it's an auto loan)
+    "/loan_info/Collateral/Vehicle":
+      fillRate: 0.8
+
+    # Property collateral rare for auto loans
+    "/loan_info/Collateral/Property":
+      fillRate: 0.05
+
+    # 1-4 fees per loan
+    "/loan_info/Fees/Fee":
+      repeatRange: [1, 4]
