@@ -1,5 +1,6 @@
 package com.ceremony.catalog.service;
 
+import com.ceremony.catalog.api.FieldNotFoundException;
 import com.ceremony.catalog.api.dto.CatalogObservationDTO;
 import com.ceremony.catalog.api.dto.CatalogSearchCriteria;
 import com.ceremony.catalog.domain.CatalogEntry;
@@ -276,7 +277,8 @@ public class CatalogService {
      * @param fieldId The field entry ID
      * @param canonicalCasing The canonical casing to set, or null to clear
      * @return The updated CatalogEntry
-     * @throws IllegalArgumentException if field not found or casing not in casingCounts
+     * @throws FieldNotFoundException if field not found
+     * @throws IllegalArgumentException if casing not in casingCounts
      */
     public CatalogEntry setCanonicalCasing(String fieldId, String canonicalCasing) {
         if (fieldId == null || fieldId.trim().isEmpty()) {
@@ -284,7 +286,7 @@ public class CatalogService {
         }
 
         CatalogEntry entry = repository.findById(fieldId)
-            .orElseThrow(() -> new IllegalArgumentException("Field not found: " + fieldId));
+            .orElseThrow(() -> new FieldNotFoundException(fieldId));
 
         // If clearing canonical casing, just set to null
         if (canonicalCasing == null) {

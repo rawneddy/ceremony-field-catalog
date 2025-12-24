@@ -23,6 +23,18 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(FieldNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleFieldNotFound(FieldNotFoundException e) {
+        log.warn("Field not found: {}", e.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+            e.getMessage(),
+            404,
+            Instant.now(),
+            "Not Found"
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException e) {
         log.warn("Illegal argument: {}", e.getMessage());

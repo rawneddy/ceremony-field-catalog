@@ -13,10 +13,10 @@
 - [ ] **Support field values**: Client-dictated value capture. See `plans/ideas/field-value-capture.md`
 
 ### Backend
-- [ ] **PATCH endpoint status code alignment**: `setCanonicalCasing()` throws `IllegalArgumentException` for "not found" which maps to 400, but OpenAPI documents 404. Align implementation or docs. *([CODEX:142-143](reviews/20251223_casing-tracking_CODEX.md))*
+- [x] ~~**PATCH endpoint status code alignment**: `setCanonicalCasing()` throws `IllegalArgumentException` for "not found" which maps to 400, but OpenAPI documents 404. Align implementation or docs.~~ *(Fixed: Added `FieldNotFoundException` with 404 handler)*
 
 ### UI
-- [ ] **Discovery filter mismatch**: A field can pass `filteredAggregatedFields` even when no single variant matches all active facet filters, causing Variant Explorer to show 0 matches. Table filtering should require at least one variant to satisfy all filters. *([CODEX:87](reviews/20251223_casing-tracking_CODEX.md), [CODEX:134](reviews/20251223_casing-tracking_CODEX.md))*
+- [x] ~~**Discovery filter mismatch**: A field can pass `filteredAggregatedFields` even when no single variant matches all active facet filters, causing Variant Explorer to show 0 matches. Table filtering should require at least one variant to satisfy all filters.~~ *(Fixed: 'any' mode now requires at least one variant to match all keys)*
 
 ---
 

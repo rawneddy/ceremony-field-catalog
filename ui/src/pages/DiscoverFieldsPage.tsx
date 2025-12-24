@@ -82,38 +82,51 @@ const DiscoverFieldsPage: React.FC = () => {
       return aggregatedFields;
     }
 
+    // Separate filters by mode
+    const allModeFilters: [string, string[]][] = [];
+    const anyModeFilters: [string, string[]][] = [];
+
+    for (const [key, selectedValues] of Object.entries(facetFilters)) {
+      if (selectedValues.length === 0) continue;
+      const mode = facetModes[key] || 'any';
+      if (mode === 'all') {
+        allModeFilters.push([key, selectedValues]);
+      } else {
+        anyModeFilters.push([key, selectedValues]);
+      }
+    }
+
     return aggregatedFields.filter(field => {
-      // Field passes if ALL facet filters match (AND between keys)
-      return Object.entries(facetFilters).every(([key, selectedValues]) => {
-        if (selectedValues.length === 0) return true;
-
-        const mode = facetModes[key] || 'any';
-
+      // 'all' mode: field must have variants COLLECTIVELY covering all selected values per key
+      // (Different variants can cover different values - this is field-level coverage)
+      const passesAllMode = allModeFilters.every(([key, selectedValues]) => {
         if (key === 'contextId') {
-          if (mode === 'all') {
-            // AND: field must have variants covering ALL selected contexts
-            return selectedValues.every(sv =>
-              field.variants.some(v => v.contextId === sv)
-            );
-          } else {
-            // OR: field must have at least one variant with ANY selected context
-            return field.variants.some(v => selectedValues.includes(v.contextId));
-          }
+          return selectedValues.every(sv =>
+            field.variants.some(v => v.contextId === sv)
+          );
         } else {
-          if (mode === 'all') {
-            // AND: field must have variants covering ALL selected values
-            return selectedValues.every(sv =>
-              field.variants.some(v => v.metadata[key] === sv)
-            );
-          } else {
-            // OR: field must have at least one variant with ANY selected value
-            return field.variants.some(v => {
-              const value = v.metadata[key];
-              return value !== undefined && selectedValues.includes(value);
-            });
-          }
+          return selectedValues.every(sv =>
+            field.variants.some(v => v.metadata[key] === sv)
+          );
         }
       });
+
+      if (!passesAllMode) return false;
+
+      // 'any' mode: at least ONE variant must match ALL 'any' mode keys simultaneously
+      // This ensures the Variant Explorer panel will show at least one matching variant
+      if (anyModeFilters.length === 0) return true;
+
+      return field.variants.some(variant =>
+        anyModeFilters.every(([key, selectedValues]) => {
+          if (key === 'contextId') {
+            return selectedValues.includes(variant.contextId);
+          } else {
+            const value = variant.metadata[key];
+            return value !== undefined && selectedValues.includes(value);
+          }
+        })
+      );
     });
   }, [aggregatedFields, facetFilters, facetModes]);
 
