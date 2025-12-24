@@ -294,14 +294,14 @@ class CatalogServiceTest extends ServiceTestBase {
         
         // Verify metadata is stored in normalized lowercase form
         var entry = entries.get(0);
-        assertThat(entry.getMetadata()).containsEntry("productcode", "dda");
-        assertThat(entry.getMetadata()).containsEntry("action", "fulfillment");
+        assertThat(entry.getRequiredMetadata()).containsEntry("productcode", "dda");
+        assertThat(entry.getRequiredMetadata()).containsEntry("action", "fulfillment");
     }
 
     @Test
     void acceptsObservationWithAllUppercaseRequiredMetadata() {
         createAndVerifyContext("deposits", "productcode", "action");
-        
+
         Map<String, String> uppercaseMetadata = Map.of(
             "PRODUCTCODE", "DDA",
             "ACTION", "FULFILLMENT"
@@ -313,10 +313,10 @@ class CatalogServiceTest extends ServiceTestBase {
 
         var entries = catalogRepository.findAll();
         assertThat(entries).hasSize(1);
-        
+
         var entry = entries.get(0);
-        assertThat(entry.getMetadata()).containsEntry("productcode", "dda");
-        assertThat(entry.getMetadata()).containsEntry("action", "fulfillment");
+        assertThat(entry.getRequiredMetadata()).containsEntry("productcode", "dda");
+        assertThat(entry.getRequiredMetadata()).containsEntry("action", "fulfillment");
     }
 
     @Test
@@ -384,15 +384,15 @@ class CatalogServiceTest extends ServiceTestBase {
         var entry = entries.get(0);
         assertThat(entry.getMaxOccurs()).isEqualTo(2);  // Should have updated
         assertThat(entry.getMinOccurs()).isEqualTo(1);
-        assertThat(entry.getMetadata()).containsEntry("productcode", "dda");
-        assertThat(entry.getMetadata()).containsEntry("action", "fulfillment");
+        assertThat(entry.getRequiredMetadata()).containsEntry("productcode", "dda");
+        assertThat(entry.getRequiredMetadata()).containsEntry("action", "fulfillment");
     }
 
     @Test
     void handlesOptionalMetadataWithCaseVariations() {
         // Create context with both required and optional metadata
         createContext("deposits", List.of("productcode"), List.of("subcategory"));
-        
+
         // Submit observation with mixed case optional metadata
         Map<String, String> metadata = Map.of(
             "ProductCode", "dda",  // required field
@@ -405,26 +405,26 @@ class CatalogServiceTest extends ServiceTestBase {
 
         var entries = catalogRepository.findAll();
         assertThat(entries).hasSize(1);
-        
+
         var entry = entries.get(0);
-        assertThat(entry.getMetadata()).containsEntry("productcode", "dda");
-        assertThat(entry.getMetadata()).containsEntry("subcategory", "premium");
+        assertThat(entry.getRequiredMetadata()).containsEntry("productcode", "dda");
+        assertThat(entry.getOptionalMetadata().get("subcategory")).contains("premium");
     }
 
     @Test
     void searchWorksWithCaseInsensitiveMetadata() {
         createAndVerifyContext("deposits", "productcode", "action");
-        
+
         // Submit observations with different case metadata
         catalogService.merge("deposits", List.of(
             new CatalogObservationDTO(
                 Map.of("ProductCode", "dda", "Action", "fulfillment"),
-                "/ceremony/amount", 
+                "/ceremony/amount",
                 1, false, false
             ),
             new CatalogObservationDTO(
                 Map.of("productcode", "sav", "action", "inquiry"),
-                "/ceremony/balance", 
+                "/ceremony/balance",
                 1, false, false
             )
         ));
@@ -436,5 +436,142 @@ class CatalogServiceTest extends ServiceTestBase {
 
         assertThat(results.getContent()).hasSize(1);
         assertThat(results.getContent().get(0).getFieldPath()).isEqualTo("/ceremony/amount");
+    }
+
+    // ===== OPTIONAL METADATA ACCUMULATION TESTS =====
+
+    @Test
+    void optionalMetadataAccumulatesOverMultipleObservations() {
+        // Create context with required and optional metadata
+        createContext("deposits", List.of("productcode"), List.of("channel", "region"));
+
+        // First observation with channel=web
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(
+                Map.of("productcode", "dda", "channel", "web"),
+                "/ceremony/amount",
+                1, false, false
+            )
+        ));
+
+        var entry = catalogRepository.findAll().get(0);
+        assertThat(entry.getOptionalMetadata().get("channel")).containsExactly("web");
+
+        // Second observation with channel=mobile (same field identity)
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(
+                Map.of("productcode", "dda", "channel", "mobile"),
+                "/ceremony/amount",
+                1, false, false
+            )
+        ));
+
+        // Should still be one entry with BOTH channel values accumulated
+        var entries = catalogRepository.findAll();
+        assertThat(entries).hasSize(1);
+
+        entry = entries.get(0);
+        assertThat(entry.getOptionalMetadata().get("channel"))
+            .containsExactlyInAnyOrder("web", "mobile");
+    }
+
+    @Test
+    void optionalMetadataAccumulatesMultipleKeysIndependently() {
+        createContext("deposits", List.of("productcode"), List.of("channel", "region"));
+
+        // First observation with channel=web, region=us
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(
+                Map.of("productcode", "dda", "channel", "web", "region", "us"),
+                "/ceremony/amount",
+                1, false, false
+            )
+        ));
+
+        // Second observation with channel=mobile (no region)
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(
+                Map.of("productcode", "dda", "channel", "mobile"),
+                "/ceremony/amount",
+                1, false, false
+            )
+        ));
+
+        // Third observation with region=eu (no channel)
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(
+                Map.of("productcode", "dda", "region", "eu"),
+                "/ceremony/amount",
+                1, false, false
+            )
+        ));
+
+        var entry = catalogRepository.findAll().get(0);
+        assertThat(entry.getOptionalMetadata().get("channel"))
+            .containsExactlyInAnyOrder("web", "mobile");
+        assertThat(entry.getOptionalMetadata().get("region"))
+            .containsExactlyInAnyOrder("us", "eu");
+    }
+
+    @Test
+    void optionalMetadataDeduplicatesSameValue() {
+        createContext("deposits", List.of("productcode"), List.of("channel"));
+
+        // Submit same channel value multiple times
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(
+                Map.of("productcode", "dda", "channel", "web"),
+                "/ceremony/amount",
+                1, false, false
+            )
+        ));
+
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(
+                Map.of("productcode", "dda", "channel", "web"),
+                "/ceremony/amount",
+                1, false, false
+            )
+        ));
+
+        var entry = catalogRepository.findAll().get(0);
+        // Should only have one "web" value, not duplicates
+        assertThat(entry.getOptionalMetadata().get("channel")).containsExactly("web");
+    }
+
+    @Test
+    void optionalMetadataAllValuesPreserved() {
+        createContext("deposits", List.of("productcode"), List.of("channel"));
+
+        // Add values in specific order
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(
+                Map.of("productcode", "dda", "channel", "zebra"),
+                "/ceremony/amount",
+                1, false, false
+            )
+        ));
+
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(
+                Map.of("productcode", "dda", "channel", "alpha"),
+                "/ceremony/amount",
+                1, false, false
+            )
+        ));
+
+        catalogService.merge("deposits", List.of(
+            new CatalogObservationDTO(
+                Map.of("productcode", "dda", "channel", "beta"),
+                "/ceremony/amount",
+                1, false, false
+            )
+        ));
+
+        var entry = catalogRepository.findAll().get(0);
+        // All values should be preserved (TreeSet provides sorted order in-memory,
+        // but MongoDB deserialization may not preserve Set order)
+        assertThat(entry.getOptionalMetadata().get("channel"))
+            .containsExactlyInAnyOrder("alpha", "beta", "zebra");
     }
 }

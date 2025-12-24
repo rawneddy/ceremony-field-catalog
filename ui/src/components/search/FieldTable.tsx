@@ -1,9 +1,11 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import type { CatalogEntry } from '../../types';
-import { ChevronUp, ChevronDown, Copy, Check, AlertTriangle, Info } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronRight, Copy, Check, AlertTriangle, Info, Layers } from 'lucide-react';
 import { Skeleton, EmptyState } from '../ui';
 import { config } from '../../config';
 import { computeAllFieldWarnings, type FieldWarning } from '../../lib/schema/fieldWarnings';
+import { getDisplayCasing, getTotalObservations, hasMultipleCasings, getSortedCasingVariants, needsCasingResolution } from '../../utils/casingUtils';
+import { useSetCanonicalCasing } from '../../hooks';
 
 interface FieldTableProps {
   results: CatalogEntry[];
@@ -42,11 +44,15 @@ const FieldTable: React.FC<FieldTableProps> = ({
   query,
   highlightFieldPath
 }) => {
-  const [sortField, setSortField] = useState<keyof CatalogEntry | 'alerts' | null>(null);
+  const [sortField, setSortField] = useState<keyof CatalogEntry | 'alerts' | 'count' | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [hasScrolledToHighlight, setHasScrolledToHighlight] = useState(false);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
+
+  // Hook for setting canonical casing
+  const { setCanonicalCasing, isSettingCasing } = useSetCanonicalCasing();
 
   // Compute field warnings once for all results (before sorting so we can sort by it)
   const fieldWarnings = useMemo(() => {
@@ -72,6 +78,13 @@ const FieldTable: React.FC<FieldTableProps> = ({
         return sortOrder === 'asc'
           ? bPriority - aPriority  // asc: warning → info → none
           : aPriority - bPriority; // desc: none → info → warning
+      }
+
+      // Special handling for count column (total observations)
+      if (sortField === 'count') {
+        const aCount = getTotalObservations(a.casingCounts);
+        const bCount = getTotalObservations(b.casingCounts);
+        return sortOrder === 'asc' ? aCount - bCount : bCount - aCount;
       }
 
       const aVal = a[sortField];
@@ -162,7 +175,7 @@ const FieldTable: React.FC<FieldTableProps> = ({
     setHasScrolledToHighlight(false);
   }, [highlightFieldPath]);
 
-  const handleSort = (field: keyof CatalogEntry | 'alerts') => {
+  const handleSort = (field: keyof CatalogEntry | 'alerts' | 'count') => {
     if (sortField === field) {
       if (sortOrder === 'asc') setSortOrder('desc');
       else if (sortOrder === 'desc') {
@@ -180,6 +193,19 @@ const FieldTable: React.FC<FieldTableProps> = ({
     navigator.clipboard.writeText(path);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), config.COPY_FEEDBACK_MS);
+  };
+
+  const toggleRowExpansion = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   const highlightMatch = (text: string) => {
@@ -236,6 +262,15 @@ const FieldTable: React.FC<FieldTableProps> = ({
               <AlertTriangle className="w-3 h-3" />
               <span>Alerts</span>
               <SortIcon active={sortField === 'alerts'} order={sortOrder} />
+            </div>
+          </th>
+          <th
+            className="w-20 px-2 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group text-center"
+            onClick={() => handleSort('count')}
+          >
+            <div className="flex items-center justify-center gap-1">
+              <span>Count</span>
+              <SortIcon active={sortField === 'count'} order={sortOrder} />
             </div>
           </th>
           <th
@@ -308,10 +343,16 @@ const FieldTable: React.FC<FieldTableProps> = ({
           const warnings = fieldWarnings.get(entry.fieldPath) || [];
           const hasWarnings = warnings.length > 0;
           const isWarningSeverity = hasWarningSeverity(warnings);
+          const displayPath = getDisplayCasing(entry.canonicalCasing, entry.casingCounts, entry.fieldPath);
+          const totalCount = getTotalObservations(entry.casingCounts);
+          const hasCasingVariants = hasMultipleCasings(entry.casingCounts);
+          const hasCanonical = !!entry.canonicalCasing;
+          const needsResolution = needsCasingResolution(entry.casingCounts, entry.canonicalCasing);
+          const isExpanded = expandedRows.has(entry.id);
 
           return (
+          <React.Fragment key={entry.id}>
           <tr
-            key={entry.id}
             ref={(el) => {
               if (el) rowRefs.current.set(entry.id, el);
               else rowRefs.current.delete(entry.id);
@@ -325,7 +366,7 @@ const FieldTable: React.FC<FieldTableProps> = ({
           >
             <td className={`px-4 py-3 ${hasWarnings ? (isWarningSeverity ? 'border-l-4 border-l-amber-400' : 'border-l-4 border-l-sky-300') : ''}`}>
               <button
-                onClick={(e) => handleCopy(e, entry.fieldPath, entry.id)}
+                onClick={(e) => handleCopy(e, displayPath, entry.id)}
                 className="text-slate-300 hover:text-ceremony transition-colors"
                 title="Copy XPath"
               >
@@ -335,8 +376,41 @@ const FieldTable: React.FC<FieldTableProps> = ({
             <td className="px-2 py-3">
               <WarningBadges warnings={warnings} />
             </td>
-            <td className="px-4 py-3 font-mono text-sm truncate" title={entry.fieldPath}>
-              {highlightMatch(entry.fieldPath)}
+            <td className="px-2 py-3 text-center">
+              {totalCount > 0 ? (
+                <div className="flex items-center justify-center gap-1">
+                  {hasCasingVariants && (
+                    <button
+                      onClick={(e) => toggleRowExpansion(e, entry.id)}
+                      className="text-slate-400 hover:text-ceremony transition-colors"
+                      title="Show casing variants"
+                    >
+                      <ChevronRight className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                    </button>
+                  )}
+                  <span className="text-sm font-medium text-slate-600">{totalCount}</span>
+                  {hasCasingVariants && (
+                    hasCanonical ? (
+                      <span title="Canonical casing set">
+                        <Check className="w-3 h-3 text-emerald-500" />
+                      </span>
+                    ) : needsResolution ? (
+                      <span title="Needs casing resolution for export">
+                        <AlertTriangle className="w-3 h-3 text-amber-500" />
+                      </span>
+                    ) : (
+                      <span title="Multiple casing variants">
+                        <Layers className="w-3 h-3 text-slate-400" />
+                      </span>
+                    )
+                  )}
+                </div>
+              ) : (
+                <span className="text-sm text-slate-400">-</span>
+              )}
+            </td>
+            <td className="px-4 py-3 font-mono text-sm truncate" title={displayPath}>
+              {highlightMatch(displayPath)}
             </td>
             <td className="px-4 py-3 text-center text-sm font-medium">{entry.minOccurs}</td>
             <td className="px-4 py-3 text-center text-sm font-medium">{entry.maxOccurs}</td>
@@ -353,6 +427,15 @@ const FieldTable: React.FC<FieldTableProps> = ({
               {formatDate(entry.lastObservedAt)}
             </td>
           </tr>
+          {/* Expanded casing variants */}
+          {isExpanded && hasCasingVariants && (
+            <CasingVariantRows
+              entry={entry}
+              onSetCanonical={(casing) => setCanonicalCasing({ fieldId: entry.id, canonicalCasing: casing })}
+              isSettingCasing={isSettingCasing}
+            />
+          )}
+          </React.Fragment>
           );
         })}
       </tbody>
@@ -423,6 +506,72 @@ const WarningBadges = ({ warnings }: { warnings: FieldWarning[] }) => {
  */
 const hasWarningSeverity = (warnings: FieldWarning[]): boolean => {
   return warnings.some(w => w.severity === 'warning');
+};
+
+interface CasingVariantRowsProps {
+  entry: CatalogEntry;
+  onSetCanonical: (casing: string | null) => void;
+  isSettingCasing: boolean;
+}
+
+/**
+ * Renders inline sub-rows showing casing variants with their counts.
+ * Includes make/clear canonical actions.
+ */
+const CasingVariantRows: React.FC<CasingVariantRowsProps> = ({ entry, onSetCanonical, isSettingCasing }) => {
+  const variants = getSortedCasingVariants(entry.casingCounts);
+
+  return (
+    <>
+      {variants.map(([casing, count]) => {
+        const isCanonical = entry.canonicalCasing === casing;
+
+        return (
+          <tr
+            key={`${entry.id}-${casing}`}
+            className="bg-slate-50/50"
+          >
+            {/* Empty cells for alignment */}
+            <td className="px-4 py-2 border-l-4 border-l-slate-200"></td>
+            <td className="px-2 py-2"></td>
+            <td className="px-2 py-2 text-center">
+              <span className="text-xs font-medium text-slate-500">{count}</span>
+            </td>
+            <td className="px-4 py-2 pl-8" colSpan={7}>
+              <div className="flex items-center gap-3">
+                <span className={`font-mono text-xs ${isCanonical ? 'text-emerald-700 font-semibold' : 'text-slate-600'}`}>
+                  {casing}
+                </span>
+                {isCanonical ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 uppercase">
+                    <Check className="w-3 h-3" />
+                    canonical
+                    <button
+                      onClick={() => onSetCanonical(null)}
+                      disabled={isSettingCasing}
+                      className="ml-2 text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                      title="Clear canonical selection"
+                    >
+                      clear
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => onSetCanonical(casing)}
+                    disabled={isSettingCasing}
+                    className="text-[10px] font-bold text-slate-400 hover:text-ceremony uppercase transition-colors disabled:opacity-50"
+                    title="Set as canonical casing"
+                  >
+                    make canonical
+                  </button>
+                )}
+              </div>
+            </td>
+          </tr>
+        );
+      })}
+    </>
+  );
 };
 
 export default FieldTable;

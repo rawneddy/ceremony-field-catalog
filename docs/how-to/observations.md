@@ -29,13 +29,17 @@ XML File → Parser → Observations → API → Merge → Catalog Entry
 
 ```java
 public class CatalogObservationDTO {
-    Map<String, String> metadata;  // Required + optional metadata
+    Map<String, String> metadata;  // All metadata for this observation
     String fieldPath;              // XPath to field
     int count;                     // Occurrences in source
     boolean hasNull;               // Contains xsi:nil="true"
     boolean hasEmpty;              // Contains empty string value
 }
 ```
+
+**Note:** Observations submit metadata as a single flat map. During merge, the service separates values based on the context schema:
+- **Required metadata** values are validated and stored as `requiredMetadata` (single value per key)
+- **Optional metadata** values are added to `optionalMetadata` sets (accumulated over time)
 
 ---
 
@@ -99,10 +103,16 @@ When submitting observations:
 | `maxOccurs` | `max(existing, observation.count)` |
 | `allowsNull` | `existing OR observation.hasNull` |
 | `allowsEmpty` | `existing OR observation.hasEmpty` |
+| `optionalMetadata` | For each key, add new value to existing Set (union) |
+| `casingCounts` | Increment count for the observed casing variant |
 | `lastObservedAt` | Update to current timestamp |
 | `firstObservedAt` | Keep original (set on creation) |
 
-**Code:** `CatalogService.mergeObservation()`
+**Optional Metadata Accumulation:** Unlike required metadata (which must match exactly for identity), optional metadata values are accumulated over time. If a field is observed with `channel=web` today and `channel=mobile` tomorrow, `optionalMetadata.channel` will contain `["web", "mobile"]`. This enables filtering to find fields observed under specific conditions.
+
+**Casing Tracking:** While `fieldPath` is stored lowercase for identity matching, the original casing from each observation is tracked in `casingCounts`. For example, if `/Document/Account` is observed 45 times and `/document/account` is observed 3 times, `casingCounts` will be `{"/Document/Account": 45, "/document/account": 3}`. Users can then select a `canonicalCasing` for schema export - if not set, the most-observed casing is used.
+
+**Code:** `CatalogService.mergeObservation()`, `CatalogService.accumulateOptionalMetadata()`
 
 ---
 

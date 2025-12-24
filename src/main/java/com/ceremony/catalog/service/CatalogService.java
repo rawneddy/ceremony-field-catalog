@@ -1,5 +1,6 @@
 package com.ceremony.catalog.service;
 
+import com.ceremony.catalog.api.FieldNotFoundException;
 import com.ceremony.catalog.api.dto.CatalogObservationDTO;
 import com.ceremony.catalog.api.dto.CatalogSearchCriteria;
 import com.ceremony.catalog.domain.CatalogEntry;
@@ -21,6 +22,13 @@ public class CatalogService {
     private final CatalogRepository repository;
     private final ContextService contextService;
     private final InputValidationService validationService;
+
+    /**
+     * Internal record holding cleaned observation DTO along with the original field path casing.
+     * The DTO contains normalized (lowercase) fieldPath for identity, while originalFieldPath
+     * preserves the casing as observed for tracking in casingCounts.
+     */
+    private record CleanedObservation(CatalogObservationDTO dto, String originalFieldPath) {}
     
     public void merge(String contextId, List<CatalogObservationDTO> observations) {
         if (observations == null || observations.isEmpty()) return;
@@ -34,12 +42,12 @@ public class CatalogService {
             .orElseThrow(() -> new IllegalArgumentException("Context not found or inactive: " + cleanedContextId));
         
         // Validate and clean observations against context requirements
-        List<CatalogObservationDTO> cleanedObservations = validateAndCleanObservations(observations);
-        validateObservations(context, cleanedObservations);
+        List<CleanedObservation> cleanedObservations = validateAndCleanObservations(observations);
+        validateObservations(context, cleanedObservations.stream().map(CleanedObservation::dto).toList());
         
         // Collect all field IDs for batch query (using only required metadata for field identity)
         Set<String> fieldIds = cleanedObservations.stream()
-            .map(dto -> new FieldKey(cleanedContextId, filterToRequiredMetadata(context, dto.metadata()), dto.fieldPath()).toString())
+            .map(co -> new FieldKey(cleanedContextId, filterToRequiredMetadata(context, co.dto().metadata()), co.dto().fieldPath()).toString())
             .collect(LinkedHashSet::new, Set::add, Set::addAll);
         
         // Single batch query to get all existing entries
@@ -51,9 +59,12 @@ public class CatalogService {
         Map<String, CatalogEntry> entriesToSave = new LinkedHashMap<>();
         java.time.Instant now = java.time.Instant.now();
 
-        for (CatalogObservationDTO dto : cleanedObservations) {
+        for (CleanedObservation cleanedObs : cleanedObservations) {
+            CatalogObservationDTO dto = cleanedObs.dto();
+            String originalFieldPath = cleanedObs.originalFieldPath();
+
             Map<String, String> requiredMetadata = filterToRequiredMetadata(context, dto.metadata());
-            Map<String, String> allowedMetadata = filterToAllowedMetadata(context, dto.metadata());
+            Map<String, String> observedOptionalMetadata = filterToOptionalMetadata(context, dto.metadata());
             FieldKey fieldKey = new FieldKey(cleanedContextId, requiredMetadata, dto.fieldPath());
             String id = fieldKey.toString();
 
@@ -66,15 +77,35 @@ public class CatalogService {
                 entry.setAllowsNull(entry.isAllowsNull() || dto.hasNull());
                 entry.setAllowsEmpty(entry.isAllowsEmpty() || dto.hasEmpty());
                 entry.setLastObservedAt(now);
-                // Also update metadata to include any new optional metadata
-                entry.setMetadata(allowedMetadata);
+                // Accumulate optional metadata values into sets
+                accumulateOptionalMetadata(entry, observedOptionalMetadata);
+                // Track casing variant: counts represent number of observation records (batches/documents)
+                // where this casing was seen, NOT total field occurrences (which would use dto.count()).
+                // This design choice means counts reflect "how many times did we see this casing in uploads"
+                // rather than "how many XML elements used this casing".
+                if (entry.getCasingCounts() == null) {
+                    entry.setCasingCounts(new HashMap<>());
+                }
+                entry.getCasingCounts().merge(originalFieldPath, 1L, Long::sum);
                 entriesToSave.put(id, entry);
             } else {
-                // Create new entry - store all allowed metadata (required + optional)
+                // Create new entry with required metadata and initial optional metadata
+                Map<String, Long> initialCasingCounts = new HashMap<>();
+                initialCasingCounts.put(originalFieldPath, 1L);
+
+                // Convert observed optional metadata to TreeSets for deterministic ordering
+                Map<String, Set<String>> initialOptionalMetadata = new HashMap<>();
+                for (Map.Entry<String, String> e : observedOptionalMetadata.entrySet()) {
+                    Set<String> values = new TreeSet<>();
+                    values.add(e.getValue());
+                    initialOptionalMetadata.put(e.getKey(), values);
+                }
+
                 CatalogEntry newEntry = CatalogEntry.builder()
                     .id(id)
                     .contextId(cleanedContextId)
-                    .metadata(allowedMetadata)
+                    .requiredMetadata(requiredMetadata)
+                    .optionalMetadata(initialOptionalMetadata)
                     .fieldPath(dto.fieldPath())
                     .maxOccurs(dto.count())
                     .minOccurs(dto.count())
@@ -82,6 +113,7 @@ public class CatalogService {
                     .allowsEmpty(dto.hasEmpty())
                     .firstObservedAt(now)
                     .lastObservedAt(now)
+                    .casingCounts(initialCasingCounts)
                     .build();
                 // Track new entry so duplicates later in batch will merge into it
                 existingEntries.put(id, newEntry);
@@ -89,31 +121,37 @@ public class CatalogService {
             }
         }
 
-        // Single batch save operation
+        // Single batch save operation.
+        // NOTE: This performs full-document writes. Concurrent merges or setCanonicalCasing() calls
+        // between the batch fetch (findAllById) and this save can result in lost updates (last write wins).
+        // This is an accepted limitation for now; if concurrent uploads become common, consider using
+        // MongoDB's atomic update operators ($inc, $set) or optimistic locking (@Version).
         repository.saveAll(entriesToSave.values());
         
         // Handle single-context cleanup
-        handleSingleContextCleanup(cleanedContextId, cleanedObservations);
+        handleSingleContextCleanup(cleanedContextId, cleanedObservations.stream().map(CleanedObservation::dto).toList());
     }
     
-    private List<CatalogObservationDTO> validateAndCleanObservations(List<CatalogObservationDTO> observations) {
+    private List<CleanedObservation> validateAndCleanObservations(List<CatalogObservationDTO> observations) {
         return observations.stream()
             .map(this::validateAndCleanObservation)
             .toList();
     }
-    
-    private CatalogObservationDTO validateAndCleanObservation(CatalogObservationDTO observation) {
-        String cleanedFieldPath = validationService.validateAndCleanFieldPath(observation.fieldPath());
+
+    private CleanedObservation validateAndCleanObservation(CatalogObservationDTO observation) {
+        InputValidationService.CleanedFieldPath cleanedFieldPath =
+            validationService.validateAndCleanFieldPathWithCasing(observation.fieldPath());
         Map<String, String> cleanedMetadata = validationService.validateAndCleanMetadata(observation.metadata());
-        
-        // Return new DTO with cleaned values
-        return new CatalogObservationDTO(
+
+        // Return DTO with normalized (lowercase) fieldPath for identity, plus original casing for tracking
+        CatalogObservationDTO cleanedDto = new CatalogObservationDTO(
             cleanedMetadata,
-            cleanedFieldPath,
+            cleanedFieldPath.normalized(),
             observation.count(),
             observation.hasNull(),
             observation.hasEmpty()
         );
+        return new CleanedObservation(cleanedDto, cleanedFieldPath.original());
     }
     
     private void validateObservations(Context context, List<CatalogObservationDTO> observations) {
@@ -246,6 +284,44 @@ public class CatalogService {
         String cleanedContextId = validationService.validateAndCleanContextId(contextId);
         return repository.countByContextId(cleanedContextId);
     }
+
+    /**
+     * Sets the canonical casing for a field entry.
+     * The canonical casing must be one of the observed casings in casingCounts,
+     * or null to clear the selection.
+     *
+     * @param fieldId The field entry ID
+     * @param canonicalCasing The canonical casing to set, or null to clear
+     * @return The updated CatalogEntry
+     * @throws FieldNotFoundException if field not found
+     * @throws IllegalArgumentException if casing not in casingCounts
+     */
+    public CatalogEntry setCanonicalCasing(String fieldId, String canonicalCasing) {
+        if (fieldId == null || fieldId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Field ID is required");
+        }
+
+        CatalogEntry entry = repository.findById(fieldId)
+            .orElseThrow(() -> new FieldNotFoundException(fieldId));
+
+        // If clearing canonical casing, just set to null
+        if (canonicalCasing == null) {
+            entry.setCanonicalCasing(null);
+            return repository.save(entry);
+        }
+
+        // Validate that the casing exists in casingCounts
+        Map<String, Long> casingCounts = entry.getCasingCounts();
+        if (casingCounts == null || !casingCounts.containsKey(canonicalCasing)) {
+            throw new IllegalArgumentException(
+                "Canonical casing must be one of the observed casings: " +
+                (casingCounts != null ? casingCounts.keySet() : "none observed")
+            );
+        }
+
+        entry.setCanonicalCasing(canonicalCasing);
+        return repository.save(entry);
+    }
     
     private CatalogSearchCriteria sanitizeSearchCriteria(CatalogSearchCriteria criteria) {
         // Sanitize global search term (q) - only lowercase, don't escape regex chars
@@ -276,19 +352,11 @@ public class CatalogService {
         return filteredMetadata;
     }
 
-    private Map<String, String> filterToAllowedMetadata(Context context, Map<String, String> metadata) {
+    private Map<String, String> filterToOptionalMetadata(Context context, Map<String, String> metadata) {
         // Metadata is already lowercase from InputValidationService
         Map<String, String> filteredMetadata = new TreeMap<>();
 
-        // Include required metadata
-        for (String requiredField : context.getRequiredMetadata()) {
-            String value = metadata.get(requiredField);
-            if (value != null) {
-                filteredMetadata.put(requiredField, value);
-            }
-        }
-
-        // Include optional metadata if present
+        // Include only optional metadata fields
         if (context.getOptionalMetadata() != null) {
             for (String optionalField : context.getOptionalMetadata()) {
                 String value = metadata.get(optionalField);
@@ -299,5 +367,25 @@ public class CatalogService {
         }
 
         return filteredMetadata;
+    }
+
+    /**
+     * Accumulates optional metadata values into the entry's optionalMetadata sets.
+     * Each key maps to a set of all values ever observed for that field.
+     */
+    private void accumulateOptionalMetadata(CatalogEntry entry, Map<String, String> observedOptionalMetadata) {
+        if (observedOptionalMetadata == null || observedOptionalMetadata.isEmpty()) {
+            return;
+        }
+
+        Map<String, Set<String>> existingOptional = entry.getOptionalMetadata();
+        if (existingOptional == null) {
+            existingOptional = new HashMap<>();
+            entry.setOptionalMetadata(existingOptional);
+        }
+
+        for (Map.Entry<String, String> e : observedOptionalMetadata.entrySet()) {
+            existingOptional.computeIfAbsent(e.getKey(), k -> new TreeSet<>()).add(e.getValue());
+        }
     }
 }

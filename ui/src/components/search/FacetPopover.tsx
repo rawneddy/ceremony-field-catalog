@@ -6,7 +6,7 @@ interface FacetPopoverProps {
   title: string;
   facet: FacetState;
   onToggleValue: (val: string) => void;
-  onSetMode: (mode: 'any' | 'one') => void;
+  onSetMode: (mode: 'any' | 'all') => void;
   onClear: () => void;
   style?: React.CSSProperties;
 }
@@ -41,16 +41,18 @@ const FacetPopover: React.FC<FacetPopoverProps> = ({
           className={`text-[10px] font-bold uppercase py-1.5 rounded transition-colors ${
             facet.mode === 'any' ? 'bg-ink text-paper' : 'bg-paper text-slate-500 hover:text-ink'
           }`}
+          title="Show fields that have ANY of the selected values (OR)"
         >
-          Include Any
+          Match Any
         </button>
         <button
-          onClick={() => onSetMode('one')}
+          onClick={() => onSetMode('all')}
           className={`text-[10px] font-bold uppercase py-1.5 rounded transition-colors ${
-            facet.mode === 'one' ? 'bg-ink text-paper' : 'bg-paper text-slate-500 hover:text-ink'
+            facet.mode === 'all' ? 'bg-ink text-paper' : 'bg-paper text-slate-500 hover:text-ink'
           }`}
+          title="Show fields that have ALL of the selected values (AND)"
         >
-          Require One
+          Match All
         </button>
       </div>
 
@@ -76,13 +78,13 @@ const FacetPopover: React.FC<FacetPopoverProps> = ({
             }`}
           >
             <input
-              type={facet.mode === 'one' ? 'radio' : 'checkbox'}
+              type="checkbox"
               checked={facet.selected.has(v.value)}
               onChange={() => onToggleValue(v.value)}
               className="accent-ceremony"
             />
             <span className="truncate flex-1">{v.value}</span>
-            <span className="text-[10px] font-mono text-slate-400">({v.count})</span>
+            <span className="text-[10px] text-slate-400">in {v.count} field paths</span>
           </label>
         ))}
         {filteredValues.length === 0 && (

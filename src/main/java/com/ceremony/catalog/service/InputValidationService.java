@@ -14,8 +14,13 @@ import java.util.regex.Pattern;
 @Slf4j
 @RequiredArgsConstructor
 public class InputValidationService {
-    
+
     private final CatalogProperties catalogProperties;
+
+    /**
+     * Result of field path validation containing both original casing and normalized (lowercase) versions.
+     */
+    public record CleanedFieldPath(String original, String normalized) {}
     
     // Pattern for control characters that should be removed
     private static final Pattern CONTROL_CHARS = Pattern.compile("[\\x00-\\x1F\\x7F]");
@@ -50,6 +55,34 @@ public class InputValidationService {
         }
 
         return cleaned.toLowerCase();
+    }
+
+    /**
+     * Validates and cleans field path, preserving original casing.
+     * Returns both the original (cleaned but casing preserved) and normalized (lowercase) versions.
+     * Use this for observation processing where we need to track casing variants.
+     */
+    public CleanedFieldPath validateAndCleanFieldPathWithCasing(String fieldPath) {
+        if (!StringUtils.hasText(fieldPath)) {
+            return new CleanedFieldPath(fieldPath, fieldPath);
+        }
+
+        String cleaned = fieldPath.trim();
+
+        int maxLength = catalogProperties.getValidation().getMaxFieldPathLength();
+        if (cleaned.length() > maxLength) {
+            throw new IllegalArgumentException("Field path too long (max " + maxLength + " characters)");
+        }
+
+        // Remove control characters only
+        cleaned = CONTROL_CHARS.matcher(cleaned).replaceAll("");
+
+        // Basic field path format validation
+        if (!isValidFieldPathFormat(cleaned)) {
+            throw new IllegalArgumentException("Invalid field path format: " + cleaned);
+        }
+
+        return new CleanedFieldPath(cleaned, cleaned.toLowerCase());
     }
     
     /**

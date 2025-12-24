@@ -6,6 +6,7 @@ import org.assertj.core.api.AbstractAssert;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Custom AssertJ assertions for domain objects to provide more expressive
@@ -116,41 +117,78 @@ public class TestAssertions {
             return this;
         }
         
-        public CatalogEntryAssert hasMetadata(String key, String value) {
+        /**
+         * Assert that the entry has a required metadata key with the given value.
+         */
+        public CatalogEntryAssert hasRequiredMetadata(String key, String value) {
             isNotNull();
-            Map<String, String> metadata = actual.getMetadata();
-            if (metadata == null) {
-                failWithMessage("Expected entry to have metadata but metadata was null");
+            Map<String, String> reqMetadata = actual.getRequiredMetadata();
+            if (reqMetadata == null) {
+                failWithMessage("Expected entry to have requiredMetadata but it was null");
                 return this;
             }
-            if (!metadata.containsKey(key)) {
-                failWithMessage("Expected metadata to contain key <%s> but keys were <%s>", key, metadata.keySet());
+            if (!reqMetadata.containsKey(key)) {
+                failWithMessage("Expected requiredMetadata to contain key <%s> but keys were <%s>", key, reqMetadata.keySet());
             }
-            String actualValue = metadata.get(key);
+            String actualValue = reqMetadata.get(key);
             if (!Objects.equals(actualValue, value)) {
-                failWithMessage("Expected metadata[%s] = <%s> but was <%s>", key, value, actualValue);
+                failWithMessage("Expected requiredMetadata[%s] = <%s> but was <%s>", key, value, actualValue);
             }
             return this;
         }
-        
-        public CatalogEntryAssert hasMetadataKey(String key) {
+
+        /**
+         * Assert that the entry has an optional metadata key containing the given value.
+         */
+        public CatalogEntryAssert hasOptionalMetadataContaining(String key, String value) {
             isNotNull();
-            Map<String, String> metadata = actual.getMetadata();
+            Map<String, Set<String>> optMetadata = actual.getOptionalMetadata();
+            if (optMetadata == null) {
+                failWithMessage("Expected entry to have optionalMetadata but it was null");
+                return this;
+            }
+            if (!optMetadata.containsKey(key)) {
+                failWithMessage("Expected optionalMetadata to contain key <%s> but keys were <%s>", key, optMetadata.keySet());
+            }
+            Set<String> values = optMetadata.get(key);
+            if (values == null || !values.contains(value)) {
+                failWithMessage("Expected optionalMetadata[%s] to contain <%s> but values were <%s>", key, value, values);
+            }
+            return this;
+        }
+
+        /**
+         * @deprecated Use hasRequiredMetadata or hasOptionalMetadataContaining instead
+         */
+        @Deprecated
+        public CatalogEntryAssert hasMetadata(String key, String value) {
+            // First check required metadata
+            Map<String, String> reqMetadata = actual.getRequiredMetadata();
+            if (reqMetadata != null && reqMetadata.containsKey(key)) {
+                return hasRequiredMetadata(key, value);
+            }
+            // Then check optional metadata
+            return hasOptionalMetadataContaining(key, value);
+        }
+
+        public CatalogEntryAssert hasRequiredMetadataKey(String key) {
+            isNotNull();
+            Map<String, String> metadata = actual.getRequiredMetadata();
             if (metadata == null) {
-                failWithMessage("Expected entry to have metadata but metadata was null");
+                failWithMessage("Expected entry to have requiredMetadata but it was null");
                 return this;
             }
             if (!metadata.containsKey(key)) {
-                failWithMessage("Expected metadata to contain key <%s> but keys were <%s>", key, metadata.keySet());
+                failWithMessage("Expected requiredMetadata to contain key <%s> but keys were <%s>", key, metadata.keySet());
             }
             return this;
         }
-        
-        public CatalogEntryAssert doesNotHaveMetadataKey(String key) {
+
+        public CatalogEntryAssert doesNotHaveRequiredMetadataKey(String key) {
             isNotNull();
-            Map<String, String> metadata = actual.getMetadata();
+            Map<String, String> metadata = actual.getRequiredMetadata();
             if (metadata != null && metadata.containsKey(key)) {
-                failWithMessage("Expected metadata to not contain key <%s> but it was present with value <%s>", key, metadata.get(key));
+                failWithMessage("Expected requiredMetadata to not contain key <%s> but it was present with value <%s>", key, metadata.get(key));
             }
             return this;
         }

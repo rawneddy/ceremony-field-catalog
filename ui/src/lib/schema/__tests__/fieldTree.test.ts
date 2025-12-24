@@ -20,7 +20,8 @@ function createEntry(
   return {
     id: `test-${fieldPath.replace(/\//g, '-')}`,
     contextId: 'test-context',
-    metadata: {},
+    requiredMetadata: {},
+    optionalMetadata: {},
     fieldPath,
     minOccurs: 1,
     maxOccurs: 1,

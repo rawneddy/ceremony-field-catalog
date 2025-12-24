@@ -152,7 +152,8 @@ Created on startup by `CatalogCustomRepositoryImpl.createIndexes()`:
 |------------|-------|--------|
 | catalog_fields | contextId | `{ contextId: 1 }` |
 | catalog_fields | fieldPath | `{ fieldPath: 1 }` |
-| catalog_fields | metadata | `{ "metadata.$**": 1 }` |
+| catalog_fields | requiredmetadata | `{ "requiredmetadata.$**": 1 }` |
+| catalog_fields | optionalmetadata | `{ "optionalmetadata.$**": 1 }` |
 
 ---
 

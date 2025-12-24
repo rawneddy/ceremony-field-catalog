@@ -7,7 +7,7 @@ export interface FacetValue {
 
 export interface FacetState {
   values: FacetValue[];
-  mode: 'any' | 'one';
+  mode: 'any' | 'all';
   selected: Set<string>;
 }
 
@@ -18,7 +18,7 @@ export interface FacetIndex {
 export interface UseFacetsReturn {
   facets: FacetIndex;
   filteredResults: CatalogEntry[];
-  setFacetMode: (key: string, mode: 'any' | 'one') => void;
+  setFacetMode: (key: string, mode: 'any' | 'all') => void;
   toggleFacetValue: (key: string, value: string) => void;
   clearFacet: (key: string) => void;
   clearAllFacets: () => void;

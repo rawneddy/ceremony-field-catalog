@@ -22,8 +22,13 @@ ui/src/
 │   ├── search/              # Discovery & schema
 │   │   ├── FieldTable.tsx
 │   │   ├── FacetSidebar.tsx
+│   │   ├── FacetPopover.tsx           # Popover for facet filtering
 │   │   ├── ContextSelector.tsx
-│   │   └── MetadataFilters.tsx
+│   │   ├── MetadataFilters.tsx
+│   │   ├── VariantExplorerPanel.tsx   # Explore variants of a field path
+│   │   ├── DiscoveryReturnBanner.tsx  # Return nav from Schema page
+│   │   ├── CasingResolutionPanel.tsx  # Select canonical casing
+│   │   └── FieldDetailPanel.tsx       # Right panel showing field details
 │   ├── upload/              # Submit data
 │   │   ├── BinRow.tsx
 │   │   └── MetadataEditorModal.tsx
@@ -33,12 +38,17 @@ ui/src/
 │   └── ui/                  # Shared primitives
 │       ├── Skeleton.tsx
 │       ├── EmptyState.tsx
-│       └── ErrorBanner.tsx
+│       ├── ErrorBanner.tsx
+│       ├── Tooltip.tsx                # Generic hover tooltip
+│       └── OptionalMetadataIndicator.tsx  # Optional metadata display
 ├── hooks/                   # Custom hooks
 │   ├── useFieldSearch.ts
 │   ├── useContexts.ts
 │   ├── useXmlUpload.ts
-│   └── useDebounce.ts
+│   ├── useDebounce.ts
+│   ├── useDiscoveryFacets.ts          # Client-side facet computation
+│   ├── useFacets.ts                   # Facet state and filtering
+│   └── useSetCanonicalCasing.ts       # API hook for canonical casing
 ├── services/                # API client
 │   └── api.ts
 ├── lib/                     # Pure utilities
@@ -221,8 +231,15 @@ Theme defined in `ui/src/index.css`:
 interface CatalogEntry {
   id: string;
   contextId: string;
-  fieldPath: string;
-  metadata: Record<string, string>;
+  fieldPath: string;                          // Lowercase for identity/search
+  requiredMetadata: Record<string, string>;   // Single value per key
+  optionalMetadata: Record<string, string[]>; // Accumulated values as arrays
+  casingCounts: Record<string, number>;       // Original casings with counts
+  canonicalCasing: string | null;             // User-selected casing for export
+  minOccurs: number;
+  maxOccurs: number;
+  allowsNull: boolean;
+  allowsEmpty: boolean;
   // ...
 }
 
@@ -233,6 +250,21 @@ interface Context {
   optionalMetadata: string[];
   active: boolean;
 }
+```
+
+### Helper Functions
+
+For working with the split metadata structure:
+
+```typescript
+import { getCombinedMetadata, getAllMetadataValues } from '../types';
+
+// Merge both metadata maps for display (optional values joined with ", ")
+const combined = getCombinedMetadata(entry);
+
+// Get all key/value pairs for facet extraction
+const pairs = getAllMetadataValues(entry);
+// Returns: [{ key: 'productcode', value: 'dda' }, { key: 'productcode', value: 'sav' }, ...]
 ```
 
 ---

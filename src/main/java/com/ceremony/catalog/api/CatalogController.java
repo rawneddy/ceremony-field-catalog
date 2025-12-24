@@ -3,6 +3,7 @@ package com.ceremony.catalog.api;
 import com.ceremony.catalog.api.dto.CatalogObservationDTO;
 import com.ceremony.catalog.api.dto.CatalogSearchRequest;
 import com.ceremony.catalog.api.dto.ErrorResponse;
+import com.ceremony.catalog.api.dto.SetCanonicalCasingRequest;
 import com.ceremony.catalog.config.CatalogProperties;
 import com.ceremony.catalog.domain.CatalogEntry;
 import com.ceremony.catalog.service.CatalogService;
@@ -221,5 +222,64 @@ public class CatalogController {
         }
 
         return catalogService.suggestValues(field, prefix, contextId, metadata.isEmpty() ? null : metadata, limit);
+    }
+
+    // Authorization: Currently open to all authenticated users (no role restriction).
+    // This is intentional for the current single-tenant deployment model where all users
+    // collaborate on schema curation. Add @PreAuthorize("hasRole('ADMIN')") if needed.
+    @Operation(
+        summary = "Set canonical casing for a field",
+        description = "Sets the canonical (preferred) casing for a field path. The canonical casing must be one of the observed casings in the field's casingCounts. This selection is used for schema export. Set to null to clear the selection."
+    )
+    @ApiResponses({
+        @ApiResponse(
+            responseCode = "200",
+            description = "Canonical casing updated successfully",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = CatalogEntry.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Invalid request - casing not in observed casings",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class),
+                examples = @ExampleObject(
+                    value = """
+                    {
+                      "message": "Canonical casing must be one of the observed casings: [/Customer/Account/Name, /customer/account/name]",
+                      "status": 400,
+                      "timestamp": "2025-06-16T04:35:36.668959Z",
+                      "error": "Bad Request"
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Field not found",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorResponse.class)
+            )
+        )
+    })
+    @PatchMapping("/fields/{fieldId}/canonical-casing")
+    public CatalogEntry setCanonicalCasing(
+            @Parameter(
+                description = "The field entry ID",
+                example = "field_377301301",
+                required = true
+            )
+            @PathVariable String fieldId,
+            @Parameter(
+                description = "Request body containing the canonical casing to set",
+                required = true
+            )
+            @Valid @RequestBody SetCanonicalCasingRequest request) {
+        return catalogService.setCanonicalCasing(fieldId, request.canonicalCasing());
     }
 }

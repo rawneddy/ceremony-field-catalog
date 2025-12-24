@@ -130,13 +130,25 @@ public abstract class UnitTestBase {
     }
     
     /**
-     * Assert that a catalog entry has the expected metadata
+     * Assert that a catalog entry has the expected required metadata
      */
-    protected void assertCatalogEntryMetadata(CatalogEntry entry, String key, String expectedValue) {
-        assertThat(entry.getMetadata())
-            .as("Entry metadata should contain key '%s'", key)
+    protected void assertCatalogEntryRequiredMetadata(CatalogEntry entry, String key, String expectedValue) {
+        assertThat(entry.getRequiredMetadata())
+            .as("Entry required metadata should contain key '%s'", key)
             .containsKey(key)
-            .as("Entry metadata['%s'] should equal '%s'", key, expectedValue)
+            .as("Entry requiredMetadata['%s'] should equal '%s'", key, expectedValue)
             .containsEntry(key, expectedValue);
+    }
+
+    /**
+     * Assert that a catalog entry has the expected optional metadata value
+     */
+    protected void assertCatalogEntryOptionalMetadata(CatalogEntry entry, String key, String expectedValue) {
+        assertThat(entry.getOptionalMetadata())
+            .as("Entry optional metadata should contain key '%s'", key)
+            .containsKey(key);
+        assertThat(entry.getOptionalMetadata().get(key))
+            .as("Entry optionalMetadata['%s'] should contain '%s'", key, expectedValue)
+            .contains(expectedValue);
     }
 }
