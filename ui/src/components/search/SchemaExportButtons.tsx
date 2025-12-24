@@ -28,6 +28,8 @@ const SchemaExportButtons: React.FC<SchemaExportButtonsProps> = ({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isResolutionPanelOpen, setIsResolutionPanelOpen] = useState(false);
   const [isResolving, setIsResolving] = useState(false);
+  // Entries with server-validated canonical casing updates applied
+  const [resolvedEntries, setResolvedEntries] = useState<CatalogEntry[] | null>(null);
 
   const { setCanonicalCasing } = useSetCanonicalCasing();
 
@@ -58,13 +60,22 @@ const SchemaExportButtons: React.FC<SchemaExportButtonsProps> = ({
   const handleResolve = async (resolutions: Map<string, string>) => {
     setIsResolving(true);
     try {
-      // Save all canonical casing selections
+      // Save all canonical casing selections and collect server responses
       const promises = Array.from(resolutions.entries()).map(([fieldId, canonicalCasing]) =>
         setCanonicalCasing({ fieldId, canonicalCasing })
       );
-      await Promise.all(promises);
+      const updatedEntries = await Promise.all(promises);
 
-      // Close resolution panel and open export dialog
+      // Build a map of updated entries by ID for quick lookup
+      const updatedEntriesMap = new Map(updatedEntries.map(e => [e.id, e]));
+
+      // Merge: use server-validated updated entry if available, otherwise keep original
+      const mergedEntries = entries.map(entry =>
+        updatedEntriesMap.get(entry.id) ?? entry
+      );
+
+      // Store merged entries for the dialog (ensures it uses fresh canonical casings)
+      setResolvedEntries(mergedEntries);
       setIsResolutionPanelOpen(false);
       setIsDialogOpen(true);
     } catch (error) {
@@ -111,10 +122,13 @@ const SchemaExportButtons: React.FC<SchemaExportButtonsProps> = ({
 
       {isDialogOpen && (
         <SchemaExportDialog
-          entries={entries}
+          entries={resolvedEntries ?? entries}
           contextId={contextId}
           metadata={mergedMetadata}
-          onClose={() => setIsDialogOpen(false)}
+          onClose={() => {
+            setIsDialogOpen(false);
+            setResolvedEntries(null); // Clear resolved entries when dialog closes
+          }}
         />
       )}
     </>

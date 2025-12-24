@@ -9,32 +9,13 @@
 ## Critical Priority
 
 ### Cross-Functional
-- [x] ~~**Case sensitivity for schema export**: Now that we have export schema, we need to support true casing again (not lowercase everything). Discovery page needs case-insensitive querying.~~ *(Addressed by casing tracking feature)*
 - [ ] **Support field values**: Client-dictated value capture. See `plans/ideas/field-value-capture.md`
-
-### Backend
-- [x] ~~**PATCH endpoint status code alignment**: `setCanonicalCasing()` throws `IllegalArgumentException` for "not found" which maps to 400, but OpenAPI documents 404. Align implementation or docs.~~ *(Fixed: Added `FieldNotFoundException` with 404 handler)*
-
-### UI
-- [x] ~~**Discovery filter mismatch**: A field can pass `filteredAggregatedFields` even when no single variant matches all active facet filters, causing Variant Explorer to show 0 matches. Table filtering should require at least one variant to satisfy all filters.~~ *(Fixed: 'any' mode now requires at least one variant to match all keys)*
 
 ---
 
 ## Medium Priority
 
-### Backend
-- [x] ~~**Document casingCounts semantics**: Clarify whether counts represent "documents observed" vs "total occurrences".~~ *(Added comment in CatalogService.merge())*
-- [x] ~~**Document canonical casing scope**: Add javadoc to `CatalogEntry` explaining scoping.~~ *(Added class and field javadoc)*
-- [x] ~~**Document concurrent merge behavior**: Concurrent merges can overwrite `canonicalCasing`.~~ *(Added comment noting this as accepted limitation)*
-- [x] ~~**Document PATCH authorization policy**: Add comment explaining authorization.~~ *(Added comment in CatalogController)*
-
-### UI
-- [ ] **Schema export stale entries**: After bulk-saving canonical casings, the export dialog may open using stale `entries` prop. Consider applying resolutions locally or waiting for cache updates. *([CODEX:89](reviews/20251223_casing-tracking_CODEX.md), [CODEX:137](reviews/20251223_casing-tracking_CODEX.md))*
-- [x] ~~**Clear selectedField on filter-out**: When facet filters change such that `selectedField` is no longer in the filtered set, clear the selection.~~ *(Added useEffect in DiscoverFieldsPage)*
-
-### Documentation
-- [x] ~~**Facet sidebar mode documentation**: Add subsection to `docs/how-to/search.md` explaining modes.~~ *(Added table with Include Any / Require All modes)*
-- [x] ~~**Fix multi-select wording**: search.md stated selecting a facet "will always reduce" but multi-select can broaden.~~ *(Fixed with mode-specific behavior description)*
+*(No open items)*
 
 ---
 
@@ -64,6 +45,20 @@
 
 Items moved here after completion, then incorporated into release primers:
 
+### Casing Tracking Feature (Dec 2025)
+- [x] **Case sensitivity for schema export**: Casing tracking feature preserves observed casings while keeping lowercase identity
+- [x] **PATCH endpoint status code alignment**: Added `FieldNotFoundException` with 404 handler
+- [x] **Discovery filter mismatch**: 'any' mode now requires at least one variant to match all filter keys
+- [x] **Document casingCounts semantics**: Added comment in CatalogService.merge()
+- [x] **Document canonical casing scope**: Added class and field javadoc to CatalogEntry
+- [x] **Document concurrent merge behavior**: Added comment noting last-write-wins as accepted limitation
+- [x] **Document PATCH authorization policy**: Added comment in CatalogController
+- [x] **Schema export stale entries**: Now uses server-validated mutation responses to build merged entries
+- [x] **Clear selectedField on filter-out**: Added useEffect in DiscoverFieldsPage
+- [x] **Facet sidebar mode documentation**: Added table with Include Any / Require All modes to search.md
+- [x] **Fix multi-select wording**: Fixed search.md with mode-specific behavior description
+
+### Earlier Fixes
 - [x] **Route from discovery to schema broken**: Fixed incorrect route `/search` to `/schema` in VariantExplorerPanel.tsx
 - [x] **Merge deduplication bug**: Pre-aggregate observations by field identity within `CatalogService.merge()`
 - [x] **Config binding mismatch**: Fixed `max-xpath-length` vs `maxFieldPathLength`
