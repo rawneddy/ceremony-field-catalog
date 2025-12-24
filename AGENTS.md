@@ -1,4 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
+
+<!-- Synced with CLAUDE.md - keep in sync when updating -->
 
 A dynamic field observation catalog that tracks XML field usage patterns across business contexts. Spring Boot + MongoDB backend, React + TypeScript frontend.
 

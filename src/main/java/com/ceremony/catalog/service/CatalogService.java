@@ -64,7 +64,7 @@ public class CatalogService {
             String originalFieldPath = cleanedObs.originalFieldPath();
 
             Map<String, String> requiredMetadata = filterToRequiredMetadata(context, dto.metadata());
-            Map<String, String> allowedMetadata = filterToAllowedMetadata(context, dto.metadata());
+            Map<String, String> observedOptionalMetadata = filterToOptionalMetadata(context, dto.metadata());
             FieldKey fieldKey = new FieldKey(cleanedContextId, requiredMetadata, dto.fieldPath());
             String id = fieldKey.toString();
 
@@ -77,8 +77,8 @@ public class CatalogService {
                 entry.setAllowsNull(entry.isAllowsNull() || dto.hasNull());
                 entry.setAllowsEmpty(entry.isAllowsEmpty() || dto.hasEmpty());
                 entry.setLastObservedAt(now);
-                // Also update metadata to include any new optional metadata
-                entry.setMetadata(allowedMetadata);
+                // Accumulate optional metadata values into sets
+                accumulateOptionalMetadata(entry, observedOptionalMetadata);
                 // Track casing variant: counts represent number of observation records (batches/documents)
                 // where this casing was seen, NOT total field occurrences (which would use dto.count()).
                 // This design choice means counts reflect "how many times did we see this casing in uploads"
@@ -89,14 +89,23 @@ public class CatalogService {
                 entry.getCasingCounts().merge(originalFieldPath, 1L, Long::sum);
                 entriesToSave.put(id, entry);
             } else {
-                // Create new entry - store all allowed metadata (required + optional)
+                // Create new entry with required metadata and initial optional metadata
                 Map<String, Long> initialCasingCounts = new HashMap<>();
                 initialCasingCounts.put(originalFieldPath, 1L);
+
+                // Convert observed optional metadata to TreeSets for deterministic ordering
+                Map<String, Set<String>> initialOptionalMetadata = new HashMap<>();
+                for (Map.Entry<String, String> e : observedOptionalMetadata.entrySet()) {
+                    Set<String> values = new TreeSet<>();
+                    values.add(e.getValue());
+                    initialOptionalMetadata.put(e.getKey(), values);
+                }
 
                 CatalogEntry newEntry = CatalogEntry.builder()
                     .id(id)
                     .contextId(cleanedContextId)
-                    .metadata(allowedMetadata)
+                    .requiredMetadata(requiredMetadata)
+                    .optionalMetadata(initialOptionalMetadata)
                     .fieldPath(dto.fieldPath())
                     .maxOccurs(dto.count())
                     .minOccurs(dto.count())
@@ -343,19 +352,11 @@ public class CatalogService {
         return filteredMetadata;
     }
 
-    private Map<String, String> filterToAllowedMetadata(Context context, Map<String, String> metadata) {
+    private Map<String, String> filterToOptionalMetadata(Context context, Map<String, String> metadata) {
         // Metadata is already lowercase from InputValidationService
         Map<String, String> filteredMetadata = new TreeMap<>();
 
-        // Include required metadata
-        for (String requiredField : context.getRequiredMetadata()) {
-            String value = metadata.get(requiredField);
-            if (value != null) {
-                filteredMetadata.put(requiredField, value);
-            }
-        }
-
-        // Include optional metadata if present
+        // Include only optional metadata fields
         if (context.getOptionalMetadata() != null) {
             for (String optionalField : context.getOptionalMetadata()) {
                 String value = metadata.get(optionalField);
@@ -366,5 +367,25 @@ public class CatalogService {
         }
 
         return filteredMetadata;
+    }
+
+    /**
+     * Accumulates optional metadata values into the entry's optionalMetadata sets.
+     * Each key maps to a set of all values ever observed for that field.
+     */
+    private void accumulateOptionalMetadata(CatalogEntry entry, Map<String, String> observedOptionalMetadata) {
+        if (observedOptionalMetadata == null || observedOptionalMetadata.isEmpty()) {
+            return;
+        }
+
+        Map<String, Set<String>> existingOptional = entry.getOptionalMetadata();
+        if (existingOptional == null) {
+            existingOptional = new HashMap<>();
+            entry.setOptionalMetadata(existingOptional);
+        }
+
+        for (Map.Entry<String, String> e : observedOptionalMetadata.entrySet()) {
+            existingOptional.computeIfAbsent(e.getKey(), k -> new TreeSet<>()).add(e.getValue());
+        }
     }
 }

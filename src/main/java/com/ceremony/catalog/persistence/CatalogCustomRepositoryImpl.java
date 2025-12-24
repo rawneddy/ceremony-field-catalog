@@ -46,11 +46,26 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         indexOps.ensureIndex(new Index()
             .on("fieldpath", Sort.Direction.ASC));
 
-        // Optimized compound index for findFieldPathsByContextAndMetadata queries
-        indexOps.ensureIndex(new Index()
-            .on("contextid", Sort.Direction.ASC)
-            .on("metadata", Sort.Direction.ASC)
-            .named("idx_context_metadata_fieldpath_optimized"));
+        // Wildcard indexes for dynamic metadata subfield queries (e.g., requiredmetadata.productcode)
+        // Spring Data doesn't have direct wildcard index support, so we use raw MongoDB commands
+        createWildcardIndex("requiredmetadata.$**", "idx_requiredmetadata_wildcard");
+        createWildcardIndex("optionalmetadata.$**", "idx_optionalmetadata_wildcard");
+    }
+
+    /**
+     * Creates a wildcard index using raw MongoDB command.
+     * Wildcard indexes support queries on dynamic subfields like metadata.productcode.
+     */
+    private void createWildcardIndex(String fieldPattern, String indexName) {
+        try {
+            Document indexSpec = new Document(fieldPattern, 1);
+            Document command = new Document("createIndexes", "catalog_fields")
+                .append("indexes", List.of(new Document("key", indexSpec).append("name", indexName)));
+            mongoTemplate.getDb().runCommand(command);
+        } catch (Exception e) {
+            // Index may already exist - log but don't fail startup
+            // In production, consider logging this at DEBUG level
+        }
     }
 
     @Override
@@ -82,30 +97,48 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         String searchPattern = criteriaDto.getSearchPattern();
 
         // Build the discovery OR conditions (match ANY field)
+        // Search in fieldpath, contextid, and all metadata values (both required and optional)
         //
-        // The third condition uses MongoDB aggregation operators to search across all metadata values:
+        // For required metadata (Map<String, String>):
+        // $objectToArray converts to [{k, v}, ...] and we check if any v matches
         //
-        // $objectToArray: Converts the metadata object (e.g., {"productCode": "DDA", "channel": "Online"})
-        //                 into an array of {k, v} pairs: [{k: "productCode", v: "DDA"}, {k: "channel", v: "Online"}]
-        //                 This allows iteration over dynamic/unknown metadata keys.
-        //
-        // $map: Iterates over each {k, v} pair from $objectToArray and applies $regexMatch to the value ($$m.v).
-        //       Returns an array of booleans indicating whether each metadata value matches the search pattern.
-        //
-        // $anyElementTrue: Returns true if ANY element in the boolean array is true.
-        //                  This achieves "match if any metadata value contains the search term" behavior.
-        //
-        // Example: searching for "online" would match a document with metadata.channel = "Online"
+        // For optional metadata (Map<String, Set<String>>):
+        // $objectToArray converts to [{k, v}, ...] where v is an array
+        // We need nested iteration to check if any value in any array matches
         Document discoveryConditions = new Document("$or", Arrays.asList(
             new Document("fieldpath", new Document("$regex", searchPattern)),
             new Document("contextid", new Document("$regex", searchPattern)),
+            // Search in required metadata values (single strings)
             new Document("$expr", new Document("$anyElementTrue",
                 new Document("$map", new Document()
-                    .append("input", new Document("$objectToArray", "$metadata"))
+                    .append("input", new Document("$ifNull", Arrays.asList(
+                        new Document("$objectToArray", "$requiredmetadata"),
+                        List.of()
+                    )))
                     .append("as", "m")
                     .append("in", new Document("$regexMatch", new Document()
                         .append("input", "$$m.v")
                         .append("regex", searchPattern)
+                    ))
+                )
+            )),
+            // Search in optional metadata values (arrays of strings)
+            new Document("$expr", new Document("$anyElementTrue",
+                new Document("$map", new Document()
+                    .append("input", new Document("$ifNull", Arrays.asList(
+                        new Document("$objectToArray", "$optionalmetadata"),
+                        List.of()
+                    )))
+                    .append("as", "m")
+                    .append("in", new Document("$anyElementTrue",
+                        new Document("$map", new Document()
+                            .append("input", new Document("$ifNull", Arrays.asList("$$m.v", List.of())))
+                            .append("as", "val")
+                            .append("in", new Document("$regexMatch", new Document()
+                                .append("input", "$$val")
+                                .append("regex", searchPattern)
+                            ))
+                        )
                     ))
                 )
             ))
@@ -128,12 +161,22 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
             for (Map.Entry<String, List<String>> entry : criteriaDto.metadata().entrySet()) {
                 List<String> values = entry.getValue();
                 if (values != null && !values.isEmpty()) {
+                    // Match in either requiredmetadata (exact) or optionalmetadata (array containment)
+                    String reqKey = "requiredmetadata." + entry.getKey();
+                    String optKey = "optionalmetadata." + entry.getKey();
                     if (values.size() == 1) {
-                        // Single value - exact match
-                        andConditions.add(new Document("metadata." + entry.getKey(), values.get(0)));
+                        // Single value - check both required (exact) and optional (array contains)
+                        String value = values.get(0);
+                        andConditions.add(new Document("$or", Arrays.asList(
+                            new Document(reqKey, value),
+                            new Document(optKey, value)  // MongoDB array containment
+                        )));
                     } else {
-                        // Multiple values - OR logic using $in
-                        andConditions.add(new Document("metadata." + entry.getKey(), new Document("$in", values)));
+                        // Multiple values - OR logic using $in for both
+                        andConditions.add(new Document("$or", Arrays.asList(
+                            new Document(reqKey, new Document("$in", values)),
+                            new Document(optKey, new Document("$in", values))
+                        )));
                     }
                 }
             }
@@ -212,18 +255,28 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
 
         // Filter by metadata fields if specified
         // Supports multiple values per key (OR logic within field, AND logic between fields)
+        // Metadata can be in either requiredmetadata (single value) or optionalmetadata (array)
         Optional.ofNullable(criteriaDto.metadata())
             .ifPresent(metadata -> {
                 for (Map.Entry<String, List<String>> entry : metadata.entrySet()) {
                     String key = entry.getKey();
                     List<String> values = entry.getValue();
                     if (values != null && !values.isEmpty()) {
+                        String reqKey = "requiredmetadata." + key;
+                        String optKey = "optionalmetadata." + key;
                         if (values.size() == 1) {
-                            // Single value - exact match
-                            filters.add(Criteria.where("metadata." + key).is(values.get(0)));
+                            // Single value - check required (exact) or optional (array contains)
+                            String value = values.get(0);
+                            filters.add(new Criteria().orOperator(
+                                Criteria.where(reqKey).is(value),
+                                Criteria.where(optKey).is(value)  // MongoDB array containment
+                            ));
                         } else {
-                            // Multiple values - OR logic using $in
-                            filters.add(Criteria.where("metadata." + key).in(values));
+                            // Multiple values - OR logic using $in for both
+                            filters.add(new Criteria().orOperator(
+                                Criteria.where(reqKey).in(values),
+                                Criteria.where(optKey).in(values)
+                            ));
                         }
                     }
                 }
@@ -274,22 +327,33 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
 
     @Override
     public List<String> findFieldPathsByContextAndMetadata(String contextId, Map<String, String> metadata) {
-        Query query = new Query();
+        List<Criteria> allCriteria = new ArrayList<>();
 
         // Add context filter
         if (contextId != null && !contextId.trim().isEmpty()) {
-            query.addCriteria(Criteria.where("contextid").is(contextId));
+            allCriteria.add(Criteria.where("contextid").is(contextId));
         }
 
         // Add metadata criteria dynamically
+        // Check both requiredmetadata (exact) and optionalmetadata (array containment)
         if (metadata != null && !metadata.isEmpty()) {
             for (Map.Entry<String, String> entry : metadata.entrySet()) {
                 String key = entry.getKey();
                 String value = entry.getValue();
                 if (key != null && !key.trim().isEmpty() && value != null && !value.trim().isEmpty()) {
-                    query.addCriteria(Criteria.where("metadata." + key).is(value));
+                    String reqKey = "requiredmetadata." + key;
+                    String optKey = "optionalmetadata." + key;
+                    allCriteria.add(new Criteria().orOperator(
+                        Criteria.where(reqKey).is(value),
+                        Criteria.where(optKey).is(value)
+                    ));
                 }
             }
+        }
+
+        Query query = new Query();
+        if (!allCriteria.isEmpty()) {
+            query.addCriteria(new Criteria().andOperator(allCriteria.toArray(new Criteria[0])));
         }
 
         // Project only fieldpath field for minimal data transfer
@@ -306,20 +370,26 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
 
     @Override
     public List<String> suggestValues(String field, String prefix, String contextId, Map<String, String> metadata, int limit) {
-        Query query = new Query();
+        List<Criteria> allCriteria = new ArrayList<>();
 
         // Add context filter if provided
         if (contextId != null && !contextId.trim().isEmpty()) {
-            query.addCriteria(Criteria.where("contextid").is(contextId));
+            allCriteria.add(Criteria.where("contextid").is(contextId));
         }
 
         // Add metadata filters if provided
+        // Check both requiredmetadata (exact) and optionalmetadata (array containment)
         if (metadata != null && !metadata.isEmpty()) {
             for (Map.Entry<String, String> entry : metadata.entrySet()) {
                 String key = entry.getKey();
                 String value = entry.getValue();
                 if (key != null && !key.trim().isEmpty() && value != null && !value.trim().isEmpty()) {
-                    query.addCriteria(Criteria.where("metadata." + key).is(value));
+                    String reqKey = "requiredmetadata." + key;
+                    String optKey = "optionalmetadata." + key;
+                    allCriteria.add(new Criteria().orOperator(
+                        Criteria.where(reqKey).is(value),
+                        Criteria.where(optKey).is(value)
+                    ));
                 }
             }
         }
@@ -327,21 +397,45 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         // Normalize field name to lowercase for MongoDB query
         String normalizedField = field.toLowerCase();
 
+        // Determine the actual MongoDB field paths based on the field type
+        String reqFieldPath = normalizedField.startsWith("metadata.")
+            ? "requiredmetadata." + normalizedField.substring("metadata.".length())
+            : normalizedField;
+        String optFieldPath = normalizedField.startsWith("metadata.")
+            ? "optionalmetadata." + normalizedField.substring("metadata.".length())
+            : null;
+
         // Add prefix filter (no "i" flag needed - data and prefix are lowercase)
         if (prefix != null && !prefix.trim().isEmpty()) {
-            // Escape regex special characters in prefix
             String escapedPrefix = prefix.replaceAll("([\\\\\\[\\](){}.*+?^$|])", "\\\\$1");
-            query.addCriteria(Criteria.where(normalizedField).regex("^" + escapedPrefix));
+            if (optFieldPath != null) {
+                // For metadata fields, check both required and optional
+                allCriteria.add(new Criteria().orOperator(
+                    Criteria.where(reqFieldPath).regex("^" + escapedPrefix),
+                    Criteria.where(optFieldPath).regex("^" + escapedPrefix)
+                ));
+            } else {
+                allCriteria.add(Criteria.where(normalizedField).regex("^" + escapedPrefix));
+            }
         }
 
-        // Project only the field we need
-        query.fields().include(normalizedField);
+        Query query = new Query();
+        if (!allCriteria.isEmpty()) {
+            query.addCriteria(new Criteria().andOperator(allCriteria.toArray(new Criteria[0])));
+        }
+
+        // Project the fields we need
+        if (optFieldPath != null) {
+            query.fields().include(reqFieldPath).include(optFieldPath);
+        } else {
+            query.fields().include(normalizedField);
+        }
 
         // Execute query and extract distinct values
         List<CatalogEntry> results = mongoTemplate.find(query, CatalogEntry.class);
 
         return results.stream()
-            .map(entry -> extractFieldValue(entry, normalizedField))
+            .flatMap(entry -> extractFieldValues(entry, normalizedField).stream())
             .filter(value -> value != null && !value.trim().isEmpty())
             .distinct()
             .sorted()
@@ -353,6 +447,8 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
     public List<String> suggestValues(String field, String prefix, String contextId, Map<String, String> metadata, Set<String> activeContextIds, int limit) {
         String normalizedField = field.toLowerCase();
         boolean isFieldPath = "fieldpath".equals(normalizedField);
+        boolean isMetadataField = normalizedField.startsWith("metadata.");
+        String metadataKey = isMetadataField ? normalizedField.substring("metadata.".length()) : null;
 
         // Build match criteria
         List<Criteria> filters = new ArrayList<>();
@@ -367,13 +463,18 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
             filters.add(Criteria.where("contextid").in(activeContextIds));
         }
 
-        // Add metadata filters
+        // Add metadata filters - check both required and optional
         if (metadata != null && !metadata.isEmpty()) {
             for (Map.Entry<String, String> entry : metadata.entrySet()) {
                 String key = entry.getKey();
                 String value = entry.getValue();
                 if (key != null && !key.trim().isEmpty() && value != null && !value.trim().isEmpty()) {
-                    filters.add(Criteria.where("metadata." + key).is(value));
+                    String reqKey = "requiredmetadata." + key;
+                    String optKey = "optionalmetadata." + key;
+                    filters.add(new Criteria().orOperator(
+                        Criteria.where(reqKey).is(value),
+                        Criteria.where(optKey).is(value)
+                    ));
                 }
             }
         }
@@ -381,10 +482,21 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         // Add prefix filter
         if (prefix != null && !prefix.trim().isEmpty()) {
             String escapedPrefix = prefix.replaceAll("([\\\\\\[\\](){}.*+?^$|])", "\\\\$1");
-            // If checking fieldPath, we check for containment anywhere if it doesn't start with /
-            // If it starts with /, we anchor to start (prefix match)
-            if (isFieldPath && !prefix.startsWith("/")) {
-                filters.add(Criteria.where(normalizedField).regex(escapedPrefix));
+            if (isFieldPath) {
+                // If checking fieldPath, we check for containment anywhere if it doesn't start with /
+                if (!prefix.startsWith("/")) {
+                    filters.add(Criteria.where(normalizedField).regex(escapedPrefix));
+                } else {
+                    filters.add(Criteria.where(normalizedField).regex("^" + escapedPrefix));
+                }
+            } else if (isMetadataField) {
+                // For metadata fields, check both required and optional
+                String reqKey = "requiredmetadata." + metadataKey;
+                String optKey = "optionalmetadata." + metadataKey;
+                filters.add(new Criteria().orOperator(
+                    Criteria.where(reqKey).regex("^" + escapedPrefix),
+                    Criteria.where(optKey).regex("^" + escapedPrefix)
+                ));
             } else {
                 filters.add(Criteria.where(normalizedField).regex("^" + escapedPrefix));
             }
@@ -395,25 +507,60 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
             pipeline.add(Aggregation.match(new Criteria().andOperator(filters.toArray(new Criteria[0]))));
         }
 
-        // Group directly by the field - use $-prefixed field reference for nested paths
-        // This handles both "fieldpath" and "metadata.productcode" correctly
-        pipeline.add(Aggregation.group("$" + normalizedField));
+        // For metadata fields, we need to handle both required (single value) and optional (array)
+        if (isMetadataField) {
+            // Combine required and optional values into a single array, then unwind
+            // This ensures we get ALL values - both required AND all optional values
+            String reqPath = "$requiredmetadata." + metadataKey;
+            String optPath = "$optionalmetadata." + metadataKey;
 
-        // For fieldPath, calculate depth (slash count) for sorting
-        if (isFieldPath) {
-            pipeline.add(Aggregation.project()
-                .and("_id").as("value")
-                .and(context -> new Document("$subtract", Arrays.asList(
-                    new Document("$strLenCP", "$_id"),
-                    new Document("$strLenCP", new Document("$replaceAll", new Document("input", "$_id").append("find", "/").append("replacement", "")))
-                ))).as("depth")
-            );
-            // Sort by depth ASC, then value ASC
-            pipeline.add(Aggregation.sort(Sort.Direction.ASC, "depth"));
-            pipeline.add(Aggregation.sort(Sort.Direction.ASC, "value"));
-        } else {
-            // For metadata, sort by value ASC
+            // Project a combined "allValues" array: [reqValue] + optValues (filtering out nulls)
+            pipeline.add(context -> new Document("$project", new Document()
+                .append("_id", 0)
+                .append("allValues", new Document("$concatArrays", Arrays.asList(
+                    // Wrap required value in array if it exists, otherwise empty array
+                    new Document("$cond", new Document()
+                        .append("if", new Document("$ne", Arrays.asList(reqPath, null)))
+                        .append("then", Arrays.asList(reqPath))
+                        .append("else", List.of())
+                    ),
+                    // Optional values array, or empty if null
+                    new Document("$ifNull", Arrays.asList(optPath, List.of()))
+                )))
+            ));
+
+            // Unwind the combined array
+            pipeline.add(context -> new Document("$unwind", "$allValues"));
+
+            // Filter out nulls/empty strings
+            pipeline.add(context -> new Document("$match", new Document("$and", Arrays.asList(
+                new Document("allValues", new Document("$ne", null)),
+                new Document("allValues", new Document("$ne", ""))
+            ))));
+
+            // Group by value for distinct
+            pipeline.add(Aggregation.group("$allValues"));
             pipeline.add(Aggregation.sort(Sort.Direction.ASC, "_id"));
+        } else {
+            // Group directly by the field - use $-prefixed field reference
+            pipeline.add(Aggregation.group("$" + normalizedField));
+
+            // For fieldPath, calculate depth (slash count) for sorting
+            if (isFieldPath) {
+                pipeline.add(Aggregation.project()
+                    .and("_id").as("value")
+                    .and(context -> new Document("$subtract", Arrays.asList(
+                        new Document("$strLenCP", "$_id"),
+                        new Document("$strLenCP", new Document("$replaceAll", new Document("input", "$_id").append("find", "/").append("replacement", "")))
+                    ))).as("depth")
+                );
+                // Sort by depth ASC, then value ASC
+                pipeline.add(Aggregation.sort(Sort.Direction.ASC, "depth"));
+                pipeline.add(Aggregation.sort(Sort.Direction.ASC, "value"));
+            } else {
+                // Sort by value ASC
+                pipeline.add(Aggregation.sort(Sort.Direction.ASC, "_id"));
+            }
         }
 
         pipeline.add(Aggregation.limit(limit));
@@ -438,24 +585,49 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         String searchPattern = escapeRegex(searchTerm.toLowerCase());
 
         // Build the discovery match conditions (OR across all fields)
-        // See executeGlobalSearch() for detailed explanation of $objectToArray/$anyElementTrue operators
+        // Search in fieldpath, contextid, and all metadata values (both required and optional)
+        // For optional metadata arrays, we need to check if any element matches
         Document discoveryConditions = new Document("$or", Arrays.asList(
             new Document("fieldpath", new Document("$regex", searchPattern)),
             new Document("contextid", new Document("$regex", searchPattern)),
+            // Search in required metadata values
             new Document("$expr", new Document("$anyElementTrue",
                 new Document("$map", new Document()
-                    .append("input", new Document("$objectToArray", "$metadata"))
+                    .append("input", new Document("$ifNull", Arrays.asList(
+                        new Document("$objectToArray", "$requiredmetadata"),
+                        List.of()
+                    )))
                     .append("as", "m")
                     .append("in", new Document("$regexMatch", new Document()
                         .append("input", "$$m.v")
                         .append("regex", searchPattern)
                     ))
                 )
+            )),
+            // Search in optional metadata values (arrays)
+            new Document("$expr", new Document("$anyElementTrue",
+                new Document("$map", new Document()
+                    .append("input", new Document("$ifNull", Arrays.asList(
+                        new Document("$objectToArray", "$optionalmetadata"),
+                        List.of()
+                    )))
+                    .append("as", "m")
+                    .append("in", new Document("$anyElementTrue",
+                        new Document("$map", new Document()
+                            .append("input", new Document("$ifNull", Arrays.asList("$$m.v", List.of())))
+                            .append("as", "val")
+                            .append("in", new Document("$regexMatch", new Document()
+                                .append("input", "$$val")
+                                .append("regex", searchPattern)
+                            ))
+                        )
+                    ))
+                )
             ))
         ));
 
         List<Criteria> andFilters = new ArrayList<>();
-        
+
         // Add scope filters (context/metadata) - these are ANDed with the discovery OR
         if (contextId != null && !contextId.trim().isEmpty()) {
             if (activeContextIds != null && !activeContextIds.contains(contextId)) {
@@ -469,7 +641,12 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
         if (metadata != null && !metadata.isEmpty()) {
             for (Map.Entry<String, String> entry : metadata.entrySet()) {
                 if (entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
-                    andFilters.add(Criteria.where("metadata." + entry.getKey()).is(entry.getValue()));
+                    String reqKey = "requiredmetadata." + entry.getKey();
+                    String optKey = "optionalmetadata." + entry.getKey();
+                    andFilters.add(new Criteria().orOperator(
+                        Criteria.where(reqKey).is(entry.getValue()),
+                        Criteria.where(optKey).is(entry.getValue())
+                    ));
                 }
             }
         }
@@ -505,16 +682,40 @@ public class CatalogCustomRepositoryImpl implements CatalogCustomRepository {
             .collect(Collectors.toList());
     }
 
-    private String extractFieldValue(CatalogEntry entry, String field) {
+    /**
+     * Extracts all values for a field from an entry.
+     * For metadata fields, returns both required value (if present) and all optional values.
+     */
+    private List<String> extractFieldValues(CatalogEntry entry, String field) {
         if ("fieldpath".equals(field)) {
-            return entry.getFieldPath();
+            String fieldPath = entry.getFieldPath();
+            return fieldPath != null ? List.of(fieldPath) : List.of();
         } else if (field.startsWith("metadata.")) {
-            // All keys are lowercase
+            // All keys are lowercase - collect both required and optional metadata values
             String metadataKey = field.substring("metadata.".length());
-            Map<String, String> metadata = entry.getMetadata();
-            return metadata != null ? metadata.get(metadataKey) : null;
+            List<String> allValues = new ArrayList<>();
+
+            // Add required metadata value if present
+            Map<String, String> reqMetadata = entry.getRequiredMetadata();
+            if (reqMetadata != null && reqMetadata.containsKey(metadataKey)) {
+                String value = reqMetadata.get(metadataKey);
+                if (value != null) {
+                    allValues.add(value);
+                }
+            }
+
+            // Add all optional metadata values
+            Map<String, Set<String>> optMetadata = entry.getOptionalMetadata();
+            if (optMetadata != null && optMetadata.containsKey(metadataKey)) {
+                Set<String> values = optMetadata.get(metadataKey);
+                if (values != null) {
+                    allValues.addAll(values);
+                }
+            }
+
+            return allValues;
         }
-        return null;
+        return List.of();
     }
 
     @Override

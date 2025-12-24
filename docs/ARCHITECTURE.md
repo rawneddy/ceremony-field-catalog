@@ -110,7 +110,9 @@ Handles field observations and searches.
 |----------|--------|---------|
 | `/catalog/contexts/{contextId}/observations` | POST | Submit field observations |
 | `/catalog/fields` | GET | Search catalog with filters |
-| `/catalog/suggest` | GET | Autocomplete field paths |
+| `/catalog/fields/{id}` | GET | Get single field by ID (404 if not found) |
+| `/catalog/fields/{id}/canonical-casing` | PUT | Set canonical casing for schema export |
+| `/catalog/suggest` | GET | Autocomplete with cascading metadata filters |
 
 #### Dynamic Parameter Resolver
 Converts any unknown query parameter into a metadata filter. Enables searches like:
@@ -203,11 +205,19 @@ MongoDB document store with two collections:
 {
   "_id": "field_1847362951",                        // Hash-based ID
   "contextId": "renderdata",
-  "metadata": {
-    "documentcode": "stmt001",                      // Lowercase normalized
-    "productcode": "dda"
+  "requiredmetadata": {
+    "documentcode": "stmt001"                       // Part of field identity, immutable
   },
-  "fieldPath": "/Document/TaxWithholding/Amount",
+  "optionalmetadata": {
+    "productcode": ["sav", "dda"],                  // Accumulated values (order not guaranteed)
+    "channel": ["mobile", "web"]
+  },
+  "fieldPath": "/document/taxwithholding/amount",   // Stored lowercase for identity/search
+  "casingcounts": {
+    "/Document/TaxWithholding/Amount": 45,          // Original casing with observation count
+    "/document/taxwithholding/amount": 3
+  },
+  "canonicalcasing": "/Document/TaxWithholding/Amount",  // User-selected casing for export
   "maxOccurs": 3,
   "minOccurs": 0,
   "allowsNull": true,
@@ -223,8 +233,11 @@ MongoDB document store with two collections:
 |-------|------|-------------|
 | `_id` | String | Hash of `contextId + requiredMetadata + fieldPath` |
 | `contextId` | String | Reference to context |
-| `metadata` | Object | Key-value pairs (all required + any optional observed) |
-| `fieldPath` | String | XPath of the observed field |
+| `requiredmetadata` | Object | Key-value pairs (single value per key) that contribute to field identity |
+| `optionalmetadata` | Object | Key to array of strings - all values ever observed (order not guaranteed after storage) |
+| `fieldPath` | String | XPath of the observed field (lowercase for identity/search) |
+| `casingcounts` | Object | Map of observed original casings to their occurrence counts |
+| `canonicalcasing` | String | User-selected casing for schema export (null if not set) |
 | `maxOccurs` | Integer | Maximum times this field appeared in a single document |
 | `minOccurs` | Integer | Minimum times (0 = sometimes absent) |
 | `allowsNull` | Boolean | Has been observed with null value |
@@ -278,8 +291,11 @@ Example:
 // FieldPath pattern search
 { "fieldPath": 1 }
 
-// Context + metadata (for single-context cleanup queries)
-{ "contextId": 1, "metadata": 1 }
+// Required metadata wildcard (for identity-based queries)
+{ "requiredmetadata.$**": 1 }
+
+// Optional metadata wildcard (for filtering by accumulated values)
+{ "optionalmetadata.$**": 1 }
 ```
 
 ---

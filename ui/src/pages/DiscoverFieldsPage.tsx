@@ -15,7 +15,39 @@ import { useDiscoveryFacets } from '../hooks/useDiscoveryFacets';
 import { useContexts } from '../hooks/useContexts';
 import { useDebounce } from '../hooks/useDebounce';
 import { config } from '../config';
-import type { AggregatedField } from '../types';
+import type { AggregatedField, CatalogEntry } from '../types';
+
+/**
+ * Check if a variant has a metadata value (checking both required and optional).
+ */
+const variantHasMetadataValue = (variant: CatalogEntry, key: string, value: string): boolean => {
+  // Check required metadata
+  if (variant.requiredMetadata?.[key] === value) {
+    return true;
+  }
+  // Check optional metadata (array)
+  if (variant.optionalMetadata?.[key]?.includes(value)) {
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Check if a variant matches any of the selected values for a key.
+ */
+const variantMatchesSelection = (variant: CatalogEntry, key: string, selectedValues: string[]): boolean => {
+  // Check required metadata
+  const reqValue = variant.requiredMetadata?.[key];
+  if (reqValue && selectedValues.includes(reqValue)) {
+    return true;
+  }
+  // Check optional metadata (any value in array matches any selected value)
+  const optValues = variant.optionalMetadata?.[key];
+  if (optValues && optValues.some(v => selectedValues.includes(v))) {
+    return true;
+  }
+  return false;
+};
 
 // Type for incoming state when returning from Schema page
 interface DiscoveryIncomingState {
@@ -106,7 +138,7 @@ const DiscoverFieldsPage: React.FC = () => {
           );
         } else {
           return selectedValues.every(sv =>
-            field.variants.some(v => v.metadata[key] === sv)
+            field.variants.some(v => variantHasMetadataValue(v, key, sv))
           );
         }
       });
@@ -122,8 +154,7 @@ const DiscoverFieldsPage: React.FC = () => {
           if (key === 'contextId') {
             return selectedValues.includes(variant.contextId);
           } else {
-            const value = variant.metadata[key];
-            return value !== undefined && selectedValues.includes(value);
+            return variantMatchesSelection(variant, key, selectedValues);
           }
         })
       );

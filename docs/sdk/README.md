@@ -64,6 +64,8 @@ Request body:
 
 For live API documentation, run the server and visit `/swagger-ui.html`.
 
+**Note:** Observation **requests** use a single `metadata` map. The API **response** CatalogEntry has a split structure: `requiredMetadata` (single values) and `optionalMetadata` (accumulated arrays of all observed values).
+
 ---
 
 ## API Types (TypeScript Reference)
@@ -83,14 +85,15 @@ interface Context {
 }
 
 interface CatalogEntry {
-  id: string;                           // Hash-based unique ID
-  contextId: string;                    // Reference to context
-  metadata: Record<string, string>;     // Key-value pairs (lowercase)
-  fieldPath: string;                    // XPath of the field
-  maxOccurs: number;                    // Maximum occurrences observed
-  minOccurs: number;                    // Minimum occurrences (0 = optional)
-  allowsNull: boolean;                  // Has been observed with null
-  allowsEmpty: boolean;                 // Has been observed empty
+  id: string;                                  // Hash-based unique ID
+  contextId: string;                           // Reference to context
+  requiredMetadata: Record<string, string>;    // Single value per key (lowercase)
+  optionalMetadata: Record<string, string[]>;  // Accumulated values as arrays
+  fieldPath: string;                           // XPath of the field
+  maxOccurs: number;                           // Maximum occurrences observed
+  minOccurs: number;                           // Minimum occurrences (0 = optional)
+  allowsNull: boolean;                         // Has been observed with null
+  allowsEmpty: boolean;                        // Has been observed empty
 }
 
 interface CatalogObservation {

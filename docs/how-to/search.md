@@ -42,9 +42,15 @@ GET /catalog/fields?contextId=deposits&fieldPathContains=Account&metadata.produc
 | `contextId` | Exact match (case-insensitive, normalized to lowercase) |
 | `fieldPathContains` | Contains match on `fieldPath` |
 | `useRegex=true` | Treat `fieldPathContains` as regex pattern |
-| `metadata.<key>=<value>` | Exact match on metadata field |
+| `metadata.<key>=<value>` | Match on required OR optional metadata |
 
 **Multi-value metadata:** `metadata.productCode=DDA&metadata.productCode=SAV` → OR within field, AND between fields.
+
+**Metadata matching behavior:**
+- For **required metadata**: exact match on single value
+- For **optional metadata**: match if ANY accumulated value in the set matches (array containment)
+
+Since optional metadata accumulates all observed values over time, filtering by `metadata.channel=web` will match any field that was *ever* observed with `channel=web`, even if it was also observed with other channel values.
 
 ---
 
@@ -105,6 +111,28 @@ This Splunk-style approach allows fast drill-down into loaded results without ro
 - `FacetSidebar.tsx` - facet display
 - `MetadataFilters.tsx` - header filter chips
 
+#### Variant Explorer Panel
+
+Clicking a field in the table opens the Variant Explorer panel on the right. This shows all **schema variants** (unique context + required metadata combinations) where the field path appears.
+
+For each variant you can see:
+- Schema key (context + required metadata values)
+- Optional metadata (hover the tag icon to see accumulated values)
+- Min/max occurs, null/empty behavior
+- Link to view that variant in Schema Search
+
+The panel respects current facet filters - variants hidden by filters appear dimmed. Toggle "Show all variants" to reveal them.
+
+#### Cascading Metadata Filters
+
+The metadata filter inputs (TagInput components) support **cascading suggestions**. When you select a value for one metadata field, suggestions for other fields are constrained to values that exist together with your selection.
+
+Example:
+1. Select `ProductCode = DDA`
+2. Click into `SubProductCode` - suggestions now only show subproduct codes that were observed with `ProductCode=DDA`
+
+This helps users discover valid combinations instead of seeing all possible values.
+
 ### Explore Schema Page (`/schema`)
 
 - **Explicit search:** User clicks "Search" button
@@ -112,8 +140,19 @@ This Splunk-style approach allows fast drill-down into loaded results without ro
 - **Optional metadata:** Multi-value tag inputs
 - **Field filter:** Client-side filtering of results
 
+#### Return Navigation from Discovery
+
+When navigating from Discovery → Schema via the Variant Explorer panel's external link, the Schema page shows a return banner. Clicking "Return to Discovery" restores:
+- The original context and metadata filters
+- Facet filter selections and modes
+- Search query
+- The selected field path (re-opens in Variant Explorer)
+
+This enables a drill-down workflow: explore a field's variants in Discovery, jump to Schema to see full details of a specific variant, then return to continue exploration.
+
 **Key files:**
 - `ExploreSchemaPage.tsx` - page component
+- `DiscoveryReturnBanner.tsx` - return navigation banner
 - `InlineRequiredMetadata.tsx` - required inputs
 - `InlineOptionalMetadata.tsx` - optional inputs
 - `SchemaExportButtons.tsx` - XSD/JSON export

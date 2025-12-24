@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import type { CatalogEntry } from '../../types';
+import { getCombinedMetadata } from '../../types/aggregated.types';
 import { X, Database, Info, Activity, Clock, AlertTriangle } from 'lucide-react';
 import { config } from '../../config';
 import { getFieldWarnings, getWarningSeverityClasses } from '../../lib/schema/fieldWarnings';
@@ -96,7 +97,7 @@ const FieldDetailPanel: React.FC<FieldDetailPanelProps> = ({ entry, allEntries, 
             <h3 className="text-xs font-black uppercase tracking-widest">Metadata</h3>
           </div>
           <div className="space-y-2">
-            {Object.entries(entry.metadata).map(([key, value]) => (
+            {Object.entries(getCombinedMetadata(entry)).map(([key, value]) => (
               <div key={key} className="flex flex-col p-3 bg-paper border-l-4 border-ceremony rounded-r-md">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-1">{key}</span>
                 <span className="text-sm font-bold text-ink">{value}</span>

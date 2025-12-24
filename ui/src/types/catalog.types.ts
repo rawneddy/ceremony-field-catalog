@@ -12,7 +12,19 @@ export interface CatalogSearchRequest {
 export interface CatalogEntry {
   id: string;
   contextId: string;
-  metadata: Record<string, string>;
+  /**
+   * Required metadata fields that form part of the field identity.
+   * Single value per key, immutable after creation.
+   * May be null/undefined for legacy entries.
+   */
+  requiredMetadata?: Record<string, string> | null;
+  /**
+   * Optional metadata fields tracking all observed values.
+   * Values are accumulated over time as observations are merged.
+   * Each key maps to an array of all values ever observed.
+   * May be null/undefined for legacy entries.
+   */
+  optionalMetadata?: Record<string, string[]> | null;
   fieldPath: string;
   maxOccurs: number;
   minOccurs: number;

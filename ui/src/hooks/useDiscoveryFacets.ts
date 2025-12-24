@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { AggregatedField, FacetValue, FacetIndex } from '../types';
+import { getAllMetadataValues } from '../types';
 
 /**
  * Extracts facet data from aggregated field results.
@@ -37,9 +38,10 @@ export const useDiscoveryFacets = (
 
       // Collect unique metadata values for this field (count field once per unique value)
       // First, gather all unique values per key for this field
+      // Uses getAllMetadataValues to extract both required and optional metadata
       const fieldMetadata = new Map<string, Set<string>>();
       for (const variant of field.variants) {
-        for (const [key, value] of Object.entries(variant.metadata)) {
+        for (const { key, value } of getAllMetadataValues(variant)) {
           if (!fieldMetadata.has(key)) {
             fieldMetadata.set(key, new Set());
           }

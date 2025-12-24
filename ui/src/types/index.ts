@@ -29,4 +29,4 @@ export type { ErrorResponse } from './api.types';
 
 // Aggregated types
 export type { TriState, AggregatedField } from './aggregated.types';
-export { formatSchemaKey } from './aggregated.types';
+export { formatSchemaKey, getCombinedMetadata, getAllMetadataValues } from './aggregated.types';

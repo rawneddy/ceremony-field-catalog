@@ -1,5 +1,27 @@
 import { useState, useMemo, useEffect } from 'react';
 import type { CatalogEntry, FacetIndex, FacetValue } from '../types';
+import { getAllMetadataValues } from '../types';
+
+/**
+ * Helper to check if an entry matches any of the selected values for a key.
+ */
+const entryMatchesFacetSelection = (entry: CatalogEntry, key: string, selected: Set<string>): boolean => {
+  if (selected.size === 0) return true;
+
+  // Check required metadata
+  const reqValue = entry.requiredMetadata?.[key];
+  if (reqValue && selected.has(reqValue)) {
+    return true;
+  }
+
+  // Check optional metadata (any value in array matches any selected value)
+  const optValues = entry.optionalMetadata?.[key];
+  if (optValues && optValues.some(v => selected.has(v))) {
+    return true;
+  }
+
+  return false;
+};
 
 export const useFacets = (results: CatalogEntry[] | undefined) => {
   const [selectedFacets, setSelectedFacets] = useState<Record<string, Set<string>>>({});
@@ -16,31 +38,37 @@ export const useFacets = (results: CatalogEntry[] | undefined) => {
 
     const index: FacetIndex = {};
 
-    // Get all metadata keys across all results
+    // Get all metadata keys across all results (from both required and optional)
     const allKeys = new Set<string>();
     results.forEach(entry => {
-      Object.keys(entry.metadata).forEach(key => allKeys.add(key));
+      if (entry.requiredMetadata) {
+        Object.keys(entry.requiredMetadata).forEach(key => allKeys.add(key));
+      }
+      if (entry.optionalMetadata) {
+        Object.keys(entry.optionalMetadata).forEach(key => allKeys.add(key));
+      }
     });
 
     allKeys.forEach(key => {
       const mode = facetModes[key] || 'any';
       const selected = selectedFacets[key] || new Set<string>();
 
-      // Disjunctive counting: 
+      // Disjunctive counting:
       // For the current key, apply ALL OTHER filters to see what values are available
       const resultsFilteredByOthers = results.filter(entry => {
         return Object.entries(selectedFacets).every(([otherKey, otherSelected]) => {
           if (otherKey === key || otherSelected.size === 0) return true;
-          const entryValue = entry.metadata[otherKey];
-          return entryValue && otherSelected.has(entryValue);
+          return entryMatchesFacetSelection(entry, otherKey, otherSelected);
         });
       });
 
       const valueCounts: Record<string, number> = {};
       resultsFilteredByOthers.forEach(entry => {
-        const val = entry.metadata[key];
-        if (val) {
-          valueCounts[val] = (valueCounts[val] || 0) + 1;
+        // Get all values for this key from the entry (both required and optional)
+        for (const { key: k, value } of getAllMetadataValues(entry)) {
+          if (k === key && value) {
+            valueCounts[value] = (valueCounts[value] || 0) + 1;
+          }
         }
       });
 
@@ -63,9 +91,7 @@ export const useFacets = (results: CatalogEntry[] | undefined) => {
 
     return results.filter(entry => {
       return Object.entries(selectedFacets).every(([key, selected]) => {
-        if (selected.size === 0) return true;
-        const entryValue = entry.metadata[key];
-        return entryValue && selected.has(entryValue);
+        return entryMatchesFacetSelection(entry, key, selected);
       });
     });
   }, [results, selectedFacets]);

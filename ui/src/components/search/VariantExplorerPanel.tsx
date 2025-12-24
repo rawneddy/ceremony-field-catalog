@@ -4,6 +4,7 @@ import type { AggregatedField, CatalogEntry } from '../../types';
 import { formatSchemaKey } from '../../types';
 import { X, ExternalLink, Layers, Clock, Filter, Eye, EyeOff } from 'lucide-react';
 import { TriStateBadge } from '../ui';
+import OptionalMetadataIndicator from '../ui/OptionalMetadataIndicator';
 import { config } from '../../config';
 
 /**
@@ -36,15 +37,18 @@ interface VariantExplorerPanelProps {
 /**
  * Build URL for linking to Schema Search with pre-filled values.
  * Uses `highlight` param to scroll to the field without filtering.
+ * Only uses required metadata since that defines the schema variant.
  */
 const buildSchemaSearchUrl = (entry: CatalogEntry): string => {
   const params = new URLSearchParams();
   params.set('contextId', entry.contextId);
 
-  // Add metadata with meta_ prefix
-  Object.entries(entry.metadata).forEach(([key, value]) => {
-    params.set(`meta_${key}`, value);
-  });
+  // Add required metadata with meta_ prefix (these define the schema variant)
+  if (entry.requiredMetadata) {
+    Object.entries(entry.requiredMetadata).forEach(([key, value]) => {
+      params.set(`meta_${key}`, value);
+    });
+  }
 
   // Use highlight param to scroll to field without filtering results
   params.set('highlight', entry.fieldPath);
@@ -54,6 +58,7 @@ const buildSchemaSearchUrl = (entry: CatalogEntry): string => {
 
 /**
  * Check if a variant matches the active facet filters.
+ * Checks both required metadata (single values) and optional metadata (arrays).
  */
 const variantMatchesFilters = (
   variant: CatalogEntry,
@@ -70,8 +75,19 @@ const variantMatchesFilters = (
     if (key === 'contextId') {
       return selectedValues.includes(variant.contextId);
     } else {
-      const value = variant.metadata[key];
-      return value !== undefined && selectedValues.includes(value);
+      // Check required metadata first (single value)
+      const reqValue = variant.requiredMetadata?.[key];
+      if (reqValue !== undefined && selectedValues.includes(reqValue)) {
+        return true;
+      }
+
+      // Check optional metadata (array of values)
+      const optValues = variant.optionalMetadata?.[key];
+      if (optValues && optValues.some(v => selectedValues.includes(v))) {
+        return true;
+      }
+
+      return false;
     }
   });
 };
@@ -269,6 +285,7 @@ const VariantExplorerPanel: React.FC<VariantExplorerPanelProps> = ({
                       >
                         {formatSchemaKey(variant)}
                       </div>
+                      <OptionalMetadataIndicator metadata={variant.optionalMetadata} />
                     </div>
                   </td>
                   <td className={`px-3 py-3 text-center text-sm font-medium ${
