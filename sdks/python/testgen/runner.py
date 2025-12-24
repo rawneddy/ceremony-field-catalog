@@ -271,8 +271,15 @@ class TestLaneRunner:
                 seed=self.seed,
             )
 
-            # Prepare metadata
-            base_metadata = dict(meta_config.context.required_metadata)
+            # Prepare base required metadata (fixed values only)
+            # List values will be randomly selected per-document below
+            base_metadata: dict[str, str] = {}
+            required_random_metadata: dict[str, list[str]] = {}
+            for key, value in meta_config.context.required_metadata.items():
+                if isinstance(value, list):
+                    required_random_metadata[key] = value
+                else:
+                    base_metadata[key] = value
 
             # Generate and submit XMLs
             try:
@@ -286,8 +293,15 @@ class TestLaneRunner:
 
             for i in iterator:
                 try:
-                    # Add random optional metadata
+                    # Build metadata for this document
                     metadata = base_metadata.copy()
+
+                    # Add random required metadata (required keys with list of values)
+                    for key, values in required_random_metadata.items():
+                        if values:
+                            metadata[key] = random.choice(values)
+
+                    # Add random optional metadata
                     for key, values in meta_config.context.optional_metadata.items():
                         if values:
                             metadata[key] = random.choice(values)

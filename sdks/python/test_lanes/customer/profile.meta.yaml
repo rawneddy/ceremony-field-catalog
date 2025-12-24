@@ -1,0 +1,105 @@
+# Test lane: Customer profile
+# Tests the customer context with profile data including personal info, address, and financial details
+
+context:
+  contextId: "customer"
+  displayName: "Customer"
+  description: "Customer profile data for testing"
+  requiredMetadata:
+    documenttype:
+      - "PROFILE"
+      - "CHANGE"
+      - "DELETE"
+  optionalMetadata:
+    region:
+      - "EAST"
+      - "WEST"
+      - "CENTRAL"
+      - "SOUTH"
+    channel:
+      - "ONLINE"
+      - "BRANCH"
+      - "MOBILE"
+    segment:
+      - "RETAIL"
+      - "PREMIER"
+      - "PRIVATE"
+
+generation:
+  defaults:
+    optionalFieldFillRate: 0.75
+    nullRate: 0.05
+    emptyRate: 0.02
+    repeatRange: [1, 3]
+
+  semanticTypes:
+    # Profile identifiers
+    "/CustomerProfile/CustomerId": "pattern:CUST-{YYYY}-{######}"
+    "/CustomerProfile/CreatedDate": "date.past"
+    "/CustomerProfile/LastUpdatedDate": "date.past"
+
+    # Personal information - Name
+    "/CustomerProfile/Personal/Name/FirstName": "person.first_name"
+    "/CustomerProfile/Personal/Name/MiddleName": "person.first_name"
+    "/CustomerProfile/Personal/Name/LastName": "person.last_name"
+    "/CustomerProfile/Personal/Name/Suffix": "person.suffix"
+
+    # Personal information - Identity & Contact
+    "/CustomerProfile/Personal/SSN": "ssn"
+    "/CustomerProfile/Personal/DateOfBirth": "date.birth"
+    "/CustomerProfile/Personal/Email": "email"
+    "/CustomerProfile/Personal/Phone": "phone.landline"
+    "/CustomerProfile/Personal/MobilePhone": "phone.mobile"
+
+    # Primary Address
+    "/CustomerProfile/Address/Street1": "address.street"
+    "/CustomerProfile/Address/Street2": "address.street2"
+    "/CustomerProfile/Address/City": "address.city"
+    "/CustomerProfile/Address/State": "address.state_abbr"
+    "/CustomerProfile/Address/ZipCode": "address.zipcode"
+    "/CustomerProfile/Address/Country": "address.country"
+
+    # Mailing Address (same types)
+    "/CustomerProfile/MailingAddress/Street1": "address.street"
+    "/CustomerProfile/MailingAddress/Street2": "address.street2"
+    "/CustomerProfile/MailingAddress/City": "address.city"
+    "/CustomerProfile/MailingAddress/State": "address.state_abbr"
+    "/CustomerProfile/MailingAddress/ZipCode": "address.zipcode"
+    "/CustomerProfile/MailingAddress/Country": "address.country"
+
+    # Financial information
+    "/CustomerProfile/Financial/AnnualIncome": "decimal(25000, 500000, 2)"
+    "/CustomerProfile/Financial/Employer": "company.name"
+
+    # Account details
+    "/CustomerProfile/Financial/Accounts/Account/AccountNumber": "pattern:ACC-{########}"
+    "/CustomerProfile/Financial/Accounts/Account/Balance": "decimal(0, 100000, 2)"
+    "/CustomerProfile/Financial/Accounts/Account/OpenedDate": "date.past"
+
+    # Preferences
+    "/CustomerProfile/Preferences/MarketingOptIn": "boolean"
+
+  fieldOverrides:
+    # Mailing address only in 40% (many use same as primary)
+    "/CustomerProfile/MailingAddress":
+      fillRate: 0.4
+
+    # Financial section in 70% of profiles
+    "/CustomerProfile/Financial":
+      fillRate: 0.7
+
+    # 1-4 accounts per customer
+    "/CustomerProfile/Financial/Accounts/Account":
+      repeatRange: [1, 4]
+
+    # Preferences section in 60% of profiles
+    "/CustomerProfile/Preferences":
+      fillRate: 0.6
+
+    # Middle name optional
+    "/CustomerProfile/Personal/Name/MiddleName":
+      fillRate: 0.3
+
+    # Suffix is rare
+    "/CustomerProfile/Personal/Name/Suffix":
+      fillRate: 0.1

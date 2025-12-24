@@ -22,6 +22,9 @@ from .values import ValueGeneratorRegistry, XsdTypeValueGenerator
 XSI_NAMESPACE = "http://www.w3.org/2001/XMLSchema-instance"
 XSI_NIL = f"{{{XSI_NAMESPACE}}}nil"
 
+# Register the xsi namespace prefix so ElementTree uses it consistently
+ET.register_namespace('xsi', XSI_NAMESPACE)
+
 
 class XmlGenerator:
     """
@@ -76,9 +79,8 @@ class XmlGenerator:
         if root is None:
             raise ValueError("Failed to generate root element")
 
-        # Add XSI namespace declaration if we have nillable elements
-        if self._has_nil_elements(root):
-            root.set(f"xmlns:xsi", XSI_NAMESPACE)
+        # Note: XSI namespace is handled automatically via ET.register_namespace()
+        # when xsi:nil attributes are present
 
         return root
 
@@ -177,10 +179,11 @@ class XmlGenerator:
         """Generate text content for a leaf element."""
         path = element_def.full_path
 
-        # Check for empty string
+        # Check for empty string (but NOT for enums - empty strings are invalid enum values)
         if element_def.type_def:
+            is_enum = element_def.type_def.enumeration is not None
             base_type = element_def.type_def.base_type.lower() if element_def.type_def.base_type else "string"
-            if base_type == "string" and self.distribution.should_be_empty(path):
+            if base_type == "string" and not is_enum and self.distribution.should_be_empty(path):
                 return ""
 
         # Check semantic type mapping

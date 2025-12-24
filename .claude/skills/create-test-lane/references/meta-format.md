@@ -10,9 +10,12 @@ context:
   contextId: "deposits"            # Required: API context ID
   displayName: "Deposits"          # Optional: Human-readable name
   description: "DDA deposits"      # Optional: Description
-  requiredMetadata:                # Required metadata key-value pairs
-    productCode: "DDA"
-    action: "fulfillment"
+  requiredMetadata:                # Required metadata (always included)
+    productCode: "DDA"             # Fixed value
+    action:                        # Random selection from list
+      - "fulfillment"
+      - "inquiry"
+      - "update"
   optionalMetadata:                # Optional metadata (random selection)
     region: [EAST, WEST, CENTRAL]
     channel: [ONLINE, BRANCH]
@@ -46,8 +49,8 @@ generation:
 | `contextId` | Yes | API context identifier |
 | `displayName` | No | Human-readable name |
 | `description` | No | Description text |
-| `requiredMetadata` | No | Key-value pairs (always included) |
-| `optionalMetadata` | No | Keys with array of possible values (randomly selected) |
+| `requiredMetadata` | No | Required keys - value can be string (fixed) or array (random selection) |
+| `optionalMetadata` | No | Optional keys with array of possible values (randomly selected) |
 
 ## Generation Defaults
 

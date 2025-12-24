@@ -49,6 +49,20 @@ Key XSD patterns:
 - `nillable="true"` for elements that can be nil
 - `<xs:restriction>` with `<xs:enumeration>` for fixed value lists
 
+**Important: Optional enum elements must be nillable**
+
+When an element uses an enumeration type AND is optional (`minOccurs="0"`), you MUST also add `nillable="true"`. This is because the generator's `emptyRate` setting can produce empty values, but empty strings are not valid enum values. Making the element nillable allows it to be represented as `xsi:nil="true"` instead of an empty string.
+
+```xml
+<!-- WRONG: Will fail validation if emptyRate produces empty value -->
+<xs:element name="Status" type="StatusEnum" minOccurs="0"/>
+
+<!-- CORRECT: Can be nil when empty -->
+<xs:element name="Status" type="StatusEnum" minOccurs="0" nillable="true"/>
+```
+
+This applies to all optional elements with enumeration types (Gender, Status, Type, Category, etc.).
+
 ### Step 3: Generate or Create the Meta File
 
 **Option A: Use init-meta command** (for existing XSD):

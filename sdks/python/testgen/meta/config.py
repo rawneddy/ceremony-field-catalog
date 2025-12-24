@@ -45,12 +45,17 @@ class GenerationConfig:
 
 @dataclass
 class ContextConfig:
-    """Context configuration section."""
+    """Context configuration section.
+
+    Required metadata can be either:
+    - A fixed string value: documenttype: "PROFILE"
+    - A list of values for random selection: documenttype: [PROFILE, CHANGE, DELETE]
+    """
 
     context_id: str
     display_name: str = ""
     description: str = ""
-    required_metadata: dict[str, str] = field(default_factory=dict)
+    required_metadata: dict[str, str | list[str]] = field(default_factory=dict)
     optional_metadata: dict[str, list[str]] = field(default_factory=dict)
 
 
