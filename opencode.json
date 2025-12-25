@@ -1,20 +1,25 @@
 {
-  "mcpServers": {
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
     "mongodb": {
-      "command": "npx",
-      "args": [
+      "type": "local",
+      "command": [
+        "npx",
         "-y",
         "@mongodb-js/mongodb-mcp-server",
         "--connectionString",
         "mongodb://localhost:27017/ceremony_catalog"
-      ]
+      ],
+      "enabled": true
     },
     "context7": {
-      "command": "npx",
-      "args": [
+      "type": "local",
+      "command": [
+        "npx",
         "-y",
         "@upstash/context7-mcp"
-      ]
+      ],
+      "enabled": true
     }
   }
 }

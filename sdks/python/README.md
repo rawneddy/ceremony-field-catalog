@@ -1,8 +1,9 @@
-# Python SDK (Test Implementation)
+# Python SDK & Test Data Generator
 
-**Purpose:** Functionally identical Python implementation of the .NET SDK for testing
-**Use when:** Testing SDK logic, running integration tests, validating behavior
-**Note:** This SDK is NOT intended for production use
+This directory contains two components:
+
+1. **Python SDK** - A test implementation mirroring the .NET SDK for validation
+2. **Test Data Generator** - CLI tool for generating realistic test XML from XSD schemas
 
 ---
 
@@ -59,3 +60,54 @@ If you need to modify SDK behavior:
 1. Make changes to both implementations
 2. Run the Python test suite to verify correctness
 3. Optionally run integration tests against the real API
+
+---
+
+## XML Test Data Generator
+
+The `testgen` module provides a CLI tool for generating realistic test XML documents from XSD schemas paired with meta.yaml configuration files.
+
+### Quick Start
+
+```bash
+cd sdks/python
+source .venv/bin/activate
+
+# Dry run - generate and validate without submitting to API
+python -m testgen.cli run ./test_lanes/ -l customer/profile --dry-run -n 10
+
+# Generate and submit to API
+python -m testgen.cli run ./test_lanes/ -l customer/profile -n 100
+
+# Save generated XMLs locally
+python -m testgen.cli run ./test_lanes/ -l customer/profile -n 10 --output-dir ./output/
+```
+
+### Test Lanes
+
+A test lane is an XSD schema paired with a meta.yaml configuration file. See `test_lanes/README.md` for full documentation.
+
+| Lane | Description |
+|------|-------------|
+| `loans/auto_basic` | Auto loan applications with borrower, collateral, and fee data |
+| `customer/profile` | Customer profiles with personal info, address, and financial data |
+
+### Creating New Test Lanes
+
+Use the Claude skill for guided test lane creation:
+
+```
+/create-test-lane
+```
+
+Or manually create:
+1. XSD schema at `test_lanes/<context>/<lane_name>.xsd`
+2. Meta config at `test_lanes/<context>/<lane_name>.meta.yaml`
+
+### Key Features
+
+- **Semantic types** - Generate realistic data (names, SSNs, addresses, etc.)
+- **Configurable distributions** - Control fill rates, null rates, repeat ranges
+- **Random metadata selection** - Required metadata can randomly select from a list
+- **XSD validation** - All generated XML is validated against the schema
+- **API submission** - Submit observations directly to the Catalog API

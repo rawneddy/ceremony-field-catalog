@@ -10,7 +10,8 @@
 | SDK | Location | Status | Use Case |
 |-----|----------|--------|----------|
 | **.NET Framework 4.8** | [`sdks/dotnet/net48/`](../../sdks/dotnet/net48/README.md) | Production | Legacy .NET applications |
-| **Python** | [`sdks/python/`](../../sdks/python/README.md) | Test only | SDK testing and validation |
+| **Python** | [`sdks/python/`](../../sdks/python/README.md) | Test/Internal | SDK testing and validation |
+| **Test Data Generator** | [`sdks/python/test_lanes/`](../../sdks/python/test_lanes/README.md) | Internal | Generate test XML from XSD schemas |
 
 ---
 

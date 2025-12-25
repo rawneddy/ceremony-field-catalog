@@ -4,3 +4,12 @@ requests>=2.28.0
 # Testing dependencies
 pytest>=7.0.0
 pytest-timeout>=2.0.0
+
+# Test data generator dependencies
+xmlschema>=3.0.0      # XSD parsing and validation
+PyYAML>=6.0           # Meta file parsing
+Faker>=18.0.0         # Realistic data generation
+tqdm>=4.64.0          # Progress bars
+
+# Optional: Better regex string generation
+# exrex>=0.11.0       # Uncomment if you need complex regex patterns
