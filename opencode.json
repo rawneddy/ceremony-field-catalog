@@ -11,6 +11,15 @@
         "mongodb://localhost:27017/ceremony_catalog"
       ],
       "enabled": true
+    },
+    "context7": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "enabled": true
     }
   }
 }

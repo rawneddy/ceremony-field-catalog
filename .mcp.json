@@ -8,6 +8,13 @@
         "--connectionString",
         "mongodb://localhost:27017/ceremony_catalog"
       ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ]
     }
   }
 }
