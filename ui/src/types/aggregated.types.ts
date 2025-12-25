@@ -10,7 +10,7 @@ export type TriState = 'yes' | 'no' | 'mixed';
  * Groups CatalogEntry documents by fieldPath, computing ranges and tri-state values.
  */
 export interface AggregatedField {
-  /** The field path (grouping key) */
+  /** The field path (grouping key) - lowercase canonical form */
   fieldPath: string;
 
   /** Number of distinct FieldKey variants for this field */
@@ -39,6 +39,9 @@ export interface AggregatedField {
 
   /** Distinct context IDs represented in variants */
   contexts: string[];
+
+  /** Merged casing counts from all variants */
+  casingCounts: Record<string, number>;
 }
 
 /**

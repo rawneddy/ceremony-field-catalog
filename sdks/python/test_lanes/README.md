@@ -6,12 +6,12 @@ Test lanes are XSD + meta.yaml pairs that define how to generate test XML data.
 
 ```
 test_lanes/
-├── deposits/
-│   ├── dda_fulfillment.xsd        # XSD schema for this lane
-│   └── dda_fulfillment.meta.yaml  # Generation configuration
 ├── loans/
-│   ├── auto_basic.xsd
-│   └── auto_basic.meta.yaml
+│   ├── auto_basic.xsd             # XSD schema for this lane
+│   └── auto_basic.meta.yaml       # Generation configuration
+├── customer/
+│   ├── profile.xsd
+│   └── profile.meta.yaml
 └── ...
 ```
 
@@ -36,12 +36,15 @@ This creates a `.meta.yaml` file with all field paths pre-populated.
 ```yaml
 # Context configuration
 context:
-  contextId: "deposits"            # Required: API context ID
-  displayName: "Deposits"          # Optional: Human-readable name
-  description: "DDA deposits"      # Optional: Description
-  requiredMetadata:                # Required metadata key-value pairs
-    productCode: "DDA"
-    action: "fulfillment"
+  contextId: "customer"            # Required: API context ID
+  displayName: "Customer"          # Optional: Human-readable name
+  description: "Customer profiles" # Optional: Description
+  requiredMetadata:                # Required metadata (always included)
+    productCode: "CRM"             # Fixed value
+    documenttype:                  # Random selection from list
+      - "PROFILE"
+      - "CHANGE"
+      - "DELETE"
   optionalMetadata:                # Optional metadata (random selection)
     region: [EAST, WEST, CENTRAL]
     channel: [ONLINE, BRANCH]
@@ -93,6 +96,7 @@ Built-in semantic types for realistic data generation:
 | `decimal(min, max, decimals)` | Random decimal | `decimal(100, 10000, 2)` → "5432.10" |
 | `integer(min, max)` | Random integer | `integer(1, 100)` → "42" |
 | `year(min, max)` | Random year | `year(2010, 2025)` → "2019" |
+| `choice(val1, val2, ...)` | Random selection | `choice(A, B, C)` → "B" |
 | `pattern:TEMPLATE` | Pattern-based | `pattern:LN-{YYYY}-{######}` → "LN-2024-123456" |
 
 ### Pattern Placeholders
@@ -114,7 +118,7 @@ Built-in semantic types for realistic data generation:
 python -m testgen.cli run ./test_lanes/
 
 # Run specific lane
-python -m testgen.cli run ./test_lanes/ -l deposits/dda_fulfillment
+python -m testgen.cli run ./test_lanes/ -l customer/profile
 
 # Generate 100 XMLs per lane
 python -m testgen.cli run ./test_lanes/ -n 100

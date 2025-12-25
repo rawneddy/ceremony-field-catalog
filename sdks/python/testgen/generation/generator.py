@@ -146,6 +146,11 @@ class XmlGenerator:
                     if child is not None:
                         elem.append(child)
 
+            # Skip empty container elements (no children generated)
+            # These would be observed as empty leaves by the SDK, which is misleading
+            if len(elem) == 0 and element_def.is_optional:
+                return None
+
         return elem
 
     def _create_nil_element(self, name: str) -> ET.Element:

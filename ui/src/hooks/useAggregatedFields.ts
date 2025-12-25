@@ -58,6 +58,16 @@ export const useAggregatedFields = (
         .map(v => new Date(v.lastObservedAt).getTime())
         .filter(t => !isNaN(t));
 
+      // Merge casing counts from all variants
+      const mergedCasingCounts: Record<string, number> = {};
+      variants.forEach(v => {
+        if (v.casingCounts) {
+          for (const [casing, count] of Object.entries(v.casingCounts)) {
+            mergedCasingCounts[casing] = (mergedCasingCounts[casing] ?? 0) + count;
+          }
+        }
+      });
+
       aggregated.push({
         fieldPath,
         variantCount: variants.length,
@@ -79,6 +89,7 @@ export const useAggregatedFields = (
           ? new Date(Math.max(...lastDates)).toISOString()
           : variants[0]?.lastObservedAt || '',
         contexts: Array.from(contextSet).sort(),
+        casingCounts: mergedCasingCounts,
       });
     });
 

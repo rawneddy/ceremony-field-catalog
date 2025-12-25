@@ -272,3 +272,19 @@ fieldOverrides:
 | `fillRate` | float | Override optional field fill rate (0.0-1.0) |
 | `repeatRange` | [int, int] | Override repeat count range |
 | `semanticType` | string | Override semantic type for this field |
+
+## XSD Best Practices
+
+### Optional Enum Elements Must Be Nillable
+
+When an XSD element uses an enumeration type AND is optional (`minOccurs="0"`), you MUST also add `nillable="true"`. This is because the generator's `emptyRate` setting can produce empty values, but empty strings are not valid enum values. Making the element nillable allows it to be represented as `xsi:nil="true"` instead of an empty string.
+
+```xml
+<!-- WRONG: Will fail validation if emptyRate produces empty value -->
+<xs:element name="Status" type="StatusEnum" minOccurs="0"/>
+
+<!-- CORRECT: Can be nil when empty -->
+<xs:element name="Status" type="StatusEnum" minOccurs="0" nillable="true"/>
+```
+
+This applies to all optional elements with enumeration types (Gender, Status, Type, Category, etc.).

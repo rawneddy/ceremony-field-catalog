@@ -3,6 +3,7 @@ import type { AggregatedField } from '../../types';
 import { ChevronUp, ChevronDown, Copy, Check } from 'lucide-react';
 import { Skeleton, EmptyState, TriStateBadge } from '../ui';
 import { config } from '../../config';
+import { getDominantCasing } from '../../utils/casingUtils';
 
 interface AggregatedFieldTableProps {
   results: AggregatedField[];
@@ -194,7 +195,10 @@ const AggregatedFieldTable: React.FC<AggregatedFieldTableProps> = ({
         </tr>
       </thead>
       <tbody className="divide-y divide-steel/50">
-        {sortedResults.map((field) => (
+        {sortedResults.map((field) => {
+          // Use dominant casing for display, fall back to canonical fieldPath
+          const displayPath = getDominantCasing(field.casingCounts, field.fieldPath);
+          return (
           <tr
             key={field.fieldPath}
             onClick={() => onSelectRow(field)}
@@ -204,11 +208,11 @@ const AggregatedFieldTable: React.FC<AggregatedFieldTableProps> = ({
           >
             <td className="px-4 py-3">
               <button
-                onClick={(e) => handleCopy(e, field.fieldPath)}
+                onClick={(e) => handleCopy(e, displayPath)}
                 className="text-slate-300 hover:text-ceremony transition-colors"
                 title="Copy XPath"
               >
-                {copiedPath === field.fieldPath ? (
+                {copiedPath === displayPath ? (
                   <Check className="w-4 h-4 text-mint" />
                 ) : (
                   <Copy className="w-4 h-4" />
@@ -216,7 +220,7 @@ const AggregatedFieldTable: React.FC<AggregatedFieldTableProps> = ({
               </button>
             </td>
             <td className="px-4 py-3 font-mono text-sm truncate">
-              {highlightMatch(field.fieldPath)}
+              {highlightMatch(displayPath)}
             </td>
             <td className="px-4 py-3 text-center">
               <span className="inline-flex items-center justify-center min-w-[2rem] bg-ceremony/10 text-ceremony px-2 py-0.5 rounded-full text-xs font-bold">
@@ -242,7 +246,8 @@ const AggregatedFieldTable: React.FC<AggregatedFieldTableProps> = ({
               {formatDate(field.lastObservedAt)}
             </td>
           </tr>
-        ))}
+        );
+        })}
       </tbody>
     </table>
   );
