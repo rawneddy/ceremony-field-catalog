@@ -1,4 +1,14 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getExpandedRowModel,
+  flexRender,
+  createColumnHelper,
+  type SortingState,
+  type ColumnResizeMode,
+} from '@tanstack/react-table';
 import type { CatalogEntry } from '../../types';
 import { ChevronUp, ChevronDown, ChevronRight, Copy, Check, AlertTriangle, Info, Layers } from 'lucide-react';
 import { Skeleton, EmptyState } from '../ui';
@@ -13,7 +23,6 @@ interface FieldTableProps {
   selectedId?: string;
   onSelectRow: (entry: CatalogEntry) => void;
   query?: string;
-  /** Field path to scroll to and auto-select after results load */
   highlightFieldPath?: string;
 }
 
@@ -36,6 +45,8 @@ if (!document.getElementById('field-attention-style')) {
   document.head.appendChild(attentionStyle);
 }
 
+const columnHelper = createColumnHelper<CatalogEntry>();
+
 const FieldTable: React.FC<FieldTableProps> = ({
   results,
   isLoading,
@@ -44,148 +55,25 @@ const FieldTable: React.FC<FieldTableProps> = ({
   query,
   highlightFieldPath
 }) => {
-  const [sortField, setSortField] = useState<keyof CatalogEntry | 'alerts' | 'count' | null>(null);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+  const [sorting, setSorting] = useState<SortingState>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [hasScrolledToHighlight, setHasScrolledToHighlight] = useState(false);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [columnResizeMode] = useState<ColumnResizeMode>('onChange');
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
 
-  // Hook for setting canonical casing
   const { setCanonicalCasing, isSettingCasing } = useSetCanonicalCasing();
 
-  // Compute field warnings once for all results (before sorting so we can sort by it)
+  // Compute field warnings once for all results
   const fieldWarnings = useMemo(() => {
     return computeAllFieldWarnings(results);
   }, [results]);
 
-  // Helper to get warning priority for sorting: warning=2, info=1, none=0
   const getWarningPriority = (fieldPath: string): number => {
     const warnings = fieldWarnings.get(fieldPath) || [];
     if (warnings.length === 0) return 0;
     if (warnings.some(w => w.severity === 'warning')) return 2;
-    return 1; // info
-  };
-
-  const sortedResults = useMemo(() => {
-    if (!sortField || !sortOrder) return results;
-
-    return [...results].sort((a, b) => {
-      // Special handling for alerts column
-      if (sortField === 'alerts') {
-        const aPriority = getWarningPriority(a.fieldPath);
-        const bPriority = getWarningPriority(b.fieldPath);
-        return sortOrder === 'asc'
-          ? bPriority - aPriority  // asc: warning → info → none
-          : aPriority - bPriority; // desc: none → info → warning
-      }
-
-      // Special handling for count column (total observations)
-      if (sortField === 'count') {
-        const aCount = getTotalObservations(a.casingCounts);
-        const bCount = getTotalObservations(b.casingCounts);
-        return sortOrder === 'asc' ? aCount - bCount : bCount - aCount;
-      }
-
-      const aVal = a[sortField];
-      const bVal = b[sortField];
-
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sortOrder === 'asc'
-          ? aVal.localeCompare(bVal)
-          : bVal.localeCompare(aVal);
-      }
-
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
-      }
-
-      if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
-        return sortOrder === 'asc'
-          ? (aVal === bVal ? 0 : aVal ? 1 : -1)
-          : (aVal === bVal ? 0 : bVal ? 1 : -1);
-      }
-
-      return 0;
-    });
-  }, [results, sortField, sortOrder, fieldWarnings]);
-
-  // Keyboard navigation
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (sortedResults.length === 0) return;
-      
-      // Don't navigate if user is typing in an input
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) {
-        return;
-      }
-
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        const currentIndex = sortedResults.findIndex(r => r.id === selectedId);
-        const nextIndex = currentIndex === -1 ? 0 : Math.min(currentIndex + 1, sortedResults.length - 1);
-        const nextResult = sortedResults[nextIndex];
-        if (nextResult) onSelectRow(nextResult);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        const currentIndex = sortedResults.findIndex(r => r.id === selectedId);
-        const prevIndex = currentIndex === -1 ? 0 : Math.max(currentIndex - 1, 0);
-        const prevResult = sortedResults[prevIndex];
-        if (prevResult) onSelectRow(prevResult);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [sortedResults, selectedId, onSelectRow]);
-
-  // Scroll to and select highlighted field after results load
-  useEffect(() => {
-    if (!highlightFieldPath || isLoading || hasScrolledToHighlight || results.length === 0) {
-      return;
-    }
-
-    // Find the entry with matching fieldPath
-    const targetEntry = results.find(r => r.fieldPath === highlightFieldPath);
-    if (!targetEntry) {
-      setHasScrolledToHighlight(true);
-      return;
-    }
-
-    // Select the row to open detail panel
-    onSelectRow(targetEntry);
-
-    // Scroll to the row after a brief delay to let the DOM update
-    setTimeout(() => {
-      const rowElement = rowRefs.current.get(targetEntry.id);
-      if (rowElement) {
-        rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Add attention animation after scroll completes
-        setTimeout(() => {
-          rowElement.classList.add('field-attention');
-        }, 300); // Wait for scroll to settle
-      }
-    }, 100);
-
-    setHasScrolledToHighlight(true);
-  }, [highlightFieldPath, isLoading, results, hasScrolledToHighlight, onSelectRow]);
-
-  // Reset scroll flag when highlight changes
-  useEffect(() => {
-    setHasScrolledToHighlight(false);
-  }, [highlightFieldPath]);
-
-  const handleSort = (field: keyof CatalogEntry | 'alerts' | 'count') => {
-    if (sortField === field) {
-      if (sortOrder === 'asc') setSortOrder('desc');
-      else if (sortOrder === 'desc') {
-        setSortField(null);
-        setSortOrder(null);
-      }
-    } else {
-      setSortField(field);
-      setSortOrder('asc');
-    }
+    return 1;
   };
 
   const handleCopy = (e: React.MouseEvent, path: string, id: string) => {
@@ -211,11 +99,9 @@ const FieldTable: React.FC<FieldTableProps> = ({
   const highlightMatch = (text: string) => {
     if (!query || query.length < 2) return text;
 
-    // Remove leading / for highlight if it's there
     const cleanQuery = query.startsWith('/') ? query.substring(1) : query;
     if (!cleanQuery) return text;
 
-    // Escape regex special characters to prevent errors with user input like "[test" or "(test"
     const escapedQuery = cleanQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     try {
@@ -229,6 +115,227 @@ const FieldTable: React.FC<FieldTableProps> = ({
       return text;
     }
   };
+
+  const columns = useMemo(() => [
+    columnHelper.display({
+      id: 'copy',
+      size: 48,
+      minSize: 48,
+      maxSize: 48,
+      enableResizing: false,
+      header: () => null,
+      cell: ({ row }) => {
+        const displayPath = getDisplayCasing(row.original.canonicalCasing, row.original.casingCounts, row.original.fieldPath);
+        const warnings = fieldWarnings.get(row.original.fieldPath) || [];
+        const hasWarnings = warnings.length > 0;
+        const isWarningSeverity = warnings.some(w => w.severity === 'warning');
+
+        return (
+          <div className={hasWarnings ? (isWarningSeverity ? 'border-l-4 border-l-amber-400 -ml-4 pl-4' : 'border-l-4 border-l-sky-300 -ml-4 pl-4') : ''}>
+            <button
+              onClick={(e) => handleCopy(e, displayPath, row.original.id)}
+              className="text-slate-300 hover:text-ceremony transition-colors"
+              title="Copy XPath"
+            >
+              {copiedId === row.original.id ? <Check className="w-4 h-4 text-mint" /> : <Copy className="w-4 h-4" />}
+            </button>
+          </div>
+        );
+      },
+    }),
+    columnHelper.accessor(row => getWarningPriority(row.fieldPath), {
+      id: 'alerts',
+      header: () => (
+        <div className="flex items-center gap-1">
+          <AlertTriangle className="w-3 h-3" />
+          <span>Alerts</span>
+        </div>
+      ),
+      size: 100,
+      minSize: 80,
+      sortDescFirst: true,
+      cell: ({ row }) => {
+        const warnings = fieldWarnings.get(row.original.fieldPath) || [];
+        return <WarningBadges warnings={warnings} />;
+      },
+    }),
+    columnHelper.accessor(row => getTotalObservations(row.casingCounts), {
+      id: 'count',
+      header: 'Count',
+      size: 90,
+      minSize: 70,
+      cell: ({ row }) => {
+        const totalCount = getTotalObservations(row.original.casingCounts);
+        const hasCasingVariants = hasMultipleCasings(row.original.casingCounts);
+        const hasCanonical = !!row.original.canonicalCasing;
+        const needsResolution = needsCasingResolution(row.original.casingCounts, row.original.canonicalCasing);
+        const isExpanded = expandedRows.has(row.original.id);
+
+        if (totalCount === 0) {
+          return <span className="text-sm text-slate-400">-</span>;
+        }
+
+        return (
+          <div className="flex items-center justify-center gap-1">
+            {hasCasingVariants && (
+              <button
+                onClick={(e) => toggleRowExpansion(e, row.original.id)}
+                className="text-slate-400 hover:text-ceremony transition-colors"
+                title="Show casing variants"
+              >
+                <ChevronRight className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+              </button>
+            )}
+            <span className="text-sm font-medium text-slate-600">{totalCount}</span>
+            {hasCasingVariants && (
+              hasCanonical ? (
+                <span title="Canonical casing set">
+                  <Check className="w-3 h-3 text-emerald-500" />
+                </span>
+              ) : needsResolution ? (
+                <span title="Needs casing resolution for export">
+                  <AlertTriangle className="w-3 h-3 text-amber-500" />
+                </span>
+              ) : (
+                <span title="Multiple casing variants">
+                  <Layers className="w-3 h-3 text-slate-400" />
+                </span>
+              )
+            )}
+          </div>
+        );
+      },
+    }),
+    columnHelper.accessor('fieldPath', {
+      header: 'Field Path',
+      size: 350,
+      minSize: 150,
+      cell: ({ row }) => {
+        const displayPath = getDisplayCasing(row.original.canonicalCasing, row.original.casingCounts, row.original.fieldPath);
+        return (
+          <span className="font-mono text-sm truncate block" title={displayPath}>
+            {highlightMatch(displayPath)}
+          </span>
+        );
+      },
+    }),
+    columnHelper.accessor('minOccurs', {
+      header: 'Min',
+      size: 70,
+      minSize: 50,
+      cell: ({ getValue }) => <span className="text-sm font-medium">{getValue()}</span>,
+    }),
+    columnHelper.accessor('maxOccurs', {
+      header: 'Max',
+      size: 70,
+      minSize: 50,
+      cell: ({ getValue }) => <span className="text-sm font-medium">{getValue()}</span>,
+    }),
+    columnHelper.accessor('allowsNull', {
+      header: 'Null?',
+      size: 80,
+      minSize: 60,
+      cell: ({ getValue }) => <BooleanBadge value={getValue()} />,
+    }),
+    columnHelper.accessor('allowsEmpty', {
+      header: 'Empty?',
+      size: 80,
+      minSize: 60,
+      cell: ({ getValue }) => <BooleanBadge value={getValue()} />,
+    }),
+    columnHelper.accessor('firstObservedAt', {
+      header: 'First Seen',
+      size: 150,
+      minSize: 120,
+      cell: ({ getValue }) => (
+        <span className="text-[10px] font-bold text-slate-500 font-mono">
+          {formatDate(getValue())}
+        </span>
+      ),
+    }),
+    columnHelper.accessor('lastObservedAt', {
+      header: 'Last Seen',
+      size: 150,
+      minSize: 120,
+      cell: ({ getValue }) => (
+        <span className="text-[10px] font-bold text-slate-500 font-mono">
+          {formatDate(getValue())}
+        </span>
+      ),
+    }),
+  ], [query, copiedId, fieldWarnings, expandedRows]);
+
+  const table = useReactTable({
+    data: results,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+    columnResizeMode,
+    enableColumnResizing: true,
+  });
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const rows = table.getRowModel().rows;
+      if (rows.length === 0) return;
+
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) {
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const currentIndex = rows.findIndex(r => r.original.id === selectedId);
+        const nextIndex = currentIndex === -1 ? 0 : Math.min(currentIndex + 1, rows.length - 1);
+        const nextRow = rows[nextIndex];
+        if (nextRow) onSelectRow(nextRow.original);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const currentIndex = rows.findIndex(r => r.original.id === selectedId);
+        const prevIndex = currentIndex === -1 ? 0 : Math.max(currentIndex - 1, 0);
+        const prevRow = rows[prevIndex];
+        if (prevRow) onSelectRow(prevRow.original);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [table, selectedId, onSelectRow]);
+
+  // Scroll to and select highlighted field
+  useEffect(() => {
+    if (!highlightFieldPath || isLoading || hasScrolledToHighlight || results.length === 0) {
+      return;
+    }
+
+    const targetEntry = results.find(r => r.fieldPath === highlightFieldPath);
+    if (!targetEntry) {
+      setHasScrolledToHighlight(true);
+      return;
+    }
+
+    onSelectRow(targetEntry);
+
+    setTimeout(() => {
+      const rowElement = rowRefs.current.get(targetEntry.id);
+      if (rowElement) {
+        rowElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+          rowElement.classList.add('field-attention');
+        }, 300);
+      }
+    }, 100);
+
+    setHasScrolledToHighlight(true);
+  }, [highlightFieldPath, isLoading, results, hasScrolledToHighlight, onSelectRow]);
+
+  useEffect(() => {
+    setHasScrolledToHighlight(false);
+  }, [highlightFieldPath]);
 
   if (isLoading) {
     return (
@@ -250,196 +357,91 @@ const FieldTable: React.FC<FieldTableProps> = ({
   }
 
   return (
-    <table className="w-full text-left border-collapse table-fixed">
-      <thead className="sticky top-0 bg-paper z-10 shadow-sm">
-        <tr className="border-b border-steel">
-          <th className="w-12 px-4 py-3"></th>
-          <th
-            className="w-28 px-2 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group"
-            onClick={() => handleSort('alerts')}
-          >
-            <div className="flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3" />
-              <span>Alerts</span>
-              <SortIcon active={sortField === 'alerts'} order={sortOrder} />
-            </div>
-          </th>
-          <th
-            className="w-20 px-2 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group text-center"
-            onClick={() => handleSort('count')}
-          >
-            <div className="flex items-center justify-center gap-1">
-              <span>Count</span>
-              <SortIcon active={sortField === 'count'} order={sortOrder} />
-            </div>
-          </th>
-          <th
-            className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group"
-            onClick={() => handleSort('fieldPath')}
-          >
-            <div className="flex items-center gap-2">
-              Field Path
-              <SortIcon active={sortField === 'fieldPath'} order={sortOrder} />
-            </div>
-          </th>
-          <th 
-            className="w-24 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group text-center"
-            onClick={() => handleSort('minOccurs')}
-          >
-            <div className="flex items-center justify-center gap-2">
-              Min
-              <SortIcon active={sortField === 'minOccurs'} order={sortOrder} />
-            </div>
-          </th>
-          <th 
-            className="w-24 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group text-center"
-            onClick={() => handleSort('maxOccurs')}
-          >
-            <div className="flex items-center justify-center gap-2">
-              Max
-              <SortIcon active={sortField === 'maxOccurs'} order={sortOrder} />
-            </div>
-          </th>
-          <th 
-            className="w-28 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group text-center"
-            onClick={() => handleSort('allowsNull')}
-          >
-            <div className="flex items-center justify-center gap-2">
-              Null?
-              <SortIcon active={sortField === 'allowsNull'} order={sortOrder} />
-            </div>
-          </th>
-          <th 
-            className="w-28 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group text-center"
-            onClick={() => handleSort('allowsEmpty')}
-          >
-            <div className="flex items-center justify-center gap-2">
-              Empty?
-              <SortIcon active={sortField === 'allowsEmpty'} order={sortOrder} />
-            </div>
-          </th>
-          <th 
-            className="w-40 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group text-center"
-            onClick={() => handleSort('firstObservedAt')}
-          >
-            <div className="flex items-center justify-center gap-2">
-              First Seen
-              <SortIcon active={sortField === 'firstObservedAt'} order={sortOrder} />
-            </div>
-          </th>
-          <th 
-            className="w-40 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 cursor-pointer hover:text-ink transition-colors group text-center"
-            onClick={() => handleSort('lastObservedAt')}
-          >
-            <div className="flex items-center justify-center gap-2">
-              Last Seen
-              <SortIcon active={sortField === 'lastObservedAt'} order={sortOrder} />
-            </div>
-          </th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-steel/50">
-        {sortedResults.map((entry) => {
-          const warnings = fieldWarnings.get(entry.fieldPath) || [];
-          const hasWarnings = warnings.length > 0;
-          const isWarningSeverity = hasWarningSeverity(warnings);
-          const displayPath = getDisplayCasing(entry.canonicalCasing, entry.casingCounts, entry.fieldPath);
-          const totalCount = getTotalObservations(entry.casingCounts);
-          const hasCasingVariants = hasMultipleCasings(entry.casingCounts);
-          const hasCanonical = !!entry.canonicalCasing;
-          const needsResolution = needsCasingResolution(entry.casingCounts, entry.canonicalCasing);
-          const isExpanded = expandedRows.has(entry.id);
+    <div className="overflow-x-auto">
+      <table
+        className="w-full text-left border-collapse"
+        style={{ width: table.getCenterTotalSize() }}
+      >
+        <thead className="sticky top-0 bg-paper z-10 shadow-sm">
+          {table.getHeaderGroups().map(headerGroup => (
+            <tr key={headerGroup.id} className="border-b border-steel">
+              {headerGroup.headers.map(header => (
+                <th
+                  key={header.id}
+                  className={`relative px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 border-r border-slate-200 last:border-r-0 ${
+                    header.column.getCanSort() ? 'cursor-pointer hover:text-ink transition-colors group' : ''
+                  } ${['copy', 'fieldPath', 'alerts'].includes(header.id) ? '' : 'text-center'}`}
+                  style={{ width: header.getSize() }}
+                  onClick={header.column.getToggleSortingHandler()}
+                >
+                  <div className={`flex items-center gap-2 ${['copy', 'fieldPath', 'alerts'].includes(header.id) ? '' : 'justify-center'}`}>
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.column.getCanSort() && (
+                      <SortIcon direction={header.column.getIsSorted()} />
+                    )}
+                  </div>
+                  {header.column.getCanResize() && (
+                    <div
+                      onMouseDown={header.getResizeHandler()}
+                      onTouchStart={header.getResizeHandler()}
+                      className={`absolute right-0 top-0 h-full w-2 cursor-col-resize select-none touch-none
+                        bg-gradient-to-r from-transparent via-slate-300 to-transparent
+                        hover:via-ceremony/60 active:via-ceremony
+                        ${header.column.getIsResizing() ? 'via-ceremony' : ''}`}
+                      style={{ transform: 'translateX(50%)' }}
+                    />
+                  )}
+                </th>
+              ))}
+            </tr>
+          ))}
+        </thead>
+        <tbody className="divide-y divide-steel/50">
+          {table.getRowModel().rows.map(row => {
+            const warnings = fieldWarnings.get(row.original.fieldPath) || [];
+            const hasWarnings = warnings.length > 0;
+            const isWarningSeverity = warnings.some(w => w.severity === 'warning');
+            const hasCasingVariants = hasMultipleCasings(row.original.casingCounts);
+            const isExpanded = expandedRows.has(row.original.id);
 
-          return (
-          <React.Fragment key={entry.id}>
-          <tr
-            ref={(el) => {
-              if (el) rowRefs.current.set(entry.id, el);
-              else rowRefs.current.delete(entry.id);
-            }}
-            onClick={() => onSelectRow(entry)}
-            className={`group hover:bg-ceremony/5 cursor-pointer transition-colors ${
-              selectedId === entry.id ? 'bg-ceremony/10' : ''
-            } ${highlightFieldPath === entry.fieldPath ? 'field-highlighted' : ''} ${
-              hasWarnings ? (isWarningSeverity ? 'bg-amber-50/50' : 'bg-sky-50/30') : ''
-            }`}
-          >
-            <td className={`px-4 py-3 ${hasWarnings ? (isWarningSeverity ? 'border-l-4 border-l-amber-400' : 'border-l-4 border-l-sky-300') : ''}`}>
-              <button
-                onClick={(e) => handleCopy(e, displayPath, entry.id)}
-                className="text-slate-300 hover:text-ceremony transition-colors"
-                title="Copy XPath"
-              >
-                {copiedId === entry.id ? <Check className="w-4 h-4 text-mint" /> : <Copy className="w-4 h-4" />}
-              </button>
-            </td>
-            <td className="px-2 py-3">
-              <WarningBadges warnings={warnings} />
-            </td>
-            <td className="px-2 py-3 text-center">
-              {totalCount > 0 ? (
-                <div className="flex items-center justify-center gap-1">
-                  {hasCasingVariants && (
-                    <button
-                      onClick={(e) => toggleRowExpansion(e, entry.id)}
-                      className="text-slate-400 hover:text-ceremony transition-colors"
-                      title="Show casing variants"
+            return (
+              <React.Fragment key={row.original.id}>
+                <tr
+                  ref={(el) => {
+                    if (el) rowRefs.current.set(row.original.id, el);
+                    else rowRefs.current.delete(row.original.id);
+                  }}
+                  onClick={() => onSelectRow(row.original)}
+                  className={`group hover:bg-ceremony/5 cursor-pointer transition-colors ${
+                    selectedId === row.original.id ? 'bg-ceremony/10' : ''
+                  } ${highlightFieldPath === row.original.fieldPath ? 'field-highlighted' : ''} ${
+                    hasWarnings ? (isWarningSeverity ? 'bg-amber-50/50' : 'bg-sky-50/30') : ''
+                  }`}
+                >
+                  {row.getVisibleCells().map(cell => (
+                    <td
+                      key={cell.id}
+                      className={`px-4 py-3 border-r border-slate-100 last:border-r-0 ${['copy', 'fieldPath', 'alerts'].includes(cell.column.id) ? '' : 'text-center'}`}
+                      style={{ width: cell.column.getSize() }}
                     >
-                      <ChevronRight className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                    </button>
-                  )}
-                  <span className="text-sm font-medium text-slate-600">{totalCount}</span>
-                  {hasCasingVariants && (
-                    hasCanonical ? (
-                      <span title="Canonical casing set">
-                        <Check className="w-3 h-3 text-emerald-500" />
-                      </span>
-                    ) : needsResolution ? (
-                      <span title="Needs casing resolution for export">
-                        <AlertTriangle className="w-3 h-3 text-amber-500" />
-                      </span>
-                    ) : (
-                      <span title="Multiple casing variants">
-                        <Layers className="w-3 h-3 text-slate-400" />
-                      </span>
-                    )
-                  )}
-                </div>
-              ) : (
-                <span className="text-sm text-slate-400">-</span>
-              )}
-            </td>
-            <td className="px-4 py-3 font-mono text-sm truncate" title={displayPath}>
-              {highlightMatch(displayPath)}
-            </td>
-            <td className="px-4 py-3 text-center text-sm font-medium">{entry.minOccurs}</td>
-            <td className="px-4 py-3 text-center text-sm font-medium">{entry.maxOccurs}</td>
-            <td className="px-4 py-3 text-center">
-              <BooleanBadge value={entry.allowsNull} />
-            </td>
-            <td className="px-4 py-3 text-center">
-              <BooleanBadge value={entry.allowsEmpty} />
-            </td>
-            <td className="px-4 py-3 text-center text-[10px] font-bold text-slate-500 font-mono">
-              {formatDate(entry.firstObservedAt)}
-            </td>
-            <td className="px-4 py-3 text-center text-[10px] font-bold text-slate-500 font-mono">
-              {formatDate(entry.lastObservedAt)}
-            </td>
-          </tr>
-          {/* Expanded casing variants */}
-          {isExpanded && hasCasingVariants && (
-            <CasingVariantRows
-              entry={entry}
-              onSetCanonical={(casing) => setCanonicalCasing({ fieldId: entry.id, canonicalCasing: casing })}
-              isSettingCasing={isSettingCasing}
-            />
-          )}
-          </React.Fragment>
-          );
-        })}
-      </tbody>
-    </table>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+                {isExpanded && hasCasingVariants && (
+                  <CasingVariantRows
+                    entry={row.original}
+                    onSetCanonical={(casing) => setCanonicalCasing({ fieldId: row.original.id, canonicalCasing: casing })}
+                    isSettingCasing={isSettingCasing}
+                    colSpan={columns.length}
+                  />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 };
 
@@ -456,9 +458,11 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const SortIcon = ({ active, order }: { active: boolean; order: 'asc' | 'desc' | null }) => {
-  if (!active) return <ChevronDown className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100" />;
-  return order === 'asc' ? <ChevronUp className="w-3 h-3 text-ceremony" /> : <ChevronDown className="w-3 h-3 text-ceremony" />;
+const SortIcon = ({ direction }: { direction: false | 'asc' | 'desc' }) => {
+  if (!direction) return <ChevronDown className="w-3 h-3 text-slate-300 opacity-0 group-hover:opacity-100" />;
+  return direction === 'asc'
+    ? <ChevronUp className="w-3 h-3 text-ceremony" />
+    : <ChevronDown className="w-3 h-3 text-ceremony" />;
 };
 
 const BooleanBadge = ({ value }: { value: boolean }) => (
@@ -469,13 +473,9 @@ const BooleanBadge = ({ value }: { value: boolean }) => (
   </span>
 );
 
-/**
- * Displays a single warning badge for a field - prioritizes warnings over info.
- */
 const WarningBadges = ({ warnings }: { warnings: FieldWarning[] }) => {
   if (warnings.length === 0) return null;
 
-  // Priority: show warning severity first, then info
   const primaryWarning = warnings.find(w => w.severity === 'warning') || warnings[0]!;
 
   const tooltipText = warnings
@@ -501,24 +501,14 @@ const WarningBadges = ({ warnings }: { warnings: FieldWarning[] }) => {
   );
 };
 
-/**
- * Returns true if any warning has 'warning' severity.
- */
-const hasWarningSeverity = (warnings: FieldWarning[]): boolean => {
-  return warnings.some(w => w.severity === 'warning');
-};
-
 interface CasingVariantRowsProps {
   entry: CatalogEntry;
   onSetCanonical: (casing: string | null) => void;
   isSettingCasing: boolean;
+  colSpan: number;
 }
 
-/**
- * Renders inline sub-rows showing casing variants with their counts.
- * Includes make/clear canonical actions.
- */
-const CasingVariantRows: React.FC<CasingVariantRowsProps> = ({ entry, onSetCanonical, isSettingCasing }) => {
+const CasingVariantRows: React.FC<CasingVariantRowsProps> = ({ entry, onSetCanonical, isSettingCasing, colSpan }) => {
   const variants = getSortedCasingVariants(entry.casingCounts);
 
   return (
@@ -531,13 +521,12 @@ const CasingVariantRows: React.FC<CasingVariantRowsProps> = ({ entry, onSetCanon
             key={`${entry.id}-${casing}`}
             className="bg-slate-50/50"
           >
-            {/* Empty cells for alignment */}
             <td className="px-4 py-2 border-l-4 border-l-slate-200"></td>
             <td className="px-2 py-2"></td>
             <td className="px-2 py-2 text-center">
               <span className="text-xs font-medium text-slate-500">{count}</span>
             </td>
-            <td className="px-4 py-2 pl-8" colSpan={7}>
+            <td className="px-4 py-2 pl-8" colSpan={colSpan - 3}>
               <div className="flex items-center gap-3">
                 <span className={`font-mono text-xs ${isCanonical ? 'text-emerald-700 font-semibold' : 'text-slate-600'}`}>
                   {casing}
